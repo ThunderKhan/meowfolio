@@ -150,6 +150,7 @@ export class MeowfolioRepository {
     const db = await this.open();
 
     const tx = db.transaction([CATS, ENCOUNTERS], 'readwrite');
+    const done = transactionDone(tx);
     const cats = tx.objectStore(CATS);
     const encounters = tx.objectStore(ENCOUNTERS);
 
@@ -168,7 +169,7 @@ export class MeowfolioRepository {
           | undefined;
         if (!existingCat) throw new CatNotFoundError(existingEncounter.catId);
 
-        await transactionDone(tx);
+        await done;
         return {
           cat: cloneCat(existingCat),
           encounter: existingEncounter,
@@ -233,7 +234,7 @@ export class MeowfolioRepository {
       };
 
       await request(encounters.add(encounter));
-      await transactionDone(tx);
+      await done;
 
       return {
         cat: cloneCat(cat),
@@ -249,7 +250,7 @@ export class MeowfolioRepository {
         }
       }
       try {
-        await transactionDone(tx);
+        await done;
       } catch {
         // Preserve the original domain/storage error below.
       }
