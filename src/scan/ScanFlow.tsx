@@ -116,6 +116,7 @@ export function ScanFlow({
   const [state, dispatch] = useReducer(scanReducer, undefined, () => createScanState());
   const [modelsReady, setModelsReady] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [photoValidationError, setPhotoValidationError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const stateRef = useRef<ScanState>(state);
   const activeRequestRef = useRef<string | null>(null);
@@ -331,12 +332,27 @@ export function ScanFlow({
     }
   }
 
-  function onPhotoChange(event: ChangeEvent<HTMLInputElement>): void {
-    const file = event.target.files?.[0];
+  async function onPhotoChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = '';
     if (!file) return;
+
     clearWarmTimers();
     cancelActive();
-    dispatch({ type: 'SET_PHOTO', photo: file });
+    setPhotoValidationError(null);
+
+    try {
+      const bitmap = await createImageBitmap(file);
+      const valid = bitmap.width > 0 && bitmap.height > 0;
+      bitmap.close();
+      if (!valid) throw new Error('Image has no usable dimensions.');
+      dispatch({ type: 'SET_PHOTO', photo: file });
+    } catch {
+      setPhotoValidationError(
+        'I couldn’t read that image. Choose another photo in a format your browser can open.',
+      );
+    }
   }
 
   function goBack(): void {
@@ -381,6 +397,11 @@ export function ScanFlow({
     window.history.pushState(marker, '', window.location.href);
 
     const onPopState = () => {
+      const current = stateRef.current;
+      if (current.step === 'preview' && !current.photo) {
+        onExit();
+        return;
+      }
       goBack();
       window.history.pushState(marker, '', window.location.href);
     };
@@ -430,7 +451,7 @@ export function ScanFlow({
         accept="image/*"
         capture="environment"
         className="sr-only"
-        onChange={onPhotoChange}
+        onChange={(event) => void onPhotoChange(event)}
       />
 
       <header className="mb-5 flex items-center justify-between gap-3">
@@ -480,6 +501,11 @@ export function ScanFlow({
             Meowfolio looks for the cat locally on this device. You decide who the cat is.
           </p>
           <div className="mt-6">{photoPanel}</div>
+          {photoValidationError && (
+            <p role="alert" className="mt-3 rounded-xl border border-[#c96b4b]/30 bg-[#fff7f2] px-4 py-3 text-sm text-[#8d3f31]">
+              {photoValidationError}
+            </p>
+          )}
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <ActionButton variant="secondary" onClick={() => fileInputRef.current?.click()}>
               {state.photo ? 'Choose another photo' : 'Take or choose photo'}
