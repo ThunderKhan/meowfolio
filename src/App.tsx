@@ -1,391 +1,192 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
-import { cropImageBlob } from './browser/images';
-import { AiClient } from './ai/client';
-import {
-  MODEL_MANIFEST,
-  type Detection,
-  type ExecutionProvider,
-  type WorkerResponse,
-} from './ai/shared';
+import { useEffect, useMemo, useState } from 'react';
+import { AiClient, type AiGateway } from './ai/client';
+import { MockAiClient, type MockScenario } from './ai/mockClient';
+import { MODEL_MANIFEST } from './ai/shared';
+import { ScanFlow } from './scan/ScanFlow';
+import type { CatReference, MatchingPolicy } from './scan/matching';
 
-type ProviderChoice = 'auto' | ExecutionProvider;
+const WELCOME_KEY = 'meowfolio.welcome-complete';
 
-interface SpikeMetrics {
-  initializationMs?: number;
-  detectionMs?: number;
-  embeddingMs?: number;
-  provider?: ExecutionProvider;
-  dimension?: number;
-}
+function testCatalog(mode: string | null): CatReference[] {
+  if (!mode) return [];
 
-function formatMs(value?: number): string {
-  return value === undefined ? '—' : Math.round(value) + ' ms';
-}
+  const sharedSpace = {
+    modelId: MODEL_MANIFEST.embedder.id,
+    revision: MODEL_MANIFEST.embedder.revision,
+    dtype: MODEL_MANIFEST.embedder.dtype.wasm,
+    preprocessingVersion: 1,
+    dimension: 384,
+    pooling: 'cls-token' as const,
+  };
 
-function shortRevision(value: string): string {
-  return value.slice(0, 8);
+  const matching = Array.from({ length: 384 }, (_, index) => (index === 0 ? 1 : 0));
+  const different = Array.from({ length: 384 }, (_, index) => (index === 1 ? 1 : 0));
+
+  return [
+    {
+      id: 'fixture-mochi',
+      name: 'Mochi',
+      encounterCount: 3,
+      referenceEmbedding: mode === 'familiar' ? matching : different,
+      embeddingSpace: sharedSpace,
+    },
+    {
+      id: 'fixture-pepper',
+      name: 'Pepper',
+      encounterCount: 2,
+      referenceEmbedding: different,
+      embeddingSpace: sharedSpace,
+    },
+  ];
 }
 
 export function App() {
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [cropUrl, setCropUrl] = useState<string | null>(null);
-  const [provider, setProvider] = useState<ProviderChoice>('auto');
-  const [status, setStatus] = useState('Choose a cat photo to begin.');
-  const [needsConsent, setNeedsConsent] = useState(false);
-  const [modelsReady, setModelsReady] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [detections, setDetections] = useState<Detection[]>([]);
-  const [metrics, setMetrics] = useState<SpikeMetrics>({});
-  const [networkLog, setNetworkLog] = useState<string[]>([]);
-  const [client, setClient] = useState<AiClient | null>(null);
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  const e2eEnabled = import.meta.env.VITE_E2E === '1';
+  const mockScenario = e2eEnabled ? params.get('mockAi') : null;
+  const catalogMode = e2eEnabled ? params.get('catalog') : null;
 
-  useEffect(() => {
-    const nextClient = new AiClient((message: WorkerResponse) => {
-      if (message.type === 'MODEL_PROGRESS') {
-        const suffix =
-          typeof message.progress === 'number'
-            ? ' ' + Math.round(message.progress) + '%'
-            : message.file
-              ? ' ' + message.file
-              : '';
-        setStatus('Preparing ' + message.model + '…' + suffix);
-      }
-
-      if (message.type === 'PROCESSING_STAGE') {
-        setStatus(
-          message.stage === 'detecting'
-            ? 'Looking for cats locally…'
-            : message.stage === 'embedding'
-              ? 'Creating the visual fingerprint locally…'
-              : 'Reading the photo locally…',
-        );
-      }
-
-      if (message.type === 'NETWORK_ACTIVITY') {
-        try {
-          const url = new URL(message.url);
-          setNetworkLog((current) => [
-            ...current.slice(-7),
-            (message.allowed ? '✓ ' : '✕ ') + message.category + ' · ' + url.host + url.pathname,
-          ]);
-        } catch {
-          // Diagnostic-only; ignore malformed URLs.
-        }
-      }
-
-      if (message.type === 'ERROR') setStatus(message.message);
-    });
-
-    setClient(nextClient);
-    return () => nextClient.dispose();
-  }, []);
-
-  useEffect(() => {
-    if (!photo) {
-      setPreviewUrl(null);
-      return undefined;
+  const [ai] = useState<AiGateway>(() =>
+    mockScenario
+      ? new MockAiClient(mockScenario as MockScenario)
+      : new AiClient(),
+  );
+  const [welcomeComplete, setWelcomeComplete] = useState(() => {
+    if (e2eEnabled && params.get('skipWelcome') === '1') return true;
+    try {
+      return window.localStorage.getItem(WELCOME_KEY) === '1';
+    } catch {
+      return false;
     }
-    const url = URL.createObjectURL(photo);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [photo]);
+  });
+  const [scanning, setScanning] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (cropUrl) URL.revokeObjectURL(cropUrl);
-    };
-  }, [cropUrl]);
+  const cats = useMemo(() => testCatalog(catalogMode), [catalogMode]);
+  const matchingPolicy: MatchingPolicy = useMemo(
+    () =>
+      e2eEnabled && catalogMode === 'familiar'
+        ? { enabled: true, threshold: 0.9, minimumMargin: 0.05 }
+        : { enabled: false },
+    [catalogMode, e2eEnabled],
+  );
 
-  const providerLabel = useMemo(() => {
-    if (provider === 'auto') return 'Auto (prefer WebGPU)';
-    return provider === 'webgpu' ? 'WebGPU' : 'WASM / CPU';
-  }, [provider]);
+  useEffect(() => () => ai.dispose(), [ai]);
 
-  function resetForPhoto(file: File | null): void {
-    setPhoto(file);
-    setDetections([]);
-    setNeedsConsent(false);
-    setMetrics({});
-    setStatus(file ? 'Photo ready. Nothing has been uploaded.' : 'Choose a cat photo to begin.');
-    if (cropUrl) {
-      URL.revokeObjectURL(cropUrl);
-      setCropUrl(null);
+  function completeWelcome(): void {
+    setWelcomeComplete(true);
+    try {
+      window.localStorage.setItem(WELCOME_KEY, '1');
+    } catch {
+      // The welcome preference is convenience only; storage failure never blocks use.
     }
   }
 
-  async function runDetection(): Promise<void> {
-    if (!photo || !client) return;
-    setStatus('Looking for cats locally…');
-    const result = await client.detect(photo);
-    setDetections(result.detections);
-    setMetrics((current) => ({ ...current, detectionMs: result.elapsedMs }));
-    setStatus(
-      result.detections.length === 0
-        ? 'No cat detected. Try a clearer photo where the cat fills more of the frame.'
-        : result.detections.length === 1
-          ? 'One cat found. Use the crop to prove the embedding path.'
-          : result.detections.length + ' cats found. Choose the cat you mean.',
+  if (!welcomeComplete) {
+    return (
+      <main className="mx-auto grid min-h-screen max-w-5xl items-center px-4 py-10 sm:px-6">
+        <section className="paper-shadow overflow-hidden rounded-[34px] border border-black/10 bg-[#fffdf8]">
+          <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="p-7 sm:p-10 lg:p-14">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#2f6b4f]">
+                Meowfolio
+              </p>
+              <h1 className="mt-4 max-w-xl font-serif text-5xl font-semibold leading-[1.04] sm:text-6xl">
+                Remember the cats you meet outside.
+              </h1>
+              <p className="mt-6 max-w-xl text-lg leading-8 text-[#6d625a]">
+                Build a private scrapbook of real cat encounters. Meowfolio uses local visual AI
+                to find the cat in your photo and help you connect later meetings. You always
+                decide who the cat is.
+              </p>
+              <div className="mt-8 rounded-2xl border border-[#2f6b4f]/20 bg-[#f3f8f4] p-4 text-sm leading-6 text-[#4d5f54]">
+                <strong className="text-[#1f1a17]">Private by default.</strong> Photos, embeddings,
+                names, and optional encounter details stay in your browser scrapbook. The first
+                scan may need to download local AI model files.
+              </div>
+              <button
+                type="button"
+                onClick={completeWelcome}
+                className="mt-8 min-h-12 rounded-xl bg-[#2f6b4f] px-6 py-3 font-semibold text-white"
+              >
+                Start my Meowfolio
+              </button>
+            </div>
+
+            <div className="relative min-h-72 overflow-hidden bg-[#e8efe8] p-8 lg:min-h-full">
+              <div className="absolute -right-10 top-10 h-44 w-44 rounded-full border-[24px] border-[#c96b4b]/15" />
+              <div className="absolute bottom-8 left-8 rotate-[-4deg] rounded-2xl bg-white p-5 shadow-xl">
+                <p className="font-serif text-3xl">🐈</p>
+                <p className="mt-8 font-serif text-2xl font-semibold">Mochi</p>
+                <p className="mt-1 text-sm text-[#6d625a]">Met again on your evening walk</p>
+              </div>
+              <div className="absolute right-8 top-16 rotate-[5deg] rounded-2xl border border-black/10 bg-[#faf7f0] px-5 py-4 shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#2f6b4f]">
+                  Field note
+                </p>
+                <p className="mt-2 max-w-40 font-serif text-xl">The orange one by the garden wall.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     );
   }
 
-  async function startFindCat(): Promise<void> {
-    if (!photo || !client || busy) return;
-    setBusy(true);
-    setNetworkLog([]);
-    try {
-      if (!modelsReady) {
-        setStatus('Checking the real browser cache…');
-        const cache = await client.checkAssets(provider);
-        if (!cache.ready) {
-          setNeedsConsent(true);
-          setStatus('Local AI files are missing. Download permission is required.');
-          return;
-        }
-        setModelsReady(true);
-        setMetrics((current) => ({ ...current, provider: cache.provider }));
-      }
-      await runDetection();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not prepare local AI.';
-      if (message.includes('CONSENT_REQUIRED')) {
-        setNeedsConsent(true);
-        setStatus('Local AI files are missing. Download permission is required.');
-      } else {
-        setStatus(message);
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function downloadAndContinue(): Promise<void> {
-    if (!photo || !client || busy) return;
-    setBusy(true);
-    setNetworkLog([]);
-    try {
-      setStatus('Downloading and initializing local AI…');
-      const ready = await client.loadModels(provider, true);
-      setModelsReady(true);
-      setNeedsConsent(false);
-      setMetrics((current) => ({
-        ...current,
-        initializationMs: ready.elapsedMs,
-        provider: ready.provider,
-      }));
-      await runDetection();
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Model preparation failed.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function embedDetection(detection: Detection): Promise<void> {
-    if (!photo || !client || busy) return;
-    setBusy(true);
-    try {
-      const crop = await cropImageBlob(photo, detection.box);
-      if (cropUrl) URL.revokeObjectURL(cropUrl);
-      setCropUrl(URL.createObjectURL(crop));
-      const result = await client.embed(crop);
-      setMetrics((current) => ({
-        ...current,
-        embeddingMs: result.elapsedMs,
-        provider: result.provider,
-        dimension: result.dimension,
-      }));
-      setStatus(
-        'Local pipeline complete: cat crop → normalized ' +
-          result.dimension +
-          '-value DINOv2 embedding.',
-      );
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Embedding failed.');
-    } finally {
-      setBusy(false);
-    }
+  if (scanning) {
+    return (
+      <ScanFlow
+        ai={ai}
+        cats={cats}
+        matchingPolicy={matchingPolicy}
+        onExit={() => setScanning(false)}
+      />
+    );
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      <header className="mb-8 max-w-3xl">
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.22em] text-[#2f6b4f]">
-          Meowfolio · local-AI feasibility spike
-        </p>
-        <h1 className="font-serif text-4xl font-semibold leading-tight sm:text-6xl">
-          Prove the cat pipeline before building the scrapbook.
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg leading-8 text-[#6d625a]">
-          Your photo stays in this browser. The first run may download pinned AI files only after
-          you explicitly allow it.
-        </p>
+    <main className="mx-auto min-h-screen max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+      <header className="flex items-start justify-between gap-5">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#2f6b4f]">
+            Meowfolio
+          </p>
+          <h1 className="mt-2 font-serif text-4xl font-semibold sm:text-5xl">Your cat scrapbook</h1>
+        </div>
+        <button
+          type="button"
+          onClick={() => setScanning(true)}
+          className="min-h-12 rounded-xl bg-[#2f6b4f] px-5 py-3 font-semibold text-white"
+        >
+          Spot a cat
+        </button>
       </header>
 
-      <section className="paper-shadow grid gap-6 rounded-[28px] border border-black/10 bg-white p-5 sm:p-7 lg:grid-cols-[1.2fr_0.8fr]">
-        <div>
-          <label className="mb-2 block text-sm font-semibold" htmlFor="cat-photo">
-            Cat photo
-          </label>
-          <input
-            id="cat-photo"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="block min-h-12 w-full rounded-xl border border-black/15 bg-[#faf7f0] px-3 py-2"
-            onChange={(event: ChangeEvent<HTMLInputElement>) =>
-              resetForPhoto(event.target.files?.[0] ?? null)
-            }
-          />
-
-          <div className="mt-5 overflow-hidden rounded-2xl border border-black/10 bg-[#f2eee5]">
-            {previewUrl ? (
-              <img
-                src={previewUrl}
-                alt="Selected cat encounter preview"
-                className="max-h-[520px] w-full object-contain"
-              />
-            ) : (
-              <div className="grid min-h-64 place-items-center px-6 text-center text-[#6d625a]">
-                Choose or take a photo. No model downloads happen just by opening Meowfolio.
-              </div>
-            )}
+      <section className="paper-shadow mt-8 rounded-[30px] border border-black/10 bg-[#fffdf8] p-6 sm:p-10">
+        <div className="mx-auto max-w-xl py-10 text-center">
+          <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#e8efe8] text-4xl">
+            🐾
           </div>
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <select
-              aria-label="Execution provider"
-              value={provider}
-              disabled={busy}
-              onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-                setProvider(event.target.value as ProviderChoice);
-                setModelsReady(false);
-              }}
-              className="min-h-12 rounded-xl border border-black/15 bg-white px-3"
-            >
-              <option value="auto">Auto · prefer WebGPU</option>
-              <option value="webgpu">WebGPU</option>
-              <option value="wasm">WASM / CPU</option>
-            </select>
-            <button
-              type="button"
-              disabled={!photo || !client || busy}
-              onClick={startFindCat}
-              className="min-h-12 flex-1 rounded-xl bg-[#2f6b4f] px-5 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {busy ? 'Working locally…' : 'Find the cat'}
-            </button>
-          </div>
-
-          {needsConsent && (
-            <div className="mt-5 rounded-2xl border border-[#c96b4b]/30 bg-[#fff8f4] p-4">
-              <h2 className="font-serif text-xl font-semibold">Preparing local AI</h2>
-              <p className="mt-2 leading-6 text-[#6d625a]">
-                Required detector and visual-embedding files are not fully cached. Downloading
-                them can use noticeable data. The photo itself is not sent to Hugging Face for
-                inference.
-              </p>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={downloadAndContinue}
-                className="mt-4 min-h-12 rounded-xl bg-[#c96b4b] px-5 py-3 font-semibold text-white"
-              >
-                Download models &amp; continue
-              </button>
-            </div>
-          )}
-
-          <p
-            data-testid="status"
-            aria-live="polite"
-            className="mt-5 rounded-xl border border-black/10 bg-[#faf7f0] px-4 py-3 text-sm leading-6"
-          >
-            {status}
+          <h2 className="mt-6 font-serif text-3xl font-semibold">
+            {cats.length === 0 ? 'Your first cat is still out there.' : 'Your test scrapbook is ready.'}
+          </h2>
+          <p className="mt-3 leading-7 text-[#6d625a]">
+            {cats.length === 0
+              ? 'Next time you spot one, take a photo. Meowfolio will find the cat locally, then you decide how to remember them.'
+              : 'Controlled browser fixtures are active for this verification build.'}
           </p>
+          <button
+            type="button"
+            onClick={() => setScanning(true)}
+            className="mt-6 min-h-12 rounded-xl bg-[#2f6b4f] px-6 py-3 font-semibold text-white"
+          >
+            Spot a cat
+          </button>
         </div>
-
-        <aside className="space-y-5">
-          <div className="rounded-2xl border border-black/10 bg-[#faf7f0] p-4">
-            <h2 className="font-serif text-2xl font-semibold">Spike evidence</h2>
-            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-              <dt className="text-[#6d625a]">Requested provider</dt>
-              <dd className="text-right font-medium">{providerLabel}</dd>
-              <dt className="text-[#6d625a]">Actual provider</dt>
-              <dd className="text-right font-medium">{metrics.provider ?? '—'}</dd>
-              <dt className="text-[#6d625a]">Initialization</dt>
-              <dd className="text-right font-medium">{formatMs(metrics.initializationMs)}</dd>
-              <dt className="text-[#6d625a]">Detection</dt>
-              <dd className="text-right font-medium">{formatMs(metrics.detectionMs)}</dd>
-              <dt className="text-[#6d625a]">Embedding</dt>
-              <dd className="text-right font-medium">{formatMs(metrics.embeddingMs)}</dd>
-              <dt className="text-[#6d625a]">Embedding dimension</dt>
-              <dd className="text-right font-medium">{metrics.dimension ?? '—'}</dd>
-            </dl>
-          </div>
-
-          <div className="rounded-2xl border border-black/10 bg-white p-4">
-            <h2 className="font-serif text-xl font-semibold">Detected cats</h2>
-            {detections.length === 0 ? (
-              <p className="mt-2 text-sm leading-6 text-[#6d625a]">No crop is available yet.</p>
-            ) : (
-              <div className="mt-3 space-y-2">
-                {detections.map((detection, index) => (
-                  <button
-                    key={detection.id}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => embedDetection(detection)}
-                    className="flex min-h-12 w-full items-center justify-between rounded-xl border border-black/10 px-3 py-2 text-left hover:bg-[#faf7f0]"
-                  >
-                    <span>Cat {index + 1}</span>
-                    <span className="text-sm text-[#6d625a]">
-                      detector score {detection.score.toFixed(2)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {cropUrl && (
-              <img
-                src={cropUrl}
-                alt="Selected detected cat crop"
-                className="mt-4 max-h-64 w-full rounded-xl border border-black/10 object-contain"
-              />
-            )}
-          </div>
-
-          <details className="rounded-2xl border border-black/10 bg-white p-4">
-            <summary className="cursor-pointer font-semibold">Pinned model candidates</summary>
-            <div className="mt-3 space-y-3 text-sm leading-6 text-[#6d625a]">
-              <p>
-                Detector: {MODEL_MANIFEST.detector.id} @{' '}
-                {shortRevision(MODEL_MANIFEST.detector.revision)}
-              </p>
-              <p>{MODEL_MANIFEST.detector.releaseNote}</p>
-              <p>
-                Embedder: {MODEL_MANIFEST.embedder.id} @{' '}
-                {shortRevision(MODEL_MANIFEST.embedder.revision)}
-              </p>
-            </div>
-          </details>
-
-          <details className="rounded-2xl border border-black/10 bg-white p-4">
-            <summary className="cursor-pointer font-semibold">AI network audit</summary>
-            <p className="mt-2 text-xs leading-5 text-[#6d625a]">
-              These are model/runtime requests observed through the configured Transformers.js
-              fetch boundary. DevTools Network remains the final audit because runtime downloads
-              can bypass library hooks.
-            </p>
-            <ul className="mt-3 space-y-1 break-all font-mono text-[11px] leading-5">
-              {networkLog.length === 0 ? <li>No requests recorded yet.</li> : null}
-              {networkLog.map((entry, index) => (
-                <li key={index}>{entry}</li>
-              ))}
-            </ul>
-          </details>
-        </aside>
       </section>
+
+      <footer className="mt-6 text-center text-xs leading-5 text-[#83766d]">
+        No account. No public map. No hosted photo inference.
+      </footer>
     </main>
   );
 }
