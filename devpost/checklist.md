@@ -20,7 +20,7 @@ Build mode: fast
   Commit: `feat: prove local cat vision pipeline`
   Evidence: GitHub Actions run `37664646226` passed install, TypeScript, 6 Vitest checks, production build, Chromium setup, and the real-browser AI spike on commit `2894c955bab20c9979a5bb3ea400f4d02b536354`. The browser test used a real cat photo, explicit first-download consent, WASM execution, a real cat detection/crop, and a normalized 384-dimensional DINOv2 CLS-token embedding. Exact model requests were pinned/guarded. This is Chromium/WASM evidence only; Android/WebGPU and outdoor proof remain later release-validation work and are not claimed here.
 
-- [ ] **2. You can scan a photo and reach the correct human identity decision**
+- [x] **2. You can scan a photo and reach the correct human identity decision**
   Becomes usable: The real scan flow works from welcome/collection → photo preview → preparation → detection → multi-cat selection when needed → embedding → first-cat, no-suggestion, or possible-familiar-face decision, with manual existing-cat fallback.
   Why now: It turns the technical spike into the approved product interaction while the AI boundary is still fresh, and exposes UX/cancellation problems before persistence makes them harder to untangle.
   PRD ref: `prd.md > The Core Journey`, `prd.md > F1 — Welcome and Photo Preview`, `prd.md > F2 — Model Preparation and Local Processing`, `prd.md > F3 — Detection and Cat Selection`, `prd.md > F4 — Identity Decision and Manual Selection`, `prd.md > F5a — Back, Discard, and Scan-Session Recovery`
@@ -29,6 +29,7 @@ Build mode: fast
   Verify (mechanical): Run typecheck, tests, and production build; add reducer/client tests covering Back, discard, stale worker results, first-cat state, no-suggestion state, multi-cat selection, and 10/20-second recovery transitions. Exercise the flow in desktop Chrome with controlled worker results plus the real spike path.
   Learner check: Try the scan flow on your phone with one single-cat photo and one multi-cat/no-cat case. Check that the crop/identity screens feel clear outdoors and that Back never loses the selected photo unexpectedly.
   Commit: `feat: add human controlled scan flow`
+  Evidence: GitHub Actions run `37668402128` passed `npm ci`, TypeScript, 17 Vitest checks, production build, and 8 Playwright flows on commit `b59870a88c0e41973ba82cc598de11fdaf6e7669`. Browser coverage includes the real WASM YOLOS→crop→DINOv2 identity path plus controlled multi-cat selection, no-cat retry, familiar-face confirmation, no-suggestion manual picker, Back-preserved name/note, discard confirmation, and browser Back recovery. The production build keeps matching disabled until Slice 5 evidence supplies an approved policy; controlled matching/catalog fixtures exist only in E2E mode. Real Android/outdoor exploration remains the separate hands-on checkpoint below and is not claimed complete here.
 
 - [ ] **3. A confirmed encounter saves exactly once and survives reopening**
   Becomes usable: A new cat or manually/AI-confirmed existing cat can be saved locally with its photo, encounter embedding, optional note, optional location, and atomic cat/reference updates; reopening retains it.
