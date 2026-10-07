@@ -1,11 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AiClient, type AiGateway } from './ai/client';
 import { MockAiClient, type MockScenario } from './ai/mockClient';
 import { MODEL_MANIFEST } from './ai/shared';
 import { ScanFlow } from './scan/ScanFlow';
 import type { CatReference, MatchingPolicy } from './scan/matching';
+import { MeowfolioRepository } from './storage/repository';
 
 const WELCOME_KEY = 'meowfolio.welcome-complete';
+
+interface CollectionCat extends CatReference {
+  lastSeenAt: number;
+}
+
+declare global {
+  interface Window {
+    __MEOWFOLIO_E2E_REPOSITORY__?: MeowfolioRepository;
+  }
+}
 
 function testCatalog(mode: string | null): CatReference[] {
   if (!mode) return [];
@@ -40,6 +51,12 @@ function testCatalog(mode: string | null): CatReference[] {
   ];
 }
 
+function revokeCatUrls(cats: CollectionCat[]): void {
+  for (const cat of cats) {
+    if (cat.coverUrl?.startsWith('blob:')) URL.revokeObjectURL(cat.coverUrl);
+  }
+}
+
 export function App() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const e2eEnabled = import.meta.env.VITE_E2E === '1';
@@ -47,10 +64,11 @@ export function App() {
   const catalogMode = e2eEnabled ? params.get('catalog') : null;
 
   const [ai] = useState<AiGateway>(() =>
-    mockScenario
-      ? new MockAiClient(mockScenario as MockScenario)
-      : new AiClient(),
+    mockScenario ? new MockAiClient(mockScenario as MockScenario) : new AiClient(),
   );
+  const [repository] = useState(() => new MeowfolioRepository());
+  const [persistedCats, setPersistedCats] = useState<CollectionCat[]>([]);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [welcomeComplete, setWelcomeComplete] = useState(() => {
     if (e2eEnabled && params.get('skipWelcome') === '1') return true;
     try {
@@ -61,7 +79,54 @@ export function App() {
   });
   const [scanning, setScanning] = useState(false);
 
-  const cats = useMemo(() => testCatalog(catalogMode), [catalogMode]);
+  const refreshCats = useCallback(async () => {
+    try {
+      const summaries = await repository.getCatSummaries();
+      const next: CollectionCat[] = summaries.map(({ cat, coverPhoto }) => ({
+        id: cat.id,
+        name: cat.name,
+        encounterCount: cat.encounterCount,
+        coverUrl: URL.createObjectURL(coverPhoto),
+        referenceEmbedding: Array.from(cat.referenceEmbedding),
+        embeddingSpace: cat.embeddingSpace,
+        lastSeenAt: cat.lastSeenAt,
+      }));
+
+      setPersistedCats((current) => {
+        revokeCatUrls(current);
+        return next;
+      });
+      setStorageError(null);
+    } catch (error) {
+      setStorageError(
+        error instanceof Error ? error.message : 'Could not read the local scrapbook.',
+      );
+    }
+  }, [repository]);
+
+  useEffect(() => {
+    void refreshCats();
+
+    if (e2eEnabled) {
+      window.__MEOWFOLIO_E2E_REPOSITORY__ = repository;
+    }
+
+    return () => {
+      ai.dispose();
+      repository.close();
+      delete window.__MEOWFOLIO_E2E_REPOSITORY__;
+    };
+  }, [ai, e2eEnabled, refreshCats, repository]);
+
+  useEffect(
+    () => () => {
+      revokeCatUrls(persistedCats);
+    },
+    [persistedCats],
+  );
+
+  const fixtureCats = useMemo(() => testCatalog(catalogMode), [catalogMode]);
+  const cats: CatReference[] = catalogMode ? fixtureCats : persistedCats;
   const matchingPolicy: MatchingPolicy = useMemo(
     () =>
       e2eEnabled && catalogMode === 'familiar'
@@ -69,8 +134,6 @@ export function App() {
         : { enabled: false },
     [catalogMode, e2eEnabled],
   );
-
-  useEffect(() => () => ai.dispose(), [ai]);
 
   function completeWelcome(): void {
     setWelcomeComplete(true);
@@ -123,7 +186,9 @@ export function App() {
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#2f6b4f]">
                   Field note
                 </p>
-                <p className="mt-2 max-w-40 font-serif text-xl">The orange one by the garden wall.</p>
+                <p className="mt-2 max-w-40 font-serif text-xl">
+                  The orange one by the garden wall.
+                </p>
               </div>
             </div>
           </div>
@@ -136,8 +201,10 @@ export function App() {
     return (
       <ScanFlow
         ai={ai}
+        repository={repository}
         cats={cats}
         matchingPolicy={matchingPolicy}
+        onSaved={refreshCats}
         onExit={() => setScanning(false)}
       />
     );
@@ -150,7 +217,9 @@ export function App() {
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#2f6b4f]">
             Meowfolio
           </p>
-          <h1 className="mt-2 font-serif text-4xl font-semibold sm:text-5xl">Your cat scrapbook</h1>
+          <h1 className="mt-2 font-serif text-4xl font-semibold sm:text-5xl">
+            Your cat scrapbook
+          </h1>
         </div>
         <button
           type="button"
@@ -161,27 +230,72 @@ export function App() {
         </button>
       </header>
 
+      {storageError ? (
+        <p role="alert" className="mt-6 rounded-xl border border-[#c96b4b]/30 bg-[#fff7f2] px-4 py-3 text-sm text-[#8d3f31]">
+          {storageError}
+        </p>
+      ) : null}
+
       <section className="paper-shadow mt-8 rounded-[30px] border border-black/10 bg-[#fffdf8] p-6 sm:p-10">
-        <div className="mx-auto max-w-xl py-10 text-center">
-          <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#e8efe8] text-4xl">
-            🐾
+        {persistedCats.length === 0 || catalogMode ? (
+          <div className="mx-auto max-w-xl py-10 text-center">
+            <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#e8efe8] text-4xl">
+              🐾
+            </div>
+            <h2 className="mt-6 font-serif text-3xl font-semibold">
+              {cats.length === 0
+                ? 'Your first cat is still out there.'
+                : 'Your test scrapbook is ready.'}
+            </h2>
+            <p className="mt-3 leading-7 text-[#6d625a]">
+              {cats.length === 0
+                ? 'Next time you spot one, take a photo. Meowfolio will find the cat locally, then you decide how to remember them.'
+                : 'Controlled browser fixtures are active for this verification build.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setScanning(true)}
+              className="mt-6 min-h-12 rounded-xl bg-[#2f6b4f] px-6 py-3 font-semibold text-white"
+            >
+              Spot a cat
+            </button>
           </div>
-          <h2 className="mt-6 font-serif text-3xl font-semibold">
-            {cats.length === 0 ? 'Your first cat is still out there.' : 'Your test scrapbook is ready.'}
-          </h2>
-          <p className="mt-3 leading-7 text-[#6d625a]">
-            {cats.length === 0
-              ? 'Next time you spot one, take a photo. Meowfolio will find the cat locally, then you decide how to remember them.'
-              : 'Controlled browser fixtures are active for this verification build.'}
-          </p>
-          <button
-            type="button"
-            onClick={() => setScanning(true)}
-            className="mt-6 min-h-12 rounded-xl bg-[#2f6b4f] px-6 py-3 font-semibold text-white"
-          >
-            Spot a cat
-          </button>
-        </div>
+        ) : (
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+              Saved locally
+            </p>
+            <h2 className="mt-2 font-serif text-3xl font-semibold">
+              {persistedCats.length} {persistedCats.length === 1 ? 'cat' : 'cats'} in this browser
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[#6d625a]">
+              Slice 4 will turn these records into the full scrapbook. For now this confirms that
+              committed cats survive reopening and are available to future identity decisions.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {persistedCats.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="flex items-center gap-4 rounded-2xl border border-black/10 bg-white p-3"
+                >
+                  {cat.coverUrl ? (
+                    <img
+                      src={cat.coverUrl}
+                      alt=""
+                      className="h-20 w-20 shrink-0 rounded-xl object-cover"
+                    />
+                  ) : null}
+                  <div>
+                    <p className="font-serif text-xl font-semibold">{cat.name}</p>
+                    <p className="mt-1 text-sm text-[#6d625a]">
+                      Met {cat.encounterCount} {cat.encounterCount === 1 ? 'time' : 'times'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <footer className="mt-6 text-center text-xs leading-5 text-[#83766d]">
