@@ -92,4 +92,40 @@ test('real WASM cat detection and DINOv2 embedding complete in Chromium', async 
 
   await expect(page.getByText('384', { exact: true })).toBeVisible();
   await expect(page.getByText('wasm', { exact: true })).toBeVisible();
+
+  // Prove the session-lived worker reuses initialized models on a second scan.
+  const warmStarted = Date.now();
+  await page.getByRole('button', { name: 'Find the cat' }).click();
+  await expect
+    .poll(
+      async () => (await terminalStatus.textContent()) ?? '',
+      {
+        timeout: 120_000,
+        intervals: [250, 500, 1_000, 2_000],
+      },
+    )
+    .toMatch(/cats? found\.|DETECTION_FAILED/i);
+
+  const warmDetectionStatus = (await terminalStatus.textContent()) ?? '';
+  if (!/cats? found\./i.test(warmDetectionStatus)) {
+    throw new Error('Warm detection failed. Status: ' + JSON.stringify(warmDetectionStatus));
+  }
+
+  await page.getByRole('button', { name: /Cat 1.*detector score/i }).click();
+  await expect
+    .poll(
+      async () => (await terminalStatus.textContent()) ?? '',
+      {
+        timeout: 120_000,
+        intervals: [250, 500, 1_000, 2_000],
+      },
+    )
+    .toMatch(/Local pipeline complete: cat crop → normalized 384-value DINOv2 embedding\.|EMBEDDING_FAILED|INVALID_EMBEDDING/i);
+
+  const warmFinalStatus = (await terminalStatus.textContent()) ?? '';
+  if (!/Local pipeline complete/i.test(warmFinalStatus)) {
+    throw new Error('Warm embedding failed. Status: ' + JSON.stringify(warmFinalStatus));
+  }
+
+  console.log('MEOWFOLIO_WARM_SECOND_SCAN_MS=' + (Date.now() - warmStarted));
 });
