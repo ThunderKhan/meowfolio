@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateMatching } from '../src/evaluation/evaluator';
+import { createPublicMatchingEvidence } from '../src/evaluation/publicReport';
 import type { EvaluationDataset, EvaluationSample } from '../src/evaluation/types';
 import type { EmbeddingSpace } from '../src/storage/types';
 
@@ -140,5 +141,18 @@ describe('matching evaluator', () => {
 
     const report = evaluateMatching(dataset);
     expect(report.failureCount).toBe(1);
+  });
+
+  it('exports anonymized public evidence without raw asset or cat identifiers', () => {
+    const report = evaluateMatching(cleanDataset());
+    const evidence = createPublicMatchingEvidence(report);
+    const serialized = JSON.stringify(evidence);
+
+    expect(serialized).not.toContain('a-hold');
+    expect(serialized).not.toContain('b-hold');
+    expect(serialized).not.toContain('c-hold');
+    expect(serialized).not.toContain('\"a\"');
+    expect(evidence.holdout.results[0].query).toMatch(/^Q\d{3}$/);
+    expect(evidence.holdout.results[0].trueCat).toMatch(/^C\d{2}$/);
   });
 });
