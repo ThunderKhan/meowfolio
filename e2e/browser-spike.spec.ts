@@ -85,6 +85,9 @@ test('controlled no-cat result is recoverable and keeps the photo', async ({ pag
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Choose another photo' })).toBeVisible();
   await expect(page.getByAltText('Selected encounter')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.getByText(/couldn’t find a cat in this photo/i)).toBeVisible();
 });
 
 test('controlled familiar-face flow keeps identity human-controlled', async ({ page, request }) => {
