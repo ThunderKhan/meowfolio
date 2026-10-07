@@ -58,15 +58,13 @@ env.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     (networkPermitRequestId === activeRequestId &&
       (category === 'model' || category === 'runtime'));
 
-  if (category !== 'blocked') {
-    post({
-      type: 'NETWORK_ACTIVITY',
-      requestId: activeRequestId,
-      url: url.toString(),
-      category,
-      allowed,
-    });
-  }
+  post({
+    type: 'NETWORK_ACTIVITY',
+    requestId: activeRequestId,
+    url: url.toString(),
+    category,
+    allowed,
+  });
 
   if (!allowed) {
     blockedNetworkRequests.add(activeRequestId);
