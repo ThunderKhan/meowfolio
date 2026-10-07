@@ -9,6 +9,7 @@ import {
   isNetworkConsentError,
   MODEL_MANIFEST,
   NetworkConsentError,
+  pinModelAssetUrl,
   type Detection,
   type ExecutionProvider,
   type WorkerRequest,
@@ -35,6 +36,7 @@ env.allowLocalModels = false;
 env.allowRemoteModels = true;
 env.useBrowserCache = true;
 env.useWasmCache = true;
+env.cacheKey = 'meowfolio-ai-' + MODEL_MANIFEST.version;
 
 function post(message: WorkerResponse): void {
   scope.postMessage(message);
@@ -45,14 +47,21 @@ function currentOrigin(): string {
 }
 
 env.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-  const url =
+  const requestedUrl =
     input instanceof URL
       ? input
       : typeof input === 'string'
         ? new URL(input, currentOrigin())
         : new URL(input.url, currentOrigin());
 
-  const category = classifyAiNetworkRequest(input, currentOrigin());
+  // Transformers.js 4.3.0 can internally request `resolve/main` even when
+  // pipeline() receives an exact revision. Never allow that floating request
+  // onto the network: rewrite only recognized model URLs to our manifest SHA.
+  const pinnedModelUrl = pinModelAssetUrl(input, currentOrigin());
+  const effectiveUrl = pinnedModelUrl ?? requestedUrl;
+  const category = pinnedModelUrl
+    ? 'model'
+    : classifyAiNetworkRequest(input, currentOrigin());
   const remote = category !== 'same-origin';
   const allowed =
     !remote ||
@@ -62,17 +71,24 @@ env.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   post({
     type: 'NETWORK_ACTIVITY',
     requestId: activeRequestId,
-    url: url.toString(),
+    url: effectiveUrl.toString(),
     category,
     allowed,
   });
 
   if (!allowed) {
     blockedNetworkRequests.add(activeRequestId);
-    throw new NetworkConsentError(url.toString());
+    throw new NetworkConsentError(requestedUrl.toString());
   }
 
-  return nativeFetch(input as RequestInfo, init);
+  const effectiveInput: RequestInfo | URL =
+    pinnedModelUrl === null
+      ? input
+      : input instanceof Request
+        ? new Request(pinnedModelUrl, input)
+        : pinnedModelUrl;
+
+  return nativeFetch(effectiveInput, init);
 };
 
 function hasWebGpu(): boolean {
