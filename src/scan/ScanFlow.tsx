@@ -230,8 +230,6 @@ export function ScanFlow({
   }
 
   async function runDetection(photo: File, generation: number): Promise<void> {
-    if (stateRef.current.generation !== generation) return;
-
     dispatch({ type: 'DETECTING' });
     armWarmDeadline(generation, 0);
     const started = performance.now();
@@ -270,8 +268,6 @@ export function ScanFlow({
   }
 
   async function beginProcessing(photo: File, generation: number): Promise<void> {
-    if (stateRef.current.generation !== generation) return;
-
     if (modelsReady) {
       await runDetection(photo, generation);
       return;
@@ -345,8 +341,9 @@ export function ScanFlow({
   function goBack(): void {
     clearWarmTimers();
     cancelActive();
-    if (state.step === 'preview') {
-      if (state.photo) setDiscardOpen(true);
+    const current = stateRef.current;
+    if (current.step === 'preview') {
+      if (current.photo) setDiscardOpen(true);
       else onExit();
       return;
     }
@@ -787,7 +784,6 @@ export function ScanFlow({
               <span className="text-sm font-semibold">Cat name</span>
               <input
                 value={state.newCatName}
-                maxLength={120}
                 autoComplete="off"
                 onChange={(event) => dispatch({ type: 'SET_NAME', value: event.target.value })}
                 className="mt-2 min-h-12 w-full rounded-xl border border-black/15 bg-white px-4 py-3"
@@ -819,10 +815,7 @@ export function ScanFlow({
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <ActionButton
-              disabled={state.identity?.kind === 'new' && Boolean(newNameError)}
-              onClick={() => {}}
-            >
+            <ActionButton disabled onClick={() => {}}>
               Save encounter
             </ActionButton>
             <ActionButton variant="secondary" onClick={goBack}>
