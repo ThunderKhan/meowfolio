@@ -152,7 +152,10 @@ describe('matching evaluator', () => {
     expect(serialized).not.toContain('b-hold');
     expect(serialized).not.toContain('c-hold');
     expect(serialized).not.toContain('\"a\"');
-    expect(evidence.holdout.results[0].query).toMatch(/^Q\d{3}$/);
-    expect(evidence.holdout.results[0].trueCat).toMatch(/^C\d{2}$/);
+    const publicSelected = evidence.holdoutByStrategy[report.selectedPolicy.strategy];
+    expect(publicSelected.results[0].query).toMatch(/^Q\d{3}$/);
+    expect(publicSelected.results[0].trueCat).toMatch(/^C\d{2}$/);
+    expect(evidence.holdoutByStrategy['first-only'].results).toHaveLength(3);
+    expect(evidence.holdoutByStrategy.centroid.results).toHaveLength(3);
   });
 });
