@@ -121,16 +121,14 @@ export class MeowfolioRepository {
     const cats = await this.listCats();
     const db = await this.open();
     const tx = db.transaction(ENCOUNTERS, 'readonly');
-    const store = tx.objectStore(ENCOUNTERS);
-    const summaries: CatSummary[] = [];
-
-    for (const cat of cats) {
-      const cover = (await request(store.get(cat.coverEncounterId))) as EncounterRecord | undefined;
-      if (cover) summaries.push({ cat, coverPhoto: cover.crop ?? cover.photo });
-    }
-
+    const encounters = (await request(tx.objectStore(ENCOUNTERS).getAll())) as EncounterRecord[];
     await transactionDone(tx);
-    return summaries;
+
+    const byId = new Map(encounters.map((encounter) => [encounter.id, encounter]));
+    return cats.flatMap((cat) => {
+      const cover = byId.get(cat.coverEncounterId);
+      return cover ? [{ cat, coverPhoto: cover.crop ?? cover.photo }] : [];
+    });
   }
 
   async listEncountersForCat(catId: string): Promise<EncounterRecord[]> {
