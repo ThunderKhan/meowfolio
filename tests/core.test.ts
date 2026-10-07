@@ -3,6 +3,7 @@ import {
   GenerationGuard,
   MODEL_MANIFEST,
   classifyAiNetworkRequest,
+  pinModelAssetUrl,
 } from '../src/ai/shared';
 import { cosineSimilarity, l2Norm, normalizeEmbedding } from '../src/domain/embeddings';
 
@@ -35,6 +36,23 @@ describe('AI network allowlist', () => {
       MODEL_MANIFEST.detector.revision +
       '/config.json';
     expect(classifyAiNetworkRequest(pinned, origin)).toBe('model');
+  });
+
+
+  it('rewrites only recognized floating model assets to exact manifest revisions', () => {
+    const floating =
+      'https://huggingface.co/' + MODEL_MANIFEST.detector.id + '/resolve/main/config.json';
+    const pinned = pinModelAssetUrl(floating, origin);
+
+    expect(pinned?.pathname).toBe(
+      '/' +
+        MODEL_MANIFEST.detector.id +
+        '/resolve/' +
+        MODEL_MANIFEST.detector.revision +
+        '/config.json',
+    );
+    expect(classifyAiNetworkRequest(floating, origin)).toBe('blocked');
+    expect(pinModelAssetUrl('https://huggingface.co/someone/other/resolve/main/config.json', origin)).toBeNull();
   });
 
   it('blocks floating or unrelated model URLs', () => {
