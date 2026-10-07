@@ -297,6 +297,7 @@ export function App() {
           )}
 
           <p
+            data-testid="status"
             aria-live="polite"
             className="mt-5 rounded-xl border border-black/10 bg-[#faf7f0] px-4 py-3 text-sm leading-6"
           >
