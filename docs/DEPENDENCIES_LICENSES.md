@@ -2,9 +2,9 @@
 
 Status: working register, **not legal advice**
 
-Licensing matters because the current detector model is marked AGPL-3.0.
+Licensing was a blocker for the original YOLOv10n candidate, which was marked AGPL-3.0. Slice 1 replaced that candidate with YOLOS-tiny, whose upstream model is Apache-2.0.
 
-Do not add a repository LICENSE until the implications of the shipped/runtime dependencies and chosen distribution approach are reviewed.
+Do not add a repository LICENSE until the shipped runtime dependencies, model conversions/source notices, and intended distribution approach are reviewed.
 
 ## 1. Current planned runtime dependencies
 
@@ -58,26 +58,26 @@ Do not copy this document's expected license labels into final notices without c
 
 ## 2. AI models
 
-### onnx-community/yolov10n
+### Xenova/yolos-tiny
 
 Purpose:
 - object detection / cat bounding boxes.
 
-Model page:
-https://huggingface.co/onnx-community/yolov10n
+Browser conversion:
+- `Xenova/yolos-tiny`
+- pinned revision: `e2f9c7673f0fa61849efe2b56a0d7774779ebb9d`
+- verified Slice 1 WASM artifact: `uint8`
 
-Current model-page license:
-**AGPL-3.0**
+Underlying upstream model:
+- `hustvl/yolos-tiny`
 
-Important:
-AGPL obligations may materially affect how we distribute a web application using these weights.
+Upstream license:
+**Apache-2.0**
 
-Action before final release:
-- inspect the model repository/license text,
-- understand whether weights and/or derivative distribution trigger obligations,
-- decide whether to comply under a compatible project license or replace the detector with a model whose license better matches the intended project.
-
-This is a release blocker, not a footnote.
+Status:
+- selected after real Chromium evidence showed the original `onnx-community/yolov10n` candidate was unsupported by Transformers.js 4.3.0's object-detection model mapping,
+- removes the original YOLOv10n AGPL release blocker,
+- final attribution/notice wording still requires verification against the conversion repository and exact shipped dependency/model metadata.
 
 ### Xenova/dinov2-small
 
@@ -94,8 +94,10 @@ Upstream model page license:
 **Apache-2.0**
 
 Action:
-- record the exact browser model revision used,
-- verify notices/attribution.
+- pinned revision: `a5406bdfce9ac07eb3dc08dd05cbea034f4648d8`,
+- verified Slice 1 WASM artifact: `uint8`,
+- output strategy: first CLS token from `last_hidden_state`, 384 values, then L2 normalization,
+- verify final notices/attribution.
 
 ## 3. Model revision pinning
 
@@ -151,15 +153,10 @@ Do not generate a generic notice file from assumptions.
 ## 8. Repository license decision
 
 Status:
-**OPEN**
+**OPEN — detector blocker resolved, repository license still requires deliberate selection**
 
 Reason:
-current detector's AGPL-3.0 marking requires deliberate review.
-
-Possible outcomes:
-1. choose a compatible project/distribution approach and comply,
-2. use another detector under a more suitable license,
-3. change how model assets are distributed if legally meaningful.
+The AGPL-marked YOLOv10n candidate is no longer used. The selected YOLOS-tiny upstream model is Apache-2.0, but final project licensing still needs to account for all installed packages, model-conversion metadata, notices, and any copied assets.
 
 Do not choose a permissive repo license solely because it is common for hackathon projects.
 
@@ -173,8 +170,8 @@ Normal package installation/model fetching is preferred.
 
 Before submission:
 - [ ] installed dependency licenses reviewed,
-- [ ] detector license decision resolved,
-- [ ] DINOv2 source/license recorded,
+- [x] detector license blocker resolved by replacing YOLOv10n with Apache-2.0-upstream YOLOS-tiny; final notice verification remains,
+- [x] DINOv2 source/revision and Apache-2.0 upstream license recorded; final notice verification remains,
 - [ ] Transformers.js license recorded,
 - [ ] attribution/notices added where needed,
 - [ ] README links models and licenses accurately.
