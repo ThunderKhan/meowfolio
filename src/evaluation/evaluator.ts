@@ -229,10 +229,10 @@ function chooseDevelopmentPolicy(
 
   const threshold =
     wrongCeiling > -1
-      ? Math.min(1, wrongCeiling + THRESHOLD_EPSILON)
+      ? wrongCeiling + THRESHOLD_EPSILON
       : correctSimilarities.length > 0
         ? Math.min(...correctSimilarities)
-        : 1;
+        : 1 + THRESHOLD_EPSILON;
 
   const results = positiveScores.map((score) => applyThreshold(score, threshold));
   const negatives = negativeScores.map((score) => applyThreshold(score, threshold));
