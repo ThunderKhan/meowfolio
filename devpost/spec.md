@@ -1,6 +1,6 @@
 ---
 doc: spec
-status: draft
+status: approved
 ---
 
 # Meowfolio — Technical Spec
@@ -41,7 +41,7 @@ Learner-approved baseline; exact compatible package versions must be selected an
 | Geolocation | Explicitly requested optional location, no reverse geocoder. [API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API) |
 | Cache API | Actual asset presence, separate from scrapbook records. [API](https://developer.mozilla.org/en-US/docs/Web/API/Cache) |
 
-No backend, authentication, networking framework, component framework, animation library, or persistent-draft system. Proposed verification tools are TypeScript checking, focused unit tests, and browser integration checks; exact test dependencies need agreement under Decisions and Open Issues.
+No backend, authentication, networking framework, component framework, animation library, or persistent-draft system. Verification uses TypeScript checking, Vitest for vector/session/domain logic and browser-capable IndexedDB integration tests, plus selective Playwright flows where browser automation adds value. Mocked browser tests never substitute for real Android inference evidence.
 
 ## Where It Runs and How Someone Tries It
 - Release-validation target: learner's Android phone, current Chrome. Record phone model, Android/Chrome versions, tested provider and model manifest for evidence.
@@ -126,7 +126,7 @@ Concurrent saves are serialized by read-write transactions over the same stores;
 
 ### Optional Location
 Implements `prd.md > F5 — Encounter Save and Optional Location` and `F6 — Collection and Cat History`.
-Call Geolocation only on explicit Add location. Store latitude, longitude, accuracy and observation timestamp when available. Use a finite acquisition timeout (value still to agree); Save without location remains possible while waiting, not only after timeout. Generation tokens prevent late callbacks from adding data after discard, save-without-location or a different scan.
+Call Geolocation only on explicit Add location. Store latitude, longitude, accuracy and observation timestamp when available. Use an 8-second acquisition timeout; Save without location remains possible while waiting, not only after timeout. Generation tokens prevent late callbacks from adding data after discard, save-without-location or a different scan.
 History shows Location saved as a small native disclosure, with coordinates and accuracy collapsed by default. No maps, reverse geocoding or external lookup. Denial/failure retains all form data and saving remains available.
 
 ### Scrapbook and Detail Views
@@ -291,10 +291,10 @@ Do not put private photos/coordinates into public evidence without explicit perm
 - Warm timing gate and precision-first matching gate are learner-defined targets, not measured results.
 - Learner explicitly allows automatic suggestions to be withheld while manual scrapbook use ships; do not describe that release as proving the familiar-face kernel.
 
-### Before Spec Approval
+### Resolved Before Approval
 - Optional USB debugging: confirm ADB availability only if using that development path; the agreed Vercel production URL is sufficient for actual Android/outdoor verification.
-- Agree geolocation timeout. Download inactivity 30/60-second recovery, cold initialization 20/30/60-second bands, and warm 6/10/20-second bands are settled.
-- Approve proportionate testing tools. Recommendation: Vitest for vector/session logic and browser-based IndexedDB integration tests on Chrome; Playwright may automate consent/cancellation/save behavior with clearly labelled mocks, while actual phone inference remains manual evidence. No testing dependency is installed yet.
+- Optional geolocation uses an 8-second acquisition timeout. Save without location remains available immediately; denial, failure, or timeout never blocks persistence. Download inactivity 30/60-second recovery, cold initialization 20/30/60-second bands, and warm 6/10/20-second bands are settled.
+- Testing tools approved: Vitest for vector/session/domain logic and browser-capable IndexedDB integration tests; selective Playwright automation may cover consent/cancellation/save behavior with clearly labelled mocks. Actual Android model loading, WebGPU/WASM behavior, timing, and matching remain manual real-device evidence. Dependencies are installed only when the relevant build slice needs them.
 
 ### Spike Outputs, Not Pretense of Locked Artifacts
 Exact package/model revisions, files/dtypes, cache mechanics, supported provider, worker transfer path, resize/crop parameters, pooling, truthful byte totals, license resolution, and the measured matching policy remain evidence-gated. Once selected, update the manifest/spec/evidence together before building around them. No model replacement or provider compromise is automatically authorized by a failed test.
