@@ -173,11 +173,12 @@ function applyThreshold(
 function summarize(
   results: ThresholdResult[],
   negativeResults: ThresholdResult[],
+  processingFailures = 0,
 ): EvaluationSummary {
   const positiveWrong = results.filter((result) => result.outcome === 'wrong').length;
   const negativeWrong = negativeResults.filter((result) => result.outcome === 'wrong').length;
   const correct = results.filter((result) => result.outcome === 'correct');
-  const repeats = results.length;
+  const repeats = results.length + processingFailures;
   const correctRate = repeats === 0 ? 0 : correct.length / repeats;
 
   return {
@@ -186,10 +187,12 @@ function summarize(
     correctSuggestions: correct.length,
     abstentions:
       results.filter((result) => result.outcome === 'abstain').length +
-      negativeResults.filter((result) => result.outcome === 'abstain').length,
+      negativeResults.filter((result) => result.outcome === 'abstain').length +
+      processingFailures,
     wrongSuggestions: positiveWrong + negativeWrong,
     correctCatCount: new Set(correct.map((result) => result.catId)).size,
     correctRate,
+    processingFailures,
     zeroWrong: positiveWrong + negativeWrong === 0,
     practicalTargetReached: correctRate >= 0.5,
   };
@@ -233,7 +236,9 @@ function chooseDevelopmentPolicy(
 
   const results = positiveScores.map((score) => applyThreshold(score, threshold));
   const negatives = negativeScores.map((score) => applyThreshold(score, threshold));
-  const summary = summarize(results, negatives);
+  const developmentFailures =
+    dataset.failures?.filter((failure) => failure.partition === 'development-query').length ?? 0;
+  const summary = summarize(results, negatives, developmentFailures);
 
   return {
     strategy,
@@ -247,6 +252,7 @@ function chooseDevelopmentPolicy(
       wrongSuggestions: summary.wrongSuggestions,
       correctCatCount: summary.correctCatCount,
       correctRate: summary.correctRate,
+      processingFailures: summary.processingFailures,
     },
   };
 }
@@ -305,8 +311,11 @@ function evaluateHoldout(
     ),
   );
 
+  const holdoutFailures =
+    dataset.failures?.filter((failure) => failure.partition === 'holdout').length ?? 0;
+
   return {
-    summary: summarize(results, negativeResults),
+    summary: summarize(results, negativeResults, holdoutFailures),
     results,
     negativeResults,
   };
@@ -341,11 +350,12 @@ export function evaluateMatching(dataset: EvaluationDataset): MatchingEvaluation
     version: 1,
     generatedAt: new Date().toISOString(),
     embeddingSpaceKey: spaceKey,
-    developmentSampleCount: dataset.samples.filter(
-      (sample) => sample.partition !== 'holdout',
-    ).length,
-    holdoutSampleCount: dataset.samples.filter((sample) => sample.partition === 'holdout')
-      .length,
+    developmentSampleCount:
+      dataset.samples.filter((sample) => sample.partition !== 'holdout').length +
+      (dataset.failures?.filter((failure) => failure.partition !== 'holdout').length ?? 0),
+    holdoutSampleCount:
+      dataset.samples.filter((sample) => sample.partition === 'holdout').length +
+      (dataset.failures?.filter((failure) => failure.partition === 'holdout').length ?? 0),
     failureCount: dataset.failures?.length ?? 0,
     strategyPolicies: {
       'first-only': first,
