@@ -116,7 +116,7 @@ export type WorkerResponse =
         dtype: string;
         preprocessingVersion: number;
         dimension: number;
-        pooling: 'pool';
+        pooling: 'cls-token';
       };
     }
   | {
