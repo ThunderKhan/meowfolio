@@ -9,7 +9,10 @@ import {
 } from 'react';
 import type { AiGateway } from '../ai/client';
 import { cropImageBlob } from '../browser/images';
+import { requestEncounterLocation } from '../browser/location';
 import type { Detection } from '../ai/shared';
+import { detectionRecordFor, MeowfolioRepository } from '../storage/repository';
+import type { EncounterLocation } from '../storage/types';
 import {
   DISABLED_MATCHING_POLICY,
   findFamiliarSuggestion,
@@ -26,8 +29,10 @@ import {
 
 interface ScanFlowProps {
   ai: AiGateway;
+  repository: MeowfolioRepository;
   cats?: CatReference[];
   matchingPolicy?: MatchingPolicy;
+  onSaved?: () => void | Promise<void>;
   onExit: () => void;
 }
 
@@ -109,18 +114,24 @@ function CatPhoto({
 
 export function ScanFlow({
   ai,
+  repository,
   cats = [],
   matchingPolicy = DISABLED_MATCHING_POLICY,
+  onSaved,
   onExit,
 }: ScanFlowProps) {
   const [state, dispatch] = useReducer(scanReducer, undefined, () => createScanState());
   const [modelsReady, setModelsReady] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [photoValidationError, setPhotoValidationError] = useState<string | null>(null);
+  const [location, setLocation] = useState<EncounterLocation | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'saved' | 'unavailable'>('idle');
+  const [locationMessage, setLocationMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const stateRef = useRef<ScanState>(state);
   const generationRef = useRef(state.generation);
   const activeRequestRef = useRef<string | null>(null);
+  const locationRequestRef = useRef(0);
   const timersRef = useRef<number[]>([]);
   const previewUrl = useObjectUrl(state.photo);
   const cropUrl = useObjectUrl(state.crop);
@@ -367,6 +378,7 @@ export function ScanFlow({
     clearWarmTimers();
     cancelActive();
     const current = stateRef.current;
+    if (current.step === 'saving' || current.step === 'success') return;
     if (current.step === 'preview') {
       if (current.photo) setDiscardOpen(true);
       else onExit();
@@ -379,6 +391,7 @@ export function ScanFlow({
   function discard(): void {
     clearWarmTimers();
     cancelActive();
+    locationRequestRef.current += 1;
     dispatch({ type: 'DISCARD' });
     setDiscardOpen(false);
     onExit();
@@ -400,6 +413,98 @@ export function ScanFlow({
       state.detectionElapsedMs,
       state.generation,
     );
+  }
+
+  async function addLocation(): Promise<void> {
+    const token = locationRequestRef.current + 1;
+    locationRequestRef.current = token;
+    setLocationStatus('locating');
+    setLocationMessage(null);
+
+    const result = await requestEncounterLocation(8_000);
+    if (locationRequestRef.current !== token) return;
+
+    if (result.status === 'saved') {
+      setLocation(result.location);
+      setLocationStatus('saved');
+      setLocationMessage('Location saved privately with this encounter.');
+      return;
+    }
+
+    setLocation(null);
+    setLocationStatus('unavailable');
+    setLocationMessage(
+      result.reason === 'denied'
+        ? 'No problem — this encounter can be saved without location.'
+        : result.reason === 'timeout'
+          ? 'Location took too long. You can save this encounter without it.'
+          : 'Location is unavailable. You can save this encounter without it.',
+    );
+  }
+
+  async function saveEncounter(): Promise<void> {
+    const current = stateRef.current;
+    if (
+      current.step !== 'details' ||
+      !current.photo ||
+      !current.crop ||
+      !current.embedding ||
+      !current.selectedDetection ||
+      !current.identity
+    ) {
+      return;
+    }
+
+    if (current.identity.kind === 'new' && validateCatName(current.newCatName)) return;
+
+    // Saving without a still-pending location is always allowed. Invalidate a
+    // late geolocation callback so it cannot mutate a committed encounter.
+    locationRequestRef.current += 1;
+    dispatch({ type: 'SAVE_START' });
+
+    try {
+      const identity =
+        current.identity.kind === 'new'
+          ? {
+              kind: 'new' as const,
+              catId: current.newCatId!,
+              name: current.newCatName.trim(),
+            }
+          : {
+              kind: 'existing' as const,
+              catId: current.identity.catId,
+            };
+
+      const result = await repository.saveEncounter({
+        encounterId: current.encounterId,
+        timestamp: current.timestamp,
+        photo: current.photo,
+        crop: current.crop,
+        embedding: current.embedding.values,
+        embeddingSpace: current.embedding.space,
+        detection: detectionRecordFor(
+          current.selectedDetection.box,
+          current.selectedDetection.score,
+          current.selectedDetection.label,
+          current.sourceWidth,
+          current.sourceHeight,
+        ),
+        note: current.note,
+        ...(location ? { location } : {}),
+        identity,
+      });
+
+      await onSaved?.();
+      dispatch({ type: 'SAVE_SUCCESS', catName: result.cat.name });
+    } catch (error) {
+      dispatch({
+        type: 'SAVE_FAILED',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'This encounter could not be saved. Your details are still here so you can retry.',
+      });
+    }
   }
 
   useEffect(() => {
@@ -476,8 +581,9 @@ export function ScanFlow({
         </p>
         <button
           type="button"
+          disabled={state.step === 'saving' || state.step === 'success'}
           onClick={() => setDiscardOpen(true)}
-          className="min-h-11 rounded-xl px-3 font-semibold text-[#8d3f31]"
+          className="min-h-11 rounded-xl px-3 font-semibold text-[#8d3f31] disabled:opacity-40"
         >
           Cancel
         </button>
@@ -843,24 +949,81 @@ export function ScanFlow({
           </label>
 
           <div className="mt-6 rounded-2xl border border-[#2f6b4f]/20 bg-[#f3f8f4] p-4">
-            <p className="font-semibold">Ready for the save step</p>
+            <p className="font-semibold">Where you met them <span className="font-normal text-[#6d625a]">(optional)</span></p>
             <p className="mt-1 text-sm leading-6 text-[#6d625a]">
-              This slice stops at a confirmed identity. Nothing is presented as saved until the
-              IndexedDB transaction is implemented in the next build slice.
+              Location is requested only if you choose to add it and stays in your local scrapbook.
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <ActionButton
+                variant="secondary"
+                disabled={locationStatus === 'locating' || locationStatus === 'saved'}
+                onClick={() => void addLocation()}
+              >
+                {locationStatus === 'locating'
+                  ? 'Finding location…'
+                  : locationStatus === 'saved'
+                    ? 'Location saved'
+                    : 'Add location'}
+              </ActionButton>
+              {locationMessage ? (
+                <span className="text-sm text-[#6d625a]">{locationMessage}</span>
+              ) : null}
+            </div>
           </div>
 
+          {state.error ? (
+            <p role="alert" className="mt-4 rounded-xl border border-[#c96b4b]/30 bg-[#fff7f2] px-4 py-3 text-sm text-[#8d3f31]">
+              {state.error}
+            </p>
+          ) : null}
+
           <div className="mt-6 flex flex-wrap gap-3">
-            <ActionButton disabled onClick={() => {}}>
+            <ActionButton
+              disabled={state.identity?.kind === 'new' && Boolean(newNameError)}
+              onClick={() => void saveEncounter()}
+            >
               Save encounter
             </ActionButton>
             <ActionButton variant="secondary" onClick={goBack}>
               Change identity
             </ActionButton>
           </div>
-          <p className="mt-2 text-xs text-[#6d625a]">
-            Save is intentionally disabled until local persistence is wired in Slice 3.
-          </p>
+        </section>
+      )}
+
+      {state.step === 'saving' && (
+        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
+          <div className="mx-auto max-w-lg py-12 text-center">
+            <div className="mx-auto h-12 w-12 animate-pulse rounded-full border-4 border-[#2f6b4f]/20 border-t-[#2f6b4f]" />
+            <h1 className="mt-6 font-serif text-3xl font-semibold">Saving this encounter locally</h1>
+            <p className="mt-3 leading-7 text-[#6d625a]">
+              Success appears only after the cat and encounter transaction has fully committed.
+            </p>
+          </div>
+        </section>
+      )}
+
+      {state.step === 'success' && (
+        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
+          <div className="mx-auto max-w-lg py-10 text-center">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#e8efe8] text-3xl">✓</div>
+            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+              Saved locally
+            </p>
+            <h1 className="mt-2 font-serif text-4xl font-semibold">
+              {state.savedCatName
+                ? state.identity?.kind === 'existing'
+                  ? 'Another ' + state.savedCatName + ' encounter saved.'
+                  : state.savedCatName + ' is in your Meowfolio.'
+                : 'Encounter saved.'}
+            </h1>
+            <p className="mt-3 leading-7 text-[#6d625a]">
+              The photo, embedding, and encounter details are now committed to this browser.
+            </p>
+            <div className="mt-6">
+              <ActionButton onClick={onExit}>Back to collection</ActionButton>
+            </div>
+          </div>
         </section>
       )}
 
