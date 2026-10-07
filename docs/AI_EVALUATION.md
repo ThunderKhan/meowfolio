@@ -258,3 +258,28 @@ Record:
 - user time-to-save.
 
 The product fails the theme if it only works on curated desktop test images.
+
+
+## 20. Matching Lab workflow
+
+For Slice 5, use the local-only browser evaluation tool instead of committing private photos.
+
+1. Run the Vite development build and open `/?matchingLab=1`.
+2. Copy `docs/evaluation-manifest.example.json` and expand it for the real dataset.
+3. Use opaque labels such as `c01`, `c02` instead of real names when practical.
+4. Mark earlier confirmed images as `reference`, threshold-tuning images as `development-query`, and untouched final images as `holdout`.
+5. Keep every development query's `order` greater than at least one reference for that same cat.
+6. Select the manifest and all referenced image files in the Matching Lab.
+7. Explicitly prepare the pinned local models, then run the evaluation.
+8. Multi-cat images are rejected as ambiguous rather than silently choosing a subject.
+9. Export `meowfolio-matching-evidence.public.json` only after the run. The exported report anonymizes cat/query IDs and contains no photos, filenames, notes, or coordinates.
+
+The evaluator:
+- compares first-only and exact-centroid references;
+- tunes each strategy only on development data;
+- derives an absent-identity negative for every query by removing the true cat from the gallery;
+- freezes strategy and threshold before held-out scoring;
+- reports correct, abstain, and wrong outcomes plus correct and strongest-competing similarities;
+- recommends enabling matching only when held-out evidence has zero wrong suggestions, useful correct suggestions across at least two cats, and reaches the learner's roughly-half true-repeat practical target.
+
+The production policy remains disabled until a real-photo report is reviewed and deliberately copied into the versioned release policy. A synthetic/unit-test pass can validate evaluator mechanics but can never enable the feature.
