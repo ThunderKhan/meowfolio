@@ -9,7 +9,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: meowfolio-${{ github.workflow }}-${{ github.ref }}
@@ -62,3 +62,16 @@ jobs:
           name: package-lock
           path: package-lock.json
           if-no-files-found: error
+
+      - name: Commit generated lockfile once
+        if: github.event_name == 'push' && github.ref_name == 'feat/local-ai-spike'
+        run: |
+          if git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+            echo "package-lock.json already tracked"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore: lock dependency graph"
+          git push
