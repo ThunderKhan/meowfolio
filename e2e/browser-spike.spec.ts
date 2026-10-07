@@ -409,3 +409,110 @@ test('location denial never blocks saving', async ({ page, request }) => {
   });
   expect(hasLocation).toBe(false);
 });
+
+
+test('duplicate cat names remain valid and distinct', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+
+  const result = await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const firstCat = (await repository.listCats())[0];
+    const first = (await repository.listEncountersForCat(firstCat.id))[0];
+
+    const second = await repository.saveEncounter({
+      encounterId: crypto.randomUUID(),
+      timestamp: first.timestamp + 5_000,
+      photo: first.photo,
+      crop: first.crop,
+      embedding: Array.from(first.embedding),
+      embeddingSpace: first.embeddingSpace,
+      detection: first.detection,
+      identity: {
+        kind: 'new',
+        catId: crypto.randomUUID(),
+        name: firstCat.name,
+      },
+    });
+
+    const cats = await repository.listCats();
+    return {
+      secondName: second.cat.name,
+      names: cats.map((cat: any) => cat.name).sort(),
+      ids: cats.map((cat: any) => cat.id),
+    };
+  });
+
+  expect(result.secondName).toBe('Mochi');
+  expect(result.names).toEqual(['Mochi', 'Mochi']);
+  expect(new Set(result.ids).size).toBe(2);
+});
+
+test('save failure preserves pending details and retry can commit the same scan', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single&catalog=manual');
+  await startScan(page, photo);
+
+  await expect(page.getByRole('heading', { name: 'No familiar cat suggested.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Choose an existing cat' }).click();
+  await page.getByRole('button', { name: /Mochi/ }).click();
+  await page.getByLabel(/Encounter note/).fill('Keep this note through failure.');
+  await page.getByRole('button', { name: 'Save encounter' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Another meeting with Mochi' })).toBeVisible();
+  await expect(page.getByText(/selected saved cat no longer exists/i)).toBeVisible();
+  await expect(page.getByLabel(/Encounter note/)).toHaveValue('Keep this note through failure.');
+  await expect(page.getByRole('button', { name: 'Save encounter' })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Change identity' }).click();
+  await page.getByRole('button', { name: 'Add as a new cat' }).click();
+  await page.getByLabel('Cat name').fill('Mochi');
+  await expect(page.getByLabel(/Encounter note/)).toHaveValue('Keep this note through failure.');
+  await page.getByRole('button', { name: 'Save encounter' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Mochi is in your Meowfolio.' })).toBeVisible();
+
+  const stored = await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const cats = await repository.listCats();
+    const encounters = await repository.listEncountersForCat(cats[0].id);
+    return {
+      cats: cats.length,
+      encounters: encounters.length,
+      note: encounters[0].note,
+    };
+  });
+
+  expect(stored).toEqual({
+    cats: 1,
+    encounters: 1,
+    note: 'Keep this note through failure.',
+  });
+});
+
+test('location timeout is recoverable and Save stays available while location is pending', async ({ page, request }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: () => {
+          // Deliberately never calls success/error so the app's own 8s timeout is exercised.
+        },
+      },
+    });
+  });
+
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await startScan(page, photo);
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+  await page.getByLabel('Cat name').fill('Mochi');
+  await page.getByRole('button', { name: 'Add location' }).click();
+
+  await expect(page.getByRole('button', { name: 'Finding location…' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save encounter' })).toBeEnabled();
+
+  await expect(page.getByText(/Location took too long/i)).toBeVisible({ timeout: 9_500 });
+  await expect(page.getByRole('button', { name: 'Save encounter' })).toBeEnabled();
+});
