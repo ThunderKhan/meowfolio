@@ -149,3 +149,21 @@ test('discard requires confirmation and keep editing preserves the scan', async 
   await page.getByRole('button', { name: 'Discard scan' }).click();
   await expect(page.getByRole('heading', { name: 'Your cat scrapbook' })).toBeVisible();
 });
+
+
+test('browser Back returns within the scan without losing entered details', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await startScan(page, photo);
+
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+  await page.getByLabel('Cat name').fill('Mochi');
+  await page.getByLabel(/Encounter note/).fill('Near the old wall.');
+
+  await page.goBack();
+  await expect(page.getByTestId('identity-screen')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+  await expect(page.getByLabel('Cat name')).toHaveValue('Mochi');
+  await expect(page.getByLabel(/Encounter note/)).toHaveValue('Near the old wall.');
+});
