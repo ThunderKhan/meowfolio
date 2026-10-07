@@ -4,6 +4,8 @@ import { MockAiClient, type MockScenario } from './ai/mockClient';
 import { MODEL_MANIFEST } from './ai/shared';
 import { ScanFlow } from './scan/ScanFlow';
 import type { CatReference, MatchingPolicy } from './scan/matching';
+import { loadRuntimeCatalog } from './scan/referenceCatalog';
+import { RELEASE_MATCHING_POLICY } from './evaluation/releasePolicy';
 import { Scrapbook } from './scrapbook/Scrapbook';
 import { MeowfolioRepository } from './storage/repository';
 
@@ -57,6 +59,7 @@ export function App() {
   const [repository] = useState(() => new MeowfolioRepository());
   const [ai, setAi] = useState<AiGateway | null>(null);
   const [scanCats, setScanCats] = useState<CatReference[]>([]);
+  const [scanCatUrls, setScanCatUrls] = useState<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [scanning, setScanning] = useState(false);
   const [welcomeComplete, setWelcomeComplete] = useState(() => {
@@ -72,32 +75,41 @@ export function App() {
   const matchingPolicy: MatchingPolicy = useMemo(
     () =>
       e2eEnabled && catalogMode === 'familiar'
-        ? { enabled: true, threshold: 0.9, minimumMargin: 0.05 }
-        : { enabled: false },
+        ? {
+            enabled: true,
+            strategy: 'centroid',
+            threshold: 0.9,
+            minimumMargin: 0.05,
+          }
+        : RELEASE_MATCHING_POLICY,
     [catalogMode, e2eEnabled],
   );
 
   const refreshScanCats = useCallback(async () => {
     if (catalogMode) {
       setScanCats(fixtureCats);
+      setScanCatUrls((current) => {
+        for (const url of current) URL.revokeObjectURL(url);
+        return [];
+      });
       return;
     }
 
     try {
-      const cats = await repository.listCats();
-      setScanCats(
-        cats.map((cat) => ({
-          id: cat.id,
-          name: cat.name,
-          encounterCount: cat.encounterCount,
-          referenceEmbedding: Array.from(cat.referenceEmbedding),
-          embeddingSpace: cat.embeddingSpace,
-        })),
-      );
+      const catalog = await loadRuntimeCatalog(repository, RELEASE_MATCHING_POLICY);
+      setScanCats(catalog.cats);
+      setScanCatUrls((current) => {
+        for (const url of current) URL.revokeObjectURL(url);
+        return catalog.objectUrls;
+      });
     } catch {
       // Scrapbook rendering owns the visible read-error state. A failed reference
       // refresh simply leaves manual identity with no preloaded saved-cat choices.
       setScanCats([]);
+      setScanCatUrls((current) => {
+        for (const url of current) URL.revokeObjectURL(url);
+        return [];
+      });
     }
   }, [catalogMode, fixtureCats, repository]);
 
@@ -109,10 +121,11 @@ export function App() {
     }
 
     return () => {
+      for (const url of scanCatUrls) URL.revokeObjectURL(url);
       repository.close();
       delete window.__MEOWFOLIO_E2E_REPOSITORY__;
     };
-  }, [e2eEnabled, refreshScanCats, repository]);
+  }, [e2eEnabled, refreshScanCats, repository, scanCatUrls]);
 
   function completeWelcome(): void {
     setWelcomeComplete(true);
