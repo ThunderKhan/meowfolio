@@ -1,4 +1,5 @@
 import type {
+  EvaluationStrategy,
   MatchingEvaluationReport,
   ThresholdResult,
 } from './types';
@@ -11,16 +12,19 @@ export interface PublicMatchingEvidence {
   holdoutSampleCount: number;
   failureCount: number;
   selectedPolicy: {
-    strategy: 'first-only' | 'centroid';
+    strategy: EvaluationStrategy;
     threshold: number;
     minimumMargin: number;
   };
-  development: MatchingEvaluationReport['selectedPolicy']['development'];
-  holdout: {
-    summary: MatchingEvaluationReport['holdoutByStrategy']['first-only']['summary'];
-    results: PublicQueryResult[];
-    negativeResults: PublicQueryResult[];
-  };
+  developmentByStrategy: MatchingEvaluationReport['strategyPolicies'];
+  holdoutByStrategy: Record<
+    EvaluationStrategy,
+    {
+      summary: MatchingEvaluationReport['holdoutByStrategy']['first-only']['summary'];
+      results: PublicQueryResult[];
+      negativeResults: PublicQueryResult[];
+    }
+  >;
   release: MatchingEvaluationReport['release'];
 }
 
@@ -42,16 +46,18 @@ function aliases(report: MatchingEvaluationReport): {
   cat: Map<string, string>;
   query: Map<string, string>;
 } {
-  const selected = report.holdoutByStrategy[report.selectedPolicy.strategy];
   const catIds = new Set<string>();
   const assetIds = new Set<string>();
 
-  for (const result of [...selected.results, ...selected.negativeResults]) {
-    catIds.add(result.catId);
-    if (result.highestWrongCatId) catIds.add(result.highestWrongCatId);
-    if (result.topCandidate) catIds.add(result.topCandidate.catId);
-    if (result.suggestedCatId) catIds.add(result.suggestedCatId);
-    assetIds.add(result.assetId);
+  for (const strategy of ['first-only', 'centroid'] as const) {
+    const section = report.holdoutByStrategy[strategy];
+    for (const result of [...section.results, ...section.negativeResults]) {
+      catIds.add(result.catId);
+      if (result.highestWrongCatId) catIds.add(result.highestWrongCatId);
+      if (result.topCandidate) catIds.add(result.topCandidate.catId);
+      if (result.suggestedCatId) catIds.add(result.suggestedCatId);
+      assetIds.add(result.assetId);
+    }
   }
 
   const cat = new Map(
@@ -89,11 +95,23 @@ function publicResult(
   };
 }
 
+function publicStrategy(
+  report: MatchingEvaluationReport,
+  strategy: EvaluationStrategy,
+  maps: ReturnType<typeof aliases>,
+) {
+  const section = report.holdoutByStrategy[strategy];
+  return {
+    summary: section.summary,
+    results: section.results.map((result) => publicResult(result, maps)),
+    negativeResults: section.negativeResults.map((result) => publicResult(result, maps)),
+  };
+}
+
 export function createPublicMatchingEvidence(
   report: MatchingEvaluationReport,
 ): PublicMatchingEvidence {
   const maps = aliases(report);
-  const selected = report.holdoutByStrategy[report.selectedPolicy.strategy];
 
   return {
     version: 1,
@@ -107,11 +125,10 @@ export function createPublicMatchingEvidence(
       threshold: report.selectedPolicy.threshold,
       minimumMargin: report.selectedPolicy.minimumMargin,
     },
-    development: report.selectedPolicy.development,
-    holdout: {
-      summary: selected.summary,
-      results: selected.results.map((result) => publicResult(result, maps)),
-      negativeResults: selected.negativeResults.map((result) => publicResult(result, maps)),
+    developmentByStrategy: report.strategyPolicies,
+    holdoutByStrategy: {
+      'first-only': publicStrategy(report, 'first-only', maps),
+      centroid: publicStrategy(report, 'centroid', maps),
     },
     release: report.release,
   };
