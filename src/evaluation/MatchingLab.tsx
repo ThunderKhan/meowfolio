@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { AiClient } from '../ai/client';
 import { cropImageBlob } from '../browser/images';
+import { embeddingSpaceKey } from '../scan/matching';
 import { evaluateMatching } from './evaluator';
 import { createPublicMatchingEvidence } from './publicReport';
 import type {
@@ -135,33 +136,85 @@ export function MatchingLab({ onExit }: { onExit: () => void }) {
     const total = manifest.samples.length;
     setProgress({ done: 0, total, label: 'starting' });
 
+    let expectedSpaceKey: string | null = null;
+
     for (let index = 0; index < manifest.samples.length; index += 1) {
       const item = manifest.samples[index];
       const file = files.get(item.file)!;
       setProgress({ done: index, total, label: item.assetId });
 
+      let detection;
       try {
-        const detection = await ai.detect(file, 0.25);
-        if (detection.detections.length === 0) {
-          failures.push({ ...item, partition: item.partition, reason: 'no-cat' });
-          continue;
-        }
-        if (detection.detections.length !== 1) {
-          failures.push({ ...item, partition: item.partition, reason: 'multiple-cats' });
-          continue;
-        }
-
-        const crop = await cropImageBlob(file, detection.detections[0].box);
-        const embedding = await ai.embed(crop);
-
-        samples.push({
+        detection = await ai.detect(file, 0.25);
+      } catch {
+        failures.push({
           assetId: item.assetId,
           catId: item.catId,
           partition: item.partition,
-          order: item.order,
-          embedding: embedding.embedding,
-          embeddingSpace: embedding.space,
+          reason: 'detection-failed',
         });
+        setProgress({ done: index + 1, total, label: item.assetId });
+        continue;
+      }
+
+      if (detection.detections.length === 0) {
+        failures.push({
+          assetId: item.assetId,
+          catId: item.catId,
+          partition: item.partition,
+          reason: 'no-cat',
+        });
+        setProgress({ done: index + 1, total, label: item.assetId });
+        continue;
+      }
+
+      if (detection.detections.length !== 1) {
+        failures.push({
+          assetId: item.assetId,
+          catId: item.catId,
+          partition: item.partition,
+          reason: 'multiple-cats',
+        });
+        setProgress({ done: index + 1, total, label: item.assetId });
+        continue;
+      }
+
+      let crop: Blob;
+      try {
+        crop = await cropImageBlob(file, detection.detections[0].box);
+      } catch {
+        failures.push({
+          assetId: item.assetId,
+          catId: item.catId,
+          partition: item.partition,
+          reason: 'decode-failed',
+        });
+        setProgress({ done: index + 1, total, label: item.assetId });
+        continue;
+      }
+
+      try {
+        const embedding = await ai.embed(crop);
+        const currentSpaceKey = embeddingSpaceKey(embedding.space);
+
+        if (expectedSpaceKey && currentSpaceKey !== expectedSpaceKey) {
+          failures.push({
+            assetId: item.assetId,
+            catId: item.catId,
+            partition: item.partition,
+            reason: 'incompatible-space',
+          });
+        } else {
+          expectedSpaceKey ??= currentSpaceKey;
+          samples.push({
+            assetId: item.assetId,
+            catId: item.catId,
+            partition: item.partition,
+            order: item.order,
+            embedding: embedding.embedding,
+            embeddingSpace: embedding.space,
+          });
+        }
       } catch {
         failures.push({
           assetId: item.assetId,
@@ -169,9 +222,9 @@ export function MatchingLab({ onExit }: { onExit: () => void }) {
           partition: item.partition,
           reason: 'embedding-failed',
         });
-      } finally {
-        setProgress({ done: index + 1, total, label: item.assetId });
       }
+
+      setProgress({ done: index + 1, total, label: item.assetId });
     }
 
     try {
