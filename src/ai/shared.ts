@@ -9,14 +9,14 @@ export interface ModelSpec {
 }
 
 export const MODEL_MANIFEST = {
-  version: '2026-10-07-spike-3',
+  version: '2026-10-07-spike-4',
   detector: {
-    id: 'onnx-community/yolov10n',
-    revision: '99eec2d6d2becae0f038019f75054029ad5a9004',
+    id: 'Xenova/yolos-tiny',
+    revision: 'e2f9c7673f0fa61849efe2b56a0d7774779ebb9d',
     task: 'object-detection',
     dtype: { webgpu: 'fp16', wasm: 'int8' },
     releaseNote:
-      'Spike candidate only. Hugging Face marks this repository AGPL-3.0; release use remains blocked until licensing is resolved.',
+      'Transformers.js-compatible YOLOS-tiny conversion. Upstream hustvl/yolos-tiny is Apache-2.0.',
   },
   embedder: {
     id: 'Xenova/dinov2-small',
