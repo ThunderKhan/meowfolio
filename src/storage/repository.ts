@@ -242,12 +242,10 @@ export class MeowfolioRepository {
         duplicate: false,
       };
     } catch (error) {
-      if (tx.readyState !== 'done') {
-        try {
-          tx.abort();
-        } catch {
-          // Already completing/aborted.
-        }
+      try {
+        tx.abort();
+      } catch {
+        // The transaction may already be aborting/completing.
       }
       try {
         await done;
