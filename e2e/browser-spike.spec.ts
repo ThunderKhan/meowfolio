@@ -43,24 +43,31 @@ test('real WASM cat detection and DINOv2 embedding complete in Chromium', async 
 
   await consent.click();
 
-  try {
-    await expect(page.getByText(/cats? found\./i)).toBeVisible({ timeout: 180_000 });
-  } catch (error) {
-    const status = await page.getByTestId('status').textContent().catch(() => null);
+  const terminalStatus = page.getByTestId('status');
+  await expect
+    .poll(
+      async () => (await terminalStatus.textContent()) ?? '',
+      {
+        timeout: 180_000,
+        intervals: [250, 500, 1_000, 2_000],
+      },
+    )
+    .toMatch(/cats? found\.|CONSENT_REQUIRED|INITIALIZATION_FAILED|DETECTION_FAILED/i);
+
+  const statusAfterPreparation = (await terminalStatus.textContent()) ?? '';
+  if (!/cats? found\./i.test(statusAfterPreparation)) {
     const networkAudit = await page
       .locator('details')
       .filter({ hasText: 'AI network audit' })
       .textContent()
       .catch(() => null);
     throw new Error(
-      'Model preparation/detection did not reach a cat result. Status: ' +
-        JSON.stringify(status) +
+      'Model preparation/detection failed. Status: ' +
+        JSON.stringify(statusAfterPreparation) +
         '\nNetwork audit: ' +
         JSON.stringify(networkAudit) +
         '\nBrowser messages:\n' +
-        browserMessages.join('\n') +
-        '\nOriginal assertion: ' +
-        (error instanceof Error ? error.message : String(error)),
+        browserMessages.join('\n'),
     );
   }
 
