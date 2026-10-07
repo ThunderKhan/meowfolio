@@ -38,6 +38,7 @@ export interface ScanState {
   detections: Detection[];
   sourceWidth: number;
   sourceHeight: number;
+  detectionElapsedMs: number;
   selectedDetection: Detection | null;
   crop: Blob | null;
   embedding: EmbeddingResult | null;
@@ -60,6 +61,7 @@ export function createScanState(now = Date.now()): ScanState {
     detections: [],
     sourceWidth: 0,
     sourceHeight: 0,
+    detectionElapsedMs: 0,
     selectedDetection: null,
     crop: null,
     embedding: null,
@@ -80,6 +82,7 @@ type AsyncAction =
       detections: Detection[];
       width: number;
       height: number;
+      elapsedMs: number;
     }
   | {
       type: 'CROP_READY';
@@ -138,6 +141,7 @@ export function scanReducer(state: ScanState, action: ScanAction): ScanState {
         detections: [],
         sourceWidth: 0,
         sourceHeight: 0,
+        detectionElapsedMs: 0,
         selectedDetection: null,
         crop: null,
         embedding: null,
@@ -161,6 +165,7 @@ export function scanReducer(state: ScanState, action: ScanAction): ScanState {
           detections: [],
           sourceWidth: action.width,
           sourceHeight: action.height,
+          detectionElapsedMs: action.elapsedMs,
           error: 'I couldn’t find a cat in this photo. Try a clearer photo where the cat takes up more of the frame.',
           slowWarning: false,
         };
@@ -171,6 +176,7 @@ export function scanReducer(state: ScanState, action: ScanAction): ScanState {
           detections: action.detections,
           sourceWidth: action.width,
           sourceHeight: action.height,
+          detectionElapsedMs: action.elapsedMs,
           selectedDetection: action.detections[0],
           error: null,
           slowWarning: false,
@@ -182,6 +188,7 @@ export function scanReducer(state: ScanState, action: ScanAction): ScanState {
         detections: action.detections,
         sourceWidth: action.width,
         sourceHeight: action.height,
+        detectionElapsedMs: action.elapsedMs,
         selectedDetection: null,
         error: null,
         slowWarning: false,
