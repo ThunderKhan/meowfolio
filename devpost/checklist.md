@@ -47,7 +47,7 @@ Build mode: fast
   Why now: With trustworthy persistence in place, this slice exposes the emotional payoff of the product without introducing features outside the PoC.
   PRD ref: `prd.md > F6 — Collection and Cat History`, `prd.md > Look and Feel`
   Spec ref: `spec.md > Scrapbook and Detail Views`, `spec.md > Look and Feel`
-  Build: Implement empty collection, photo-first cards, same-name disambiguation, cat detail/history, object-URL cleanup, location disclosure, and the approved warm paper / muted green / restrained terracotta visual system with large touch targets, focus states, reduced motion, and mobile-first layouts.
+  Build: Implement empty collection, photo-first cards, same-name disambiguation, cat detail/history, object-URL cleanup, location disclosure, and the learner-approved **pink Y2K pixel scrapbook** visual system with square/beveled controls, chunky borders/pixel shadows, no external font request, large touch targets, visible focus, reduced motion, and mobile-first layouts. Browsing must not initialize the AI worker or fetch model assets.
   Verify (mechanical): Run typecheck, tests, and production build; add focused rendering/repository tests where valuable and selective Playwright coverage for collection → detail → disclosure using labelled fixtures. Verify no model initialization/network request occurs merely by browsing saved cats.
   Learner check: Browse a few saved cats on your phone and open one with multiple sightings. Confirm it feels like a personal scrapbook rather than an AI dashboard, and that the primary Spot a cat action remains obvious.
   Commit: `feat: build the cat scrapbook experience`
