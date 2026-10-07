@@ -87,12 +87,12 @@ Do not create abstractions merely to match this tree. Use the smallest structure
 - [ ] license decision held until detector/model licensing is verified
 
 ## Bootstrap tasks
-- [ ] Initialize Vite React TypeScript project.
-- [ ] Add Tailwind.
-- [ ] Add Transformers.js.
-- [ ] Add test tooling.
+- [x] Initialize Vite React TypeScript project.
+- [x] Add Tailwind.
+- [x] Add Transformers.js.
+- [x] Add test tooling.
 - [ ] Add lint/format scripts.
-- [ ] Add a minimal CI workflow if it does not distract from core work.
+- [x] Add a minimal CI workflow if it does not distract from core work.
 - [ ] Add application shell and mobile viewport behavior.
 
 ### Exit condition
@@ -105,14 +105,14 @@ The app builds, runs, and deploys as an empty shell.
 ## 1.1 Detector spike
 
 Implement the smallest page/script that can:
-- [ ] load `onnx-community/yolov10n`,
-- [ ] accept a local image,
-- [ ] run object detection,
-- [ ] filter for cat detections,
+- [x] load a verified browser-supported detector (`Xenova/yolos-tiny`, replacing unsupported YOLOv10n),
+- [x] accept a local image,
+- [x] run object detection,
+- [x] filter for cat detections,
 - [ ] render boxes on a preview,
 - [ ] log latency,
-- [ ] record model download behavior,
-- [ ] record browser/device used.
+- [x] record model download behavior,
+- [x] record browser/device used.
 
 Test:
 - clear close cat,
@@ -126,21 +126,23 @@ If this exact model cannot run acceptably in target browsers, investigate a smal
 
 Do not hide a model failure with a fake result.
 
+**Slice 1 result:** the initial YOLOv10n candidate failed the real Chromium gate because Transformers.js 4.3.0 does not support its `yolov10` model type. It was replaced with `Xenova/yolos-tiny` pinned to `e2f9c7673f0fa61849efe2b56a0d7774779ebb9d`; the WASM `uint8` detector then passed real cat detection. DINOv2-small at `a5406bdfce9ac07eb3dc08dd05cbea034f4648d8` passed crop → 384-D normalized CLS-token embedding in the same browser test.
+
 ## 1.2 Image crop
 
-- [ ] Convert selected image to a browser-friendly bitmap.
-- [ ] Use detector coordinates to crop the selected cat with Canvas.
+- [x] Convert selected image to a browser-friendly bitmap.
+- [x] Use detector coordinates to crop the selected cat with Canvas.
 - [ ] Add a modest padding around the box.
 - [ ] Resize to the feature model's expected processing path.
 - [ ] Dispose temporary bitmap/object URLs where appropriate.
 
 ## 1.3 Embedding spike
 
-- [ ] load `Xenova/dinov2-small`,
-- [ ] process the cat crop,
-- [ ] extract one stable feature vector,
-- [ ] verify expected vector shape,
-- [ ] L2-normalize,
+- [x] load `Xenova/dinov2-small`,
+- [x] process the cat crop,
+- [x] extract one stable feature vector (first CLS token from `last_hidden_state`),
+- [x] verify expected vector shape (384),
+- [x] L2-normalize,
 - [ ] log inference time.
 
 ## 1.4 Similarity spike
