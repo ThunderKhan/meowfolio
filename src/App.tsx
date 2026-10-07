@@ -6,6 +6,7 @@ import { ScanFlow } from './scan/ScanFlow';
 import type { CatReference, MatchingPolicy } from './scan/matching';
 import { loadRuntimeCatalog } from './scan/referenceCatalog';
 import { RELEASE_MATCHING_POLICY } from './evaluation/releasePolicy';
+import { MatchingLab } from './evaluation/MatchingLab';
 import { Scrapbook } from './scrapbook/Scrapbook';
 import { MeowfolioRepository } from './storage/repository';
 
@@ -55,6 +56,8 @@ export function App() {
   const e2eEnabled = import.meta.env.VITE_E2E === '1';
   const mockScenario = e2eEnabled ? params.get('mockAi') : null;
   const catalogMode = e2eEnabled ? params.get('catalog') : null;
+  const matchingLabEnabled =
+    params.get('matchingLab') === '1' && (import.meta.env.DEV || e2eEnabled);
 
   const [repository] = useState(() => new MeowfolioRepository());
   const [ai, setAi] = useState<AiGateway | null>(null);
@@ -153,6 +156,10 @@ export function App() {
   async function afterSave(): Promise<void> {
     setRefreshKey((value) => value + 1);
     await refreshScanCats();
+  }
+
+  if (matchingLabEnabled) {
+    return <MatchingLab onExit={() => window.location.assign(window.location.pathname)} />;
   }
 
   if (!welcomeComplete) {
