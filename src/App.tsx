@@ -4,13 +4,10 @@ import { MockAiClient, type MockScenario } from './ai/mockClient';
 import { MODEL_MANIFEST } from './ai/shared';
 import { ScanFlow } from './scan/ScanFlow';
 import type { CatReference, MatchingPolicy } from './scan/matching';
+import { Scrapbook } from './scrapbook/Scrapbook';
 import { MeowfolioRepository } from './storage/repository';
 
 const WELCOME_KEY = 'meowfolio.welcome-complete';
-
-interface CollectionCat extends CatReference {
-  lastSeenAt: number;
-}
 
 declare global {
   interface Window {
@@ -51,24 +48,17 @@ function testCatalog(mode: string | null): CatReference[] {
   ];
 }
 
-function revokeCatUrls(cats: CollectionCat[]): void {
-  for (const cat of cats) {
-    if (cat.coverUrl?.startsWith('blob:')) URL.revokeObjectURL(cat.coverUrl);
-  }
-}
-
 export function App() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const e2eEnabled = import.meta.env.VITE_E2E === '1';
   const mockScenario = e2eEnabled ? params.get('mockAi') : null;
   const catalogMode = e2eEnabled ? params.get('catalog') : null;
 
-  const [ai] = useState<AiGateway>(() =>
-    mockScenario ? new MockAiClient(mockScenario as MockScenario) : new AiClient(),
-  );
   const [repository] = useState(() => new MeowfolioRepository());
-  const [persistedCats, setPersistedCats] = useState<CollectionCat[]>([]);
-  const [storageError, setStorageError] = useState<string | null>(null);
+  const [ai, setAi] = useState<AiGateway | null>(null);
+  const [scanCats, setScanCats] = useState<CatReference[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [scanning, setScanning] = useState(false);
   const [welcomeComplete, setWelcomeComplete] = useState(() => {
     if (e2eEnabled && params.get('skipWelcome') === '1') return true;
     try {
@@ -77,56 +67,8 @@ export function App() {
       return false;
     }
   });
-  const [scanning, setScanning] = useState(false);
-
-  const refreshCats = useCallback(async () => {
-    try {
-      const summaries = await repository.getCatSummaries();
-      const next: CollectionCat[] = summaries.map(({ cat, coverPhoto }) => ({
-        id: cat.id,
-        name: cat.name,
-        encounterCount: cat.encounterCount,
-        coverUrl: URL.createObjectURL(coverPhoto),
-        referenceEmbedding: Array.from(cat.referenceEmbedding),
-        embeddingSpace: cat.embeddingSpace,
-        lastSeenAt: cat.lastSeenAt,
-      }));
-
-      setPersistedCats((current) => {
-        revokeCatUrls(current);
-        return next;
-      });
-      setStorageError(null);
-    } catch (error) {
-      setStorageError(
-        error instanceof Error ? error.message : 'Could not read the local scrapbook.',
-      );
-    }
-  }, [repository]);
-
-  useEffect(() => {
-    void refreshCats();
-
-    if (e2eEnabled) {
-      window.__MEOWFOLIO_E2E_REPOSITORY__ = repository;
-    }
-
-    return () => {
-      ai.dispose();
-      repository.close();
-      delete window.__MEOWFOLIO_E2E_REPOSITORY__;
-    };
-  }, [ai, e2eEnabled, refreshCats, repository]);
-
-  useEffect(
-    () => () => {
-      revokeCatUrls(persistedCats);
-    },
-    [persistedCats],
-  );
 
   const fixtureCats = useMemo(() => testCatalog(catalogMode), [catalogMode]);
-  const cats: CatReference[] = catalogMode ? fixtureCats : persistedCats;
   const matchingPolicy: MatchingPolicy = useMemo(
     () =>
       e2eEnabled && catalogMode === 'familiar'
@@ -135,60 +77,135 @@ export function App() {
     [catalogMode, e2eEnabled],
   );
 
+  const refreshScanCats = useCallback(async () => {
+    if (catalogMode) {
+      setScanCats(fixtureCats);
+      return;
+    }
+
+    try {
+      const cats = await repository.listCats();
+      setScanCats(
+        cats.map((cat) => ({
+          id: cat.id,
+          name: cat.name,
+          encounterCount: cat.encounterCount,
+          referenceEmbedding: Array.from(cat.referenceEmbedding),
+          embeddingSpace: cat.embeddingSpace,
+        })),
+      );
+    } catch {
+      // Scrapbook rendering owns the visible read-error state. A failed reference
+      // refresh simply leaves manual identity with no preloaded saved-cat choices.
+      setScanCats([]);
+    }
+  }, [catalogMode, fixtureCats, repository]);
+
+  useEffect(() => {
+    void refreshScanCats();
+
+    if (e2eEnabled) {
+      window.__MEOWFOLIO_E2E_REPOSITORY__ = repository;
+    }
+
+    return () => {
+      ai?.dispose();
+      repository.close();
+      delete window.__MEOWFOLIO_E2E_REPOSITORY__;
+    };
+  }, [ai, e2eEnabled, refreshScanCats, repository]);
+
   function completeWelcome(): void {
     setWelcomeComplete(true);
     try {
       window.localStorage.setItem(WELCOME_KEY, '1');
     } catch {
-      // The welcome preference is convenience only; storage failure never blocks use.
+      // Convenience only; inability to persist welcome state never blocks the app.
     }
+  }
+
+  async function startScan(): Promise<void> {
+    await refreshScanCats();
+
+    const gateway: AiGateway = mockScenario
+      ? new MockAiClient(mockScenario as MockScenario)
+      : new AiClient();
+
+    setAi(gateway);
+    setScanning(true);
+  }
+
+  function leaveScan(): void {
+    setScanning(false);
+    setAi((current) => {
+      current?.dispose();
+      return null;
+    });
+  }
+
+  async function afterSave(): Promise<void> {
+    setRefreshKey((value) => value + 1);
+    await refreshScanCats();
   }
 
   if (!welcomeComplete) {
     return (
       <main className="mx-auto grid min-h-screen max-w-5xl items-center px-4 py-10 sm:px-6">
-        <section className="paper-shadow overflow-hidden rounded-[34px] border border-black/10 bg-[#fffdf8]">
-          <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="p-7 sm:p-10 lg:p-14">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#2f6b4f]">
-                Meowfolio
-              </p>
-              <h1 className="mt-4 max-w-xl font-serif text-5xl font-semibold leading-[1.04] sm:text-6xl">
-                Remember the cats you meet outside.
+        <section className="pixel-window overflow-hidden">
+          <div className="pixel-window-title">
+            <span>♥ MEOWFOLIO_SETUP.EXE</span>
+            <span aria-hidden="true">_ □ ×</span>
+          </div>
+          <div className="grid lg:grid-cols-[1.08fr_0.92fr]">
+            <div className="p-6 sm:p-9 lg:p-12">
+              <p className="pixel-kicker">★ welcome to your local cat archive ★</p>
+              <h1 className="pixel-heading mt-4 max-w-xl text-5xl sm:text-6xl">
+                remember the cats you meet outside_♥
               </h1>
-              <p className="mt-6 max-w-xl text-lg leading-8 text-[#6d625a]">
-                Build a private scrapbook of real cat encounters. Meowfolio uses local visual AI
-                to find the cat in your photo and help you connect later meetings. You always
-                decide who the cat is.
+              <p className="mt-6 max-w-xl text-base leading-8 text-[#6d3454]">
+                Meowfolio is a tiny private scrapbook for real cat encounters. Local visual AI
+                finds the cat in your photo; <strong>you</strong> decide who the cat is.
               </p>
-              <div className="mt-8 rounded-2xl border border-[#2f6b4f]/20 bg-[#f3f8f4] p-4 text-sm leading-6 text-[#4d5f54]">
-                <strong className="text-[#1f1a17]">Private by default.</strong> Photos, embeddings,
-                names, and optional encounter details stay in your browser scrapbook. The first
-                scan may need to download local AI model files.
+
+              <div className="pixel-note mt-7">
+                <p className="pixel-kicker">privacy_readme.txt</p>
+                <p className="mt-2 text-sm leading-6 text-[#54233d]">
+                  No account. No hosted photo inference. Names, photos, embeddings, notes, and
+                  optional location stay in this browser scrapbook. The first scan may download
+                  local AI model files after you approve it.
+                </p>
               </div>
-              <button
-                type="button"
-                onClick={completeWelcome}
-                className="mt-8 min-h-12 rounded-xl bg-[#2f6b4f] px-6 py-3 font-semibold text-white"
-              >
-                Start my Meowfolio
+
+              <button type="button" onClick={completeWelcome} className="pixel-primary mt-8">
+                ♥ start my meowfolio ♥
               </button>
             </div>
 
-            <div className="relative min-h-72 overflow-hidden bg-[#e8efe8] p-8 lg:min-h-full">
-              <div className="absolute -right-10 top-10 h-44 w-44 rounded-full border-[24px] border-[#c96b4b]/15" />
-              <div className="absolute bottom-8 left-8 rotate-[-4deg] rounded-2xl bg-white p-5 shadow-xl">
-                <p className="font-serif text-3xl">🐈</p>
-                <p className="mt-8 font-serif text-2xl font-semibold">Mochi</p>
-                <p className="mt-1 text-sm text-[#6d625a]">Met again on your evening walk</p>
+            <div className="relative min-h-80 overflow-hidden border-t-2 border-[#7b3157] bg-[#ffc4e0] p-7 lg:border-l-2 lg:border-t-0">
+              <div className="absolute left-4 top-3 text-xs font-bold text-[#9f1f62]">
+                ☆ ☆ ☆ ONLINE MEMORY CARD ☆ ☆ ☆
               </div>
-              <div className="absolute right-8 top-16 rotate-[5deg] rounded-2xl border border-black/10 bg-[#faf7f0] px-5 py-4 shadow-lg">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#2f6b4f]">
-                  Field note
-                </p>
-                <p className="mt-2 max-w-40 font-serif text-xl">
-                  The orange one by the garden wall.
-                </p>
+              <div className="pixel-window absolute bottom-8 left-7 right-14 rotate-[-2deg] bg-[#fff6fb]">
+                <div className="pixel-window-title">
+                  <span>CAT_001.JPG</span>
+                  <span>×</span>
+                </div>
+                <div className="p-5">
+                  <div className="grid aspect-[4/3] place-items-center border-2 border-[#7b3157] bg-[#ffd7ec] text-5xl">
+                    ฅ^•ﻌ•^ฅ
+                  </div>
+                  <p className="pixel-heading mt-4 text-2xl">Mochi</p>
+                  <p className="mt-1 text-xs text-[#7f4b67]">
+                    STATUS: met again on evening walk ♥
+                  </p>
+                </div>
+              </div>
+              <div className="absolute right-4 top-14 rotate-[3deg] border-2 border-dashed border-[#a91f68] bg-[#fff3a8] px-4 py-3 text-xs font-bold text-[#6d3454] shadow-[3px_3px_0_#d96ca5]">
+                DON’T FORGET:
+                <br />
+                orange cat by
+                <br />
+                garden wall!!
               </div>
             </div>
           </div>
@@ -197,109 +214,45 @@ export function App() {
     );
   }
 
-  if (scanning) {
+  if (scanning && ai) {
     return (
       <ScanFlow
         ai={ai}
         repository={repository}
-        cats={cats}
+        cats={catalogMode ? fixtureCats : scanCats}
         matchingPolicy={matchingPolicy}
-        onSaved={refreshCats}
-        onExit={() => setScanning(false)}
+        onSaved={afterSave}
+        onExit={leaveScan}
       />
     );
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-      <header className="flex items-start justify-between gap-5">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#2f6b4f]">
-            Meowfolio
-          </p>
-          <h1 className="mt-2 font-serif text-4xl font-semibold sm:text-5xl">
-            Your cat scrapbook
-          </h1>
+    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 sm:py-9">
+      <header className="pixel-window">
+        <div className="pixel-window-title">
+          <span>♥ MEOWFOLIO.HTML</span>
+          <span aria-hidden="true">_ □ ×</span>
         </div>
-        <button
-          type="button"
-          onClick={() => setScanning(true)}
-          className="min-h-12 rounded-xl bg-[#2f6b4f] px-5 py-3 font-semibold text-white"
-        >
-          Spot a cat
-        </button>
+        <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="pixel-kicker">personal neighborhood cat scrapbook</p>
+            <p className="pixel-heading mt-1 text-2xl">meowfolio // local save file</p>
+          </div>
+          <button type="button" className="pixel-primary" onClick={() => void startScan()}>
+            + spot a cat
+          </button>
+        </div>
       </header>
 
-      {storageError ? (
-        <p role="alert" className="mt-6 rounded-xl border border-[#c96b4b]/30 bg-[#fff7f2] px-4 py-3 text-sm text-[#8d3f31]">
-          {storageError}
-        </p>
-      ) : null}
+      <Scrapbook
+        repository={repository}
+        refreshKey={refreshKey}
+        onSpotCat={() => void startScan()}
+      />
 
-      <section className="paper-shadow mt-8 rounded-[30px] border border-black/10 bg-[#fffdf8] p-6 sm:p-10">
-        {persistedCats.length === 0 || catalogMode ? (
-          <div className="mx-auto max-w-xl py-10 text-center">
-            <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#e8efe8] text-4xl">
-              🐾
-            </div>
-            <h2 className="mt-6 font-serif text-3xl font-semibold">
-              {cats.length === 0
-                ? 'Your first cat is still out there.'
-                : 'Your test scrapbook is ready.'}
-            </h2>
-            <p className="mt-3 leading-7 text-[#6d625a]">
-              {cats.length === 0
-                ? 'Next time you spot one, take a photo. Meowfolio will find the cat locally, then you decide how to remember them.'
-                : 'Controlled browser fixtures are active for this verification build.'}
-            </p>
-            <button
-              type="button"
-              onClick={() => setScanning(true)}
-              className="mt-6 min-h-12 rounded-xl bg-[#2f6b4f] px-6 py-3 font-semibold text-white"
-            >
-              Spot a cat
-            </button>
-          </div>
-        ) : (
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
-              Saved locally
-            </p>
-            <h2 className="mt-2 font-serif text-3xl font-semibold">
-              {persistedCats.length} {persistedCats.length === 1 ? 'cat' : 'cats'} in this browser
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[#6d625a]">
-              Slice 4 will turn these records into the full scrapbook. For now this confirms that
-              committed cats survive reopening and are available to future identity decisions.
-            </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {persistedCats.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="flex items-center gap-4 rounded-2xl border border-black/10 bg-white p-3"
-                >
-                  {cat.coverUrl ? (
-                    <img
-                      src={cat.coverUrl}
-                      alt=""
-                      className="h-20 w-20 shrink-0 rounded-xl object-cover"
-                    />
-                  ) : null}
-                  <div>
-                    <p className="font-serif text-xl font-semibold">{cat.name}</p>
-                    <p className="mt-1 text-sm text-[#6d625a]">
-                      Met {cat.encounterCount} {cat.encounterCount === 1 ? 'time' : 'times'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </section>
-
-      <footer className="mt-6 text-center text-xs leading-5 text-[#83766d]">
-        No account. No public map. No hosted photo inference.
+      <footer className="mt-9 border-t-2 border-dashed border-[#b7588b] py-5 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#82405f]">
+        ♥ local-first · no account · no public map · no hosted photo inference ♥
       </footer>
     </main>
   );
