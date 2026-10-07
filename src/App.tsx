@@ -109,11 +109,10 @@ export function App() {
     }
 
     return () => {
-      ai?.dispose();
       repository.close();
       delete window.__MEOWFOLIO_E2E_REPOSITORY__;
     };
-  }, [ai, e2eEnabled, refreshScanCats, repository]);
+  }, [e2eEnabled, refreshScanCats, repository]);
 
   function completeWelcome(): void {
     setWelcomeComplete(true);
