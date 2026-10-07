@@ -112,6 +112,7 @@ export type ScanAction =
   | { type: 'CHOOSE_NEW' }
   | { type: 'SET_NAME'; value: string }
   | { type: 'SET_NOTE'; value: string }
+  | { type: 'KEEP_WAITING' }
   | { type: 'BACK' }
   | { type: 'RETRY' }
   | { type: 'DISCARD'; now?: number };
@@ -232,6 +233,8 @@ export function scanReducer(state: ScanState, action: ScanAction): ScanState {
       return { ...state, note: action.value };
     case 'SLOW_WARNING':
       return { ...state, slowWarning: true };
+    case 'KEEP_WAITING':
+      return { ...state, slowWarning: false };
     case 'ASYNC_ERROR':
       return {
         ...state,
