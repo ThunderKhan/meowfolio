@@ -1,282 +1,196 @@
 # Meowfolio Design System
 
 Status: Visual baseline for MVP  
-Theme: **field notebook + modern scrapbook**
+Theme: **pink Y2K pixel scrapbook**
 
-The system exists to keep implementation coherent. Do not invent new arbitrary colors, radii, shadows, or spacing inside individual components.
+This system is intentionally nostalgic without copying any game, console, social network, or other brand trade dress. The UI should feel like a personal 1999–2005 web scrapbook wrapped around real cat photography.
 
 ## 1. Visual direction
 
 Keywords:
-- warm,
-- outdoorsy,
+- pink,
+- pixelated,
+- nostalgic,
+- personal-homepage,
+- scrapbook,
+- playful,
 - tactile,
-- personal,
-- quiet,
-- contemporary,
-- slightly handmade.
+- local/personal,
+- readable.
+
+Core rule:
+**the cat photo is still the memory; the retro chrome only frames it.**
 
 Avoid:
-- neon AI gradients,
-- cyberpunk,
-- glassmorphism-heavy surfaces,
-- childish cartoon UI,
 - Pokémon-derived visual language,
-- enterprise dashboard chrome.
+- modern AI gradients,
+- glassmorphism,
+- enterprise dashboards,
+- tiny unreadable bitmap text,
+- flashing/blinking UI,
+- decoration that hides hierarchy,
+- external font requests for the MVP.
 
 ## 2. Color tokens
 
-Use semantic tokens in code rather than raw hex values inside components.
-
-### Core
-
 | Token | Value | Use |
 |---|---|---|
-| `--color-canvas` | `#FAF7F0` | warm page background |
-| `--color-surface` | `#FFFFFF` | cards/dialogs |
-| `--color-ink` | `#1F1A17` | primary text |
-| `--color-muted` | `#6D625A` | secondary text |
-| `--color-border` | `#DED7CD` | dividers/borders |
-| `--color-primary` | `#2F6B4F` | primary actions |
-| `--color-primary-hover` | `#285A43` | primary hover |
-| `--color-primary-soft` | `#E3EEE8` | selected/soft state |
-| `--color-accent` | `#C96B4B` | decorative terracotta |
-| `--color-accent-text` | `#8B4D37` | accessible accent text |
-| `--color-warning` | `#8A6F2C` | warning emphasis |
-| `--color-error` | `#8B3A3A` | errors |
-| `--color-success` | `#2F6B4F` | success |
+| `--pink-canvas` | `#FFD7EC` | checkerboard page background |
+| `--pink-panel` | `#FFF6FB` | windows/cards |
+| `--pink-soft` | `#FFE8F4` | soft state |
+| `--pink-mid` | `#F7A8D1` | decorative fill |
+| `--pink-strong` | `#D63384` | primary actions |
+| `--pink-deep` | `#9F1F62` | strong readable accent text |
+| `--ink` | `#4A1834` | primary text |
+| `--muted` | `#7F4B67` | secondary text |
+| `--pixel-border` | `#7B3157` | chunky borders |
+| `--pixel-shadow` | `#B64F86` | hard pixel-offset shadows |
 
-Normal text must meet WCAG AA contrast. The base ink, muted, primary, accent-text, and error values are selected to work as readable dark text on the warm/light surfaces; still test actual component combinations.
-
-Use `--color-accent` mainly for non-text decoration because its contrast against light backgrounds is not sufficient for ordinary body text.
+Normal text must still meet WCAG AA contrast on the actual surface used.
 
 ## 3. Typography
 
-Prefer a zero-network-font baseline for the hackathon.
+Zero-network-font baseline:
 
-### Display
 ```css
-font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+font-family: "Courier New", "Lucida Console", Monaco, ui-monospace, monospace;
 ```
 
-Use for:
-- wordmark,
-- page title,
-- cat name at detail scale.
-
-### UI/body
-```css
-font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-             "Segoe UI", sans-serif;
-```
-
-Use for:
-- controls,
-- body,
-- metadata,
-- status.
-
-### Type scale
-
-| Token | Size | Line height |
-|---|---:|---:|
-| xs | 12px | 16px |
-| sm | 14px | 20px |
-| base | 16px | 24px |
-| lg | 18px | 26px |
-| xl | 22px | 30px |
-| 2xl | 28px | 34px |
-| 3xl | 36px | 42px |
-
-Do not use body copy smaller than 14px. Default to 16px.
-
-## 4. Spacing
-
-Base unit: 4px.
-
-Tokens:
-- 1 = 4px
-- 2 = 8px
-- 3 = 12px
-- 4 = 16px
-- 5 = 20px
-- 6 = 24px
-- 8 = 32px
-- 10 = 40px
-- 12 = 48px
-- 16 = 64px
-
-Most mobile page gutters:
-- 16px at narrow widths,
-- 24px when space permits.
-
-## 5. Radius
-
-| Token | Value | Use |
-|---|---:|---|
-| sm | 8px | small inputs/chips |
-| md | 12px | buttons/forms |
-| lg | 18px | cards |
-| xl | 24px | hero image/dialog |
-| pill | 999px | compact badges only |
-
-Avoid rounding every object into pills.
-
-## 6. Shadow
-
-Scrapbook surfaces should mostly use borders and subtle elevation.
-
-### Card
-```css
-box-shadow: 0 1px 2px rgba(31, 26, 23, 0.06),
-            0 6px 18px rgba(31, 26, 23, 0.05);
-```
-
-### Raised dialog
-```css
-box-shadow: 0 18px 50px rgba(31, 26, 23, 0.16);
-```
-
-No glowing shadows.
-
-## 7. Icons
-
-Use a consistent icon set if a dependency is selected; otherwise simple project-owned SVGs.
+Use bold monospace for headings, window chrome, buttons, labels, and metadata. Body text may use the same family for consistency.
 
 Rules:
-- 20–24px common size,
-- icons supplement labels on important actions,
-- do not use icon-only buttons for ambiguous actions,
-- paw/cat decorative icons are fine in moderation.
+- body text ≥14px,
+- primary body copy normally 16px,
+- tiny pixel labels are decorative/metadata only,
+- no external Google Fonts or font CDN for the MVP.
 
-## 8. Buttons
+## 4. Pixel chrome
 
-### Primary
-- green fill,
+Allowed:
+- square/beveled buttons,
+- 2px hard borders,
+- 2–6px non-blurred offset shadows,
+- faux desktop window title bars,
+- checkerboards,
+- tiny hearts/stars/stickers,
+- filename/date-stamp labels,
+- slight static card rotation ≤1°.
+
+Avoid:
+- actual blinking,
+- marquees that move continuously,
+- animated GIF clutter,
+- layout shifts,
+- illegible dithering.
+
+## 5. Buttons
+
+Primary:
+- hot-pink gradient/fill,
 - white label,
-- minimum visual height 48px for mobile primary actions,
-- radius md,
-- clear focus ring.
+- 2px dark border,
+- hard offset shadow,
+- minimum 48px mobile height.
 
-### Secondary
-- surface or transparent,
-- ink text,
-- visible border.
+Secondary:
+- pale-pink/cream fill,
+- dark plum text,
+- same chunky border/shadow.
 
-### Tertiary
-- text action,
-- adequate touch target despite visually minimal treatment.
+Pressed:
+- translate by ~2px and shorten shadow to imitate a physical pixel button.
 
-### Destructive
-- reserved error styling,
-- never use accent terracotta merely because it is red-ish.
+Important actions keep text labels; no ambiguous icon-only controls.
 
-States:
-- default,
-- hover,
-- active,
-- focus-visible,
-- disabled,
-- loading.
+## 6. Inputs
 
-Disabled must not be the only way to explain why an action is unavailable.
+- visible labels,
+- 2px pink/plum border,
+- light surface,
+- minimum ~48px touch height where practical,
+- strong dashed or solid focus ring,
+- placeholder never substitutes for a label.
 
-## 9. Inputs
+## 7. Cat cards
 
-- 48px preferred mobile control height.
-- Visible label above input.
-- Placeholder is not the label.
-- Error message directly associated with input.
-- Name field supports normal punctuation and Unicode.
-- No unnecessary validation while typing.
-
-## 10. Cards
-
-### Cat card
-- image-first,
-- aspect ratio approximately 4:5 or square depending on test photos,
+Photo-first:
+- square/near-square photo,
+- dark 2px frame,
+- small filename/date label,
 - name strong,
-- encounter metadata quiet,
-- entire card may be clickable if semantic link behavior is preserved.
+- encounter count visible,
+- last-seen quiet,
+- whole card may be the semantic button/link.
 
-### Detection choice card
-- cropped animal image,
-- selection affordance,
-- strong focus/selected state.
+Duplicate names are valid; photo, count, and dates provide disambiguation.
 
-## 11. Images
+## 8. Cat detail
 
-The cat photo should be the dominant visual asset.
+Required:
+- cover image,
+- name,
+- encounter count,
+- first seen,
+- last seen,
+- chronological encounter log.
 
-Rules:
-- use `object-fit: cover`,
-- avoid filters that alter the animal materially,
-- retain natural color,
-- loading placeholders should preserve aspect ratio,
-- meaningful images require contextual alt text when displayed as content.
+Each encounter:
+- full saved encounter photo,
+- date/time,
+- optional encounter note,
+- optional collapsed **Location saved** disclosure.
 
-## 12. Scrapbook motifs
+Do not display:
+- cosine similarity,
+- detector confidence,
+- embedding/model details,
+- raw coordinates until the location disclosure is deliberately opened.
 
-Permitted sparingly:
-- slight card rotation of at most ~1° for decorative static cards,
-- paper edge,
-- tape/sticker accent,
-- tiny date stamp,
-- hand-drawn divider SVG.
+## 9. Images
 
-Never allow decoration to:
-- reduce contrast,
-- make cards harder to scan,
-- create layout instability,
-- imply false functionality.
+- natural color,
+- `object-fit: cover` where cropped cards need it,
+- no visual filters that change the cat materially,
+- contextual alt text for meaningful images,
+- revoke generated object URLs when views unload/change.
 
-## 13. Focus
+Do not force `image-rendering: pixelated` on the actual cat photos. Pixelate the chrome, not the memory.
 
-Use a visible 2–3px focus ring with sufficient contrast and offset.
+## 10. Accessibility and mobile
 
-Never remove outline without a replacement.
+- 44×44px absolute minimum important touch target; 48px preferred,
+- visible focus on every interactive element,
+- no information conveyed only by pink shade,
+- readable contrast,
+- responsive from 320px,
+- reduced-motion mode removes decorative transitions/rotation,
+- no hover-only behavior.
 
-## 14. State language
+## 11. Motion
 
-Success:
-- calm, short.
+Keep motion tiny:
+- pressed-button shift,
+- mild hover lift where useful,
+- normal loading animation.
 
-Warning:
-- explain consequence.
+Respect `prefers-reduced-motion`. No flashing or rapid repetitive animation.
 
-Error:
-- say what failed + what to do.
+## 12. Navigation
 
-AI uncertainty:
-- neutral language, no alarming color unless there is an actual error.
+Minimal:
+- scrapbook,
+- cat detail,
+- scan flow.
 
-## 15. Design-token implementation
+**Spot a cat** stays obvious from collection and detail. Browsing saved cats must not initialize/download AI models.
 
-Prefer CSS custom properties exposed at root and consumed through Tailwind theme configuration or utility mappings.
-
-Components should use semantic names:
-- `bg-canvas`,
-- `text-ink`,
-- `text-muted`,
-- `bg-primary`,
-- `border-default`.
-
-Do not scatter literal `#2F6B4F` through JSX.
-
-## 16. Dark mode
-
-Not required for hackathon MVP.
-
-Do not spend submission time implementing dark mode unless the core loop and accessibility checks are complete.
-
-## 17. Design quality gate
+## 13. Design quality gate
 
 A screen is ready when:
-- hierarchy is obvious at a glance,
-- one primary action dominates,
-- photos are given visual priority,
-- no critical information relies only on color,
-- interactive states exist,
-- loading/error/empty states exist,
-- mobile layout works at 320px,
-- focus and contrast are testable.
+- it unmistakably reads as pink Y2K/pixel scrapbook,
+- cat photography still dominates,
+- the primary action is obvious,
+- text remains comfortably readable,
+- mobile controls are large,
+- focus/reduced-motion states work,
+- decoration never changes or obscures product truth.

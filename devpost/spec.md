@@ -58,7 +58,7 @@ On the same production Vercel origin: consent/download â†’ process a real cat â†
 
 ## Look and Feel
 Implements `prd.md > Look and Feel` and F6.
-Use CSS custom properties consumed by Tailwind: warm paper background, readable dark ink, muted green actions, restrained terracotta accents. Large photography dominates; restrained rounded cards, soft borders/shadows, generous spacing, and minimal navigation. Local/system fonts initially avoid an extra external font request; exact tokens/typeface can be refined within this approved direction.
+Use CSS custom properties and project-owned styling for a **late-1990s/2000s pink pixel scrapbook**: candy-pink checkerboard canvas, cream/pale-pink panels, deep plum readable text, hot-pink primary actions, square/beveled controls, 2px borders, pixel-offset shadows, faux window-title chrome, tiny badges/stickers, and monospace/bitmap-adjacent system typography with no external font request. Cat photography remains dominant. Decorative motion stays restrained and reduced-motion-safe; avoid brand/trade-dress imitation.
 Use native semantic controls, visible focus, labelled inputs/errors and progress announcements, responsive one-column scan surfaces and photo-first collection layout. Respect reduced motion. No UI scores or model metrics in the scrapbook; development measurements belong to the spike tool/report.
 
 ## Components

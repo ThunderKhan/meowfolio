@@ -65,12 +65,12 @@ function ActionButton({
 }) {
   const classes =
     variant === 'primary'
-      ? 'bg-[#2f6b4f] text-white'
+      ? 'pixel-primary'
       : variant === 'danger'
-        ? 'bg-[#8d3f31] text-white'
+        ? 'border-2 border-[#6f2149] bg-[#9e1b55] text-white shadow-[3px_3px_0_#7b3157]'
         : variant === 'secondary'
-          ? 'border border-black/15 bg-white text-[#1f1a17]'
-          : 'bg-transparent text-[#2f6b4f]';
+          ? 'pixel-secondary'
+          : 'border-2 border-dashed border-[#a91f68] bg-[#fff6fb] text-[#9f1f62]';
 
   return (
     <button
@@ -78,7 +78,7 @@ function ActionButton({
       disabled={disabled}
       onClick={onClick}
       className={
-        'min-h-12 rounded-xl px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ' +
+        'min-h-12 px-5 py-3 font-bold transition disabled:cursor-not-allowed disabled:opacity-45 ' +
         classes
       }
     >
@@ -100,7 +100,7 @@ function CatPhoto({
     return (
       <div
         className={
-          'grid place-items-center rounded-2xl border border-dashed border-black/15 bg-[#f3eee4] text-sm text-[#6d625a] ' +
+          'grid place-items-center rounded-none border border-dashed border-black/15 bg-[#ffe8f4] text-sm text-[#7f4b67] ' +
           className
         }
       >
@@ -109,7 +109,7 @@ function CatPhoto({
     );
   }
 
-  return <img src={src} alt={alt} className={'rounded-2xl object-cover ' + className} />;
+  return <img src={src} alt={alt} className={'rounded-none object-cover ' + className} />;
 }
 
 export function ScanFlow({
@@ -539,7 +539,7 @@ export function ScanFlow({
   }, []);
 
   const photoPanel = previewUrl ? (
-    <div className="overflow-hidden rounded-[24px] border border-black/10 bg-[#eee8dd]">
+    <div className="overflow-hidden rounded-none border border-black/10 bg-[#ffd8ed]">
       <img
         src={previewUrl}
         alt="Cat encounter preview"
@@ -550,11 +550,11 @@ export function ScanFlow({
     <button
       type="button"
       onClick={() => fileInputRef.current?.click()}
-      className="grid min-h-72 w-full place-items-center rounded-[24px] border border-dashed border-black/20 bg-white px-7 text-center"
+      className="grid min-h-72 w-full place-items-center rounded-none border border-dashed border-black/20 bg-white px-7 text-center"
     >
       <span>
         <span className="block font-serif text-2xl font-semibold">Photograph a cat you met</span>
-        <span className="mt-2 block text-sm leading-6 text-[#6d625a]">
+        <span className="mt-2 block text-sm leading-6 text-[#7f4b67]">
           Take a photo or choose one from your phone. Nothing is uploaded for inference.
         </span>
       </span>
@@ -576,27 +576,27 @@ export function ScanFlow({
         <button
           type="button"
           onClick={goBack}
-          className="min-h-11 rounded-xl px-3 font-semibold text-[#2f6b4f]"
+          className="min-h-11 rounded-none px-3 font-semibold text-[#d63384]"
         >
           ← Back
         </button>
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#6d625a]">
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#7f4b67]">
           New encounter
         </p>
         <button
           type="button"
           disabled={state.step === 'saving' || state.step === 'success'}
           onClick={() => setDiscardOpen(true)}
-          className="min-h-11 rounded-xl px-3 font-semibold text-[#8d3f31] disabled:opacity-40"
+          className="min-h-11 rounded-none px-3 font-semibold text-[#9e1b55] disabled:opacity-40"
         >
           Cancel
         </button>
       </header>
 
       {state.slowWarning && (
-        <section className="mb-5 rounded-2xl border border-[#c96b4b]/35 bg-[#fff7f2] p-4">
+        <section className="mb-5 rounded-none border border-[#ef65ad]/35 bg-[#fff0f7] p-4">
           <p className="font-semibold">This is taking longer than expected.</p>
-          <p className="mt-1 text-sm leading-6 text-[#6d625a]">
+          <p className="mt-1 text-sm leading-6 text-[#7f4b67]">
             Local processing can continue, but this scan still has the original 20-second limit.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -611,17 +611,17 @@ export function ScanFlow({
       )}
 
       {state.step === 'preview' && (
-        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
             Spot a cat
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Add this meeting to your scrapbook.</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-[#6d625a]">
+          <p className="mt-3 max-w-2xl leading-7 text-[#7f4b67]">
             Meowfolio looks for the cat locally on this device. You decide who the cat is.
           </p>
           <div className="mt-6">{photoPanel}</div>
           {photoValidationError && (
-            <p role="alert" className="mt-3 rounded-xl border border-[#c96b4b]/30 bg-[#fff7f2] px-4 py-3 text-sm text-[#8d3f31]">
+            <p role="alert" className="mt-3 rounded-none border border-[#ef65ad]/30 bg-[#fff0f7] px-4 py-3 text-sm text-[#9e1b55]">
               {photoValidationError}
             </p>
           )}
@@ -642,12 +642,12 @@ export function ScanFlow({
       )}
 
       {state.step === 'preparation-consent' && (
-        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#c96b4b]">
+        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#ef65ad]">
             First local scan
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Preparing local AI</h1>
-          <p className="mt-4 max-w-2xl leading-7 text-[#6d625a]">
+          <p className="mt-4 max-w-2xl leading-7 text-[#7f4b67]">
             The detector and visual model files are not fully cached yet. Downloading them can use
             noticeable data. Your cat photo is not sent to a hosted inference service.
           </p>
@@ -665,9 +665,9 @@ export function ScanFlow({
       {(state.step === 'preparing' ||
         state.step === 'detecting' ||
         state.step === 'embedding') && (
-        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
+        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <div className="mx-auto max-w-xl py-10 text-center">
-            <div className="mx-auto h-12 w-12 animate-pulse rounded-full border-4 border-[#2f6b4f]/20 border-t-[#2f6b4f]" />
+            <div className="mx-auto h-12 w-12 animate-pulse rounded-full border-4 border-[#d63384]/20 border-t-[#d63384]" />
             <h1 className="mt-6 font-serif text-3xl font-semibold">
               {state.step === 'preparing'
                 ? 'Getting local AI ready'
@@ -675,7 +675,7 @@ export function ScanFlow({
                   ? 'Looking for the cat'
                   : 'Remembering what this cat looks like'}
             </h1>
-            <p className="mt-3 leading-7 text-[#6d625a]">
+            <p className="mt-3 leading-7 text-[#7f4b67]">
               {state.step === 'preparing'
                 ? 'Model work stays on this device once the required files are available.'
                 : 'This photo is being processed locally. Identity is never decided automatically.'}
@@ -690,16 +690,16 @@ export function ScanFlow({
       )}
 
       {state.step === 'select-cat' && previewUrl && (
-        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
             More than one cat
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Which cat are you adding?</h1>
-          <p className="mt-3 leading-7 text-[#6d625a]">
+          <p className="mt-3 leading-7 text-[#7f4b67]">
             Choose the cat this encounter is about. Only that crop continues to the visual check.
           </p>
 
-          <div className="relative mt-6 overflow-hidden rounded-[24px] border border-black/10 bg-[#eee8dd]">
+          <div className="relative mt-6 overflow-hidden rounded-none border border-black/10 bg-[#ffd8ed]">
             <img src={previewUrl} alt="Photo with detected cats" className="w-full object-contain" />
             {state.sourceWidth > 0 &&
               state.sourceHeight > 0 &&
@@ -716,10 +716,10 @@ export function ScanFlow({
                     type="button"
                     aria-label={'Choose cat ' + (index + 1)}
                     onClick={() => void chooseDetection(detection)}
-                    className="absolute rounded-xl border-4 border-white bg-[#2f6b4f]/10 shadow-[0_0_0_2px_#2f6b4f]"
+                    className="absolute rounded-none border-4 border-white bg-[#d63384]/10 shadow-[0_0_0_2px_#d63384]"
                     style={{ left: left + '%', top: top + '%', width: width + '%', height: height + '%' }}
                   >
-                    <span className="absolute left-1 top-1 rounded-full bg-[#2f6b4f] px-2 py-1 text-xs font-bold text-white">
+                    <span className="absolute left-1 top-1 rounded-full bg-[#d63384] px-2 py-1 text-xs font-bold text-white">
                       {index + 1}
                     </span>
                   </button>
@@ -742,17 +742,17 @@ export function ScanFlow({
       )}
 
       {state.step === 'recoverable-error' && (
-        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#c96b4b]">
+        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#ef65ad]">
             Try another look
           </p>
           <h1 className="mt-2 font-serif text-3xl font-semibold">We can recover from this.</h1>
-          <p className="mt-4 max-w-2xl leading-7 text-[#6d625a]">{state.error}</p>
+          <p className="mt-4 max-w-2xl leading-7 text-[#7f4b67]">{state.error}</p>
           {previewUrl && (
             <img
               src={previewUrl}
               alt="Selected encounter"
-              className="mt-6 max-h-80 w-full rounded-2xl border border-black/10 object-contain"
+              className="mt-6 max-h-80 w-full rounded-none border border-black/10 object-contain"
             />
           )}
           <div className="mt-6 flex flex-wrap gap-3">
@@ -773,15 +773,15 @@ export function ScanFlow({
         <section
           data-testid="identity-screen"
           data-embedding-dimension={state.embedding?.values.length ?? ''}
-          className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7"
+          className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7"
         >
           {cats.length === 0 ? (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
                 First page
               </p>
               <h1 className="mt-2 font-serif text-4xl font-semibold">This looks like a new cat.</h1>
-              <p className="mt-3 leading-7 text-[#6d625a]">
+              <p className="mt-3 leading-7 text-[#7f4b67]">
                 There are no cats in your scrapbook yet, so there is nothing to compare this
                 encounter with.
               </p>
@@ -789,7 +789,7 @@ export function ScanFlow({
                 <img
                   src={cropUrl}
                   alt="Detected cat crop"
-                  className="mt-6 max-h-96 w-full rounded-2xl border border-black/10 object-contain"
+                  className="mt-6 max-h-96 w-full rounded-none border border-black/10 object-contain"
                 />
               )}
               <div className="mt-6">
@@ -800,13 +800,13 @@ export function ScanFlow({
             </>
           ) : state.suggestion ? (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
                 Possible familiar face
               </p>
               <h1 className="mt-2 font-serif text-4xl font-semibold">
                 Is this {state.suggestion.name}?
               </h1>
-              <p className="mt-3 leading-7 text-[#6d625a]">
+              <p className="mt-3 leading-7 text-[#7f4b67]">
                 This cat looks visually similar to one you have met before. You make the identity
                 decision.
               </p>
@@ -848,11 +848,11 @@ export function ScanFlow({
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
                 Your call
               </p>
               <h1 className="mt-2 font-serif text-4xl font-semibold">No familiar cat suggested.</h1>
-              <p className="mt-3 leading-7 text-[#6d625a]">
+              <p className="mt-3 leading-7 text-[#7f4b67]">
                 That is a normal outcome. If you recognize this cat, choose them from your
                 scrapbook. Otherwise add a new cat.
               </p>
@@ -860,7 +860,7 @@ export function ScanFlow({
                 <img
                   src={cropUrl}
                   alt="Detected cat crop"
-                  className="mt-6 max-h-96 w-full rounded-2xl border border-black/10 object-contain"
+                  className="mt-6 max-h-96 w-full rounded-none border border-black/10 object-contain"
                 />
               )}
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -877,12 +877,12 @@ export function ScanFlow({
       )}
 
       {state.step === 'existing-picker' && (
-        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
             Your scrapbook
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Which cat is this?</h1>
-          <p className="mt-3 leading-7 text-[#6d625a]">
+          <p className="mt-3 leading-7 text-[#7f4b67]">
             Photos and encounter counts help distinguish cats even when names are the same.
           </p>
           <div className="mt-6 grid gap-3">
@@ -891,12 +891,12 @@ export function ScanFlow({
                 key={cat.id}
                 type="button"
                 onClick={() => dispatch({ type: 'CHOOSE_EXISTING', catId: cat.id })}
-                className="flex min-h-20 items-center gap-4 rounded-2xl border border-black/10 bg-white p-3 text-left"
+                className="flex min-h-20 items-center gap-4 rounded-none border border-black/10 bg-white p-3 text-left"
               >
                 <CatPhoto src={cat.coverUrl} alt={'Saved photo of ' + cat.name} className="h-16 w-16 shrink-0" />
                 <span>
                   <span className="block font-serif text-xl font-semibold">{cat.name}</span>
-                  <span className="mt-1 block text-sm text-[#6d625a]">
+                  <span className="mt-1 block text-sm text-[#7f4b67]">
                     Met {cat.encounterCount} {cat.encounterCount === 1 ? 'time' : 'times'}
                   </span>
                 </span>
@@ -907,8 +907,8 @@ export function ScanFlow({
       )}
 
       {state.step === 'details' && (
-        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
             Identity confirmed
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">
@@ -921,7 +921,7 @@ export function ScanFlow({
             <img
               src={cropUrl}
               alt="Selected cat"
-              className="mt-6 max-h-80 w-full rounded-2xl border border-black/10 object-contain"
+              className="mt-6 max-h-80 w-full rounded-none border border-black/10 object-contain"
             />
           )}
 
@@ -932,29 +932,29 @@ export function ScanFlow({
                 value={state.newCatName}
                 autoComplete="off"
                 onChange={(event) => dispatch({ type: 'SET_NAME', value: event.target.value })}
-                className="mt-2 min-h-12 w-full rounded-xl border border-black/15 bg-white px-4 py-3"
+                className="mt-2 min-h-12 w-full rounded-none border border-black/15 bg-white px-4 py-3"
                 placeholder="Mochi"
               />
               {newNameError && state.newCatName.length > 0 ? (
-                <span className="mt-2 block text-sm text-[#8d3f31]">{newNameError}</span>
+                <span className="mt-2 block text-sm text-[#9e1b55]">{newNameError}</span>
               ) : null}
             </label>
           )}
 
           <label className="mt-5 block">
-            <span className="text-sm font-semibold">Encounter note <span className="font-normal text-[#6d625a]">(optional)</span></span>
+            <span className="text-sm font-semibold">Encounter note <span className="font-normal text-[#7f4b67]">(optional)</span></span>
             <textarea
               value={state.note}
               onChange={(event) => dispatch({ type: 'SET_NOTE', value: event.target.value })}
               rows={4}
-              className="mt-2 w-full rounded-xl border border-black/15 bg-white px-4 py-3"
+              className="mt-2 w-full rounded-none border border-black/15 bg-white px-4 py-3"
               placeholder="Sleeping under the same orange bench again."
             />
           </label>
 
-          <div className="mt-6 rounded-2xl border border-[#2f6b4f]/20 bg-[#f3f8f4] p-4">
-            <p className="font-semibold">Where you met them <span className="font-normal text-[#6d625a]">(optional)</span></p>
-            <p className="mt-1 text-sm leading-6 text-[#6d625a]">
+          <div className="mt-6 rounded-none border border-[#d63384]/20 bg-[#ffe8f4] p-4">
+            <p className="font-semibold">Where you met them <span className="font-normal text-[#7f4b67]">(optional)</span></p>
+            <p className="mt-1 text-sm leading-6 text-[#7f4b67]">
               Location is requested only if you choose to add it and stays in your local scrapbook.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -970,13 +970,13 @@ export function ScanFlow({
                     : 'Add location'}
               </ActionButton>
               {locationMessage ? (
-                <span className="text-sm text-[#6d625a]">{locationMessage}</span>
+                <span className="text-sm text-[#7f4b67]">{locationMessage}</span>
               ) : null}
             </div>
           </div>
 
           {state.error ? (
-            <p role="alert" className="mt-4 rounded-xl border border-[#c96b4b]/30 bg-[#fff7f2] px-4 py-3 text-sm text-[#8d3f31]">
+            <p role="alert" className="mt-4 rounded-none border border-[#ef65ad]/30 bg-[#fff0f7] px-4 py-3 text-sm text-[#9e1b55]">
               {state.error}
             </p>
           ) : null}
@@ -996,11 +996,11 @@ export function ScanFlow({
       )}
 
       {state.step === 'saving' && (
-        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
+        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <div className="mx-auto max-w-lg py-12 text-center">
-            <div className="mx-auto h-12 w-12 animate-pulse rounded-full border-4 border-[#2f6b4f]/20 border-t-[#2f6b4f]" />
+            <div className="mx-auto h-12 w-12 animate-pulse rounded-full border-4 border-[#d63384]/20 border-t-[#d63384]" />
             <h1 className="mt-6 font-serif text-3xl font-semibold">Saving this encounter locally</h1>
-            <p className="mt-3 leading-7 text-[#6d625a]">
+            <p className="mt-3 leading-7 text-[#7f4b67]">
               Success appears only after the cat and encounter transaction has fully committed.
             </p>
           </div>
@@ -1008,10 +1008,10 @@ export function ScanFlow({
       )}
 
       {state.step === 'success' && (
-        <section className="paper-shadow rounded-[30px] border border-black/10 bg-[#fffdf8] p-5 sm:p-7">
+        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <div className="mx-auto max-w-lg py-10 text-center">
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#e8efe8] text-3xl">✓</div>
-            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-[#2f6b4f]">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#ffd4e9] text-3xl">✓</div>
+            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
               Saved locally
             </p>
             <h1 className="mt-2 font-serif text-4xl font-semibold">
@@ -1021,7 +1021,7 @@ export function ScanFlow({
                   : state.savedCatName + ' is in your Meowfolio.'
                 : 'Encounter saved.'}
             </h1>
-            <p className="mt-3 leading-7 text-[#6d625a]">
+            <p className="mt-3 leading-7 text-[#7f4b67]">
               The photo, embedding, and encounter details are now committed to this browser.
             </p>
             <div className="mt-6">
@@ -1038,11 +1038,11 @@ export function ScanFlow({
           aria-labelledby="discard-title"
           className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4"
         >
-          <div className="paper-shadow w-full max-w-md rounded-[26px] bg-[#fffdf8] p-6">
+          <div className="paper-shadow w-full max-w-md rounded-[26px] bg-[#fff6fb] p-6">
             <h2 id="discard-title" className="font-serif text-2xl font-semibold">
               Discard this unfinished encounter?
             </h2>
-            <p className="mt-3 leading-7 text-[#6d625a]">
+            <p className="mt-3 leading-7 text-[#7f4b67]">
               The photo, identity choice, name, and note in this scan will be cleared. Downloaded
               model files can stay cached.
             </p>

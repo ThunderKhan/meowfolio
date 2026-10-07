@@ -5,7 +5,7 @@ Audience: designers, frontend engineers, AI coding assistants
 
 ## 1. Experience goal
 
-Meowfolio should feel like a **field notebook crossed with a personal scrapbook**: warm, tactile, calm, and quick to use outdoors.
+Meowfolio should feel like a **2000s personal homepage crossed with a pixel scrapbook**: pink, nostalgic, tactile, playful, and still quick to use outdoors. Cat photos remain the memory itself; the retro UI is framing, not the subject.
 
 The interface must not feel like:
 - an admin dashboard,
