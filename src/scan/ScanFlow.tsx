@@ -119,12 +119,14 @@ export function ScanFlow({
   const [photoValidationError, setPhotoValidationError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const stateRef = useRef<ScanState>(state);
+  const generationRef = useRef(state.generation);
   const activeRequestRef = useRef<string | null>(null);
   const timersRef = useRef<number[]>([]);
   const previewUrl = useObjectUrl(state.photo);
   const cropUrl = useObjectUrl(state.crop);
 
   stateRef.current = state;
+  generationRef.current = state.generation;
 
   const chosenCat = useMemo(() => {
     const identity = state.identity;
@@ -163,8 +165,9 @@ export function ScanFlow({
     }
 
     const expire = () => {
-      if (stateRef.current.generation !== generation) return;
+      if (generationRef.current !== generation) return;
       cancelActive();
+      generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
         generation,
@@ -181,7 +184,7 @@ export function ScanFlow({
   }
 
   function ignoreCancelled(error: unknown, generation: number): boolean {
-    if (stateRef.current.generation !== generation) return true;
+    if (generationRef.current !== generation) return true;
     return error instanceof Error && error.message.includes('CANCELLED');
   }
 
@@ -191,7 +194,7 @@ export function ScanFlow({
     elapsedBeforeMs: number,
     generation: number,
   ): Promise<void> {
-    if (stateRef.current.generation !== generation) return;
+    if (generationRef.current !== generation) return;
 
     dispatch({ type: 'SELECT_DETECTION', detection });
     dispatch({ type: 'EMBEDDING' });
@@ -200,14 +203,14 @@ export function ScanFlow({
 
     try {
       const crop = await cropImageBlob(photo, detection.box);
-      if (stateRef.current.generation !== generation) return;
+      if (generationRef.current !== generation) return;
       dispatch({ type: 'CROP_READY', generation, detection, crop });
 
       const requestId = crypto.randomUUID();
       activeRequestRef.current = requestId;
       const result = await ai.embed(crop, requestId);
       if (activeRequestRef.current === requestId) activeRequestRef.current = null;
-      if (stateRef.current.generation !== generation) return;
+      if (generationRef.current !== generation) return;
 
       clearWarmTimers();
       const embedding: EmbeddingResult = {
@@ -223,6 +226,7 @@ export function ScanFlow({
     } catch (error) {
       clearWarmTimers();
       if (ignoreCancelled(error, generation)) return;
+      generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
         generation,
@@ -241,7 +245,7 @@ export function ScanFlow({
     try {
       const result = await ai.detect(photo, 0.25, requestId);
       if (activeRequestRef.current === requestId) activeRequestRef.current = null;
-      if (stateRef.current.generation !== generation) return;
+      if (generationRef.current !== generation) return;
 
       const elapsedMs = performance.now() - started;
       clearWarmTimers();
@@ -260,6 +264,7 @@ export function ScanFlow({
     } catch (error) {
       clearWarmTimers();
       if (ignoreCancelled(error, generation)) return;
+      generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
         generation,
@@ -282,7 +287,7 @@ export function ScanFlow({
     try {
       const cache = await ai.checkAssets('wasm', requestId);
       if (activeRequestRef.current === requestId) activeRequestRef.current = null;
-      if (stateRef.current.generation !== generation) return;
+      if (generationRef.current !== generation) return;
 
       if (!cache.ready) {
         dispatch({ type: 'NEEDS_CONSENT' });
@@ -298,6 +303,7 @@ export function ScanFlow({
         dispatch({ type: 'NEEDS_CONSENT' });
         return;
       }
+      generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
         generation,
@@ -318,11 +324,12 @@ export function ScanFlow({
     try {
       await ai.loadModels('wasm', true, requestId);
       if (activeRequestRef.current === requestId) activeRequestRef.current = null;
-      if (stateRef.current.generation !== generation) return;
+      if (generationRef.current !== generation) return;
       setModelsReady(true);
       await runDetection(photo, generation);
     } catch (error) {
       if (ignoreCancelled(error, generation)) return;
+      generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
         generation,
@@ -340,6 +347,7 @@ export function ScanFlow({
 
     clearWarmTimers();
     cancelActive();
+    generationRef.current = stateRef.current.generation + 1;
     setPhotoValidationError(null);
 
     try {
@@ -364,6 +372,7 @@ export function ScanFlow({
       else onExit();
       return;
     }
+    generationRef.current = current.generation + 1;
     dispatch({ type: 'BACK' });
   }
 
@@ -378,6 +387,7 @@ export function ScanFlow({
   async function retrySamePhoto(): Promise<void> {
     if (!state.photo) return;
     const nextGeneration = state.generation + 1;
+    generationRef.current = nextGeneration;
     dispatch({ type: 'RETRY' });
     await beginProcessing(state.photo, nextGeneration);
   }
@@ -449,7 +459,6 @@ export function ScanFlow({
         id="cat-photo"
         type="file"
         accept="image/*"
-        capture="environment"
         className="sr-only"
         onChange={(event) => void onPhotoChange(event)}
       />
