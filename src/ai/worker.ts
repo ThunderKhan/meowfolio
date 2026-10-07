@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { env, pipeline, RawImage } from '@huggingface/transformers';
+import { env, ModelRegistry, pipeline, RawImage } from '@huggingface/transformers';
 import { normalizeEmbedding } from '../domain/embeddings';
 import {
   chooseProvider,
@@ -216,7 +216,43 @@ async function handle(request: WorkerRequest): Promise<void> {
   if (request.type === 'CHECK_ASSETS') {
     blockedNetworkRequests.delete(request.requestId);
     const provider = chooseProvider(request.provider, hasWebGpu());
+
     try {
+      const [detectorCached, embedderCached] = await Promise.all([
+        ModelRegistry.is_pipeline_cached(
+          MODEL_MANIFEST.detector.task,
+          MODEL_MANIFEST.detector.id,
+          {
+            revision: MODEL_MANIFEST.detector.revision,
+            device: provider,
+            dtype: MODEL_MANIFEST.detector.dtype[provider],
+          },
+        ),
+        ModelRegistry.is_pipeline_cached(
+          MODEL_MANIFEST.embedder.task,
+          MODEL_MANIFEST.embedder.id,
+          {
+            revision: MODEL_MANIFEST.embedder.revision,
+            device: provider,
+            dtype: MODEL_MANIFEST.embedder.dtype[provider],
+          },
+        ),
+      ]);
+
+      if (!detectorCached || !embedderCached) {
+        post({
+          type: 'ASSET_STATUS',
+          requestId: request.requestId,
+          ready: false,
+          provider,
+          reason: 'Required AI files are not fully cached.',
+        });
+        return;
+      }
+
+      // Cache state can change between inspection and initialization. Keep remote
+      // fetches disabled here; the guarded fetch converts an eviction race back
+      // into the explicit consent flow instead of silently downloading.
       await loadModels(request.requestId, provider, false);
       blockedNetworkRequests.delete(request.requestId);
       post({ type: 'ASSET_STATUS', requestId: request.requestId, ready: true, provider });
@@ -231,7 +267,14 @@ async function handle(request: WorkerRequest): Promise<void> {
         });
         return;
       }
-      post(errorFor(error, request.requestId, 'INITIALIZATION_FAILED', 'Could not check cached AI files.'));
+      post(
+        errorFor(
+          error,
+          request.requestId,
+          'INITIALIZATION_FAILED',
+          'Could not check cached AI files.',
+        ),
+      );
     }
     return;
   }
