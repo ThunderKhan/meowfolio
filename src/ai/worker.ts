@@ -170,7 +170,6 @@ async function loadModels(
             revision: MODEL_MANIFEST.detector.revision,
             device: provider,
             dtype: MODEL_MANIFEST.detector.dtype[provider],
-            progress_callback: (event: unknown) => toProgress(requestId, 'detector', event),
           } as any,
         ),
     )) as unknown as CallablePipeline;
@@ -187,7 +186,6 @@ async function loadModels(
             revision: MODEL_MANIFEST.embedder.revision,
             device: provider,
             dtype: MODEL_MANIFEST.embedder.dtype[provider],
-            progress_callback: (event: unknown) => toProgress(requestId, 'embedder', event),
           } as any,
         ),
     )) as unknown as CallablePipeline;
