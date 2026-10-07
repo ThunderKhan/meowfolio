@@ -1,0 +1,56 @@
+import { describe, expect, it } from 'vitest';
+import {
+  GenerationGuard,
+  MODEL_MANIFEST,
+  classifyAiNetworkRequest,
+} from '../src/ai/shared';
+import { cosineSimilarity, l2Norm, normalizeEmbedding } from '../src/domain/embeddings';
+
+describe('embedding math', () => {
+  it('normalizes a vector to unit length', () => {
+    const normalized = normalizeEmbedding([3, 4]);
+    expect(normalized[0]).toBeCloseTo(0.6, 6);
+    expect(normalized[1]).toBeCloseTo(0.8, 6);
+    expect(l2Norm(normalized)).toBeCloseTo(1, 6);
+  });
+
+  it('computes cosine similarity and rejects invalid vectors', () => {
+    expect(cosineSimilarity([1, 0], [1, 0])).toBeCloseTo(1, 6);
+    expect(cosineSimilarity([1, 0], [0, 1])).toBeCloseTo(0, 6);
+    expect(() => normalizeEmbedding([0, 0])).toThrow();
+    expect(() => normalizeEmbedding([1, Number.NaN])).toThrow();
+    expect(() => cosineSimilarity([1], [1, 2])).toThrow();
+  });
+});
+
+describe('AI network allowlist', () => {
+  const origin = 'https://meowfolio.example';
+
+  it('allows same-origin assets and exact pinned model revisions', () => {
+    expect(classifyAiNetworkRequest('/assets/app.js', origin)).toBe('same-origin');
+    const pinned =
+      'https://huggingface.co/' +
+      MODEL_MANIFEST.detector.id +
+      '/resolve/' +
+      MODEL_MANIFEST.detector.revision +
+      '/config.json';
+    expect(classifyAiNetworkRequest(pinned, origin)).toBe('model');
+  });
+
+  it('blocks floating or unrelated model URLs', () => {
+    const floating =
+      'https://huggingface.co/' + MODEL_MANIFEST.detector.id + '/resolve/main/config.json';
+    expect(classifyAiNetworkRequest(floating, origin)).toBe('blocked');
+    expect(classifyAiNetworkRequest('https://example.com/model.onnx', origin)).toBe('blocked');
+  });
+});
+
+describe('generation invalidation', () => {
+  it('marks old generations stale after a new scan begins', () => {
+    const guard = new GenerationGuard();
+    const first = guard.next();
+    const second = guard.next();
+    expect(guard.isCurrent(first)).toBe(false);
+    expect(guard.isCurrent(second)).toBe(true);
+  });
+});
