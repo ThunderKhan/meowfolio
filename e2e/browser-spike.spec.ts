@@ -165,7 +165,7 @@ test('discard requires confirmation and keep editing preserves the scan', async 
 
   await page.getByRole('button', { name: 'Cancel' }).click();
   await page.getByRole('button', { name: 'Discard scan' }).click();
-  await expect(page.getByRole('heading', { name: 'Your cat scrapbook' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your Meowfolio is empty.' })).toBeVisible();
 });
 
 
@@ -249,7 +249,7 @@ test('new cat commits once, duplicate retry is idempotent, and the record surviv
   });
 
   await page.getByRole('button', { name: 'Back to collection' }).click();
-  await expect(page.getByText('1 cat in this browser')).toBeVisible();
+  await expect(page.getByText(/1 cat saved in this browser/i)).toBeVisible();
   await expect(page.getByText('Mochi')).toBeVisible();
   await expect(page.getByText('Met 1 time')).toBeVisible();
 
@@ -515,4 +515,90 @@ test('location timeout is recoverable and Save stays available while location is
 
   await expect(page.getByText(/Location took too long/i)).toBeVisible({ timeout: 9_500 });
   await expect(page.getByRole('button', { name: 'Save encounter' })).toBeEnabled();
+});
+
+
+test('pixel scrapbook opens a chronological cat history with notes and collapsed private location', async ({ page, request }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: (success: (position: any) => void) =>
+          success({
+            coords: {
+              latitude: 26.76012,
+              longitude: 83.37321,
+              accuracy: 18,
+            },
+            timestamp: Date.now(),
+          }),
+      },
+    });
+  });
+
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await startScan(page, photo);
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+  await page.getByLabel('Cat name').fill('Mochi');
+  await page.getByLabel(/Encounter note/).fill('First meeting by the garden wall.');
+  await page.getByRole('button', { name: 'Add location' }).click();
+  await expect(page.getByText(/Location saved privately/i)).toBeVisible();
+  await page.getByRole('button', { name: 'Save encounter' }).click();
+  await expect(page.getByRole('heading', { name: 'Mochi is in your Meowfolio.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+
+  await page.goto('/?skipWelcome=1&mockAi=single-alt');
+  await startScan(page, photo);
+  await page.getByRole('button', { name: 'Choose an existing cat' }).click();
+  await page.getByRole('button', { name: /Mochi/ }).click();
+  await page.getByLabel(/Encounter note/).fill('Second meeting under the orange bench.');
+  await page.getByRole('button', { name: 'Save encounter' }).click();
+  await expect(page.getByRole('heading', { name: 'Another Mochi encounter saved.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+
+  await expect(page.getByRole('heading', { name: 'my meowfolio' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Open Mochi, met 2 times/i })).toBeVisible();
+  await page.getByRole('button', { name: /Open Mochi, met 2 times/i }).click();
+
+  await expect(page.getByRole('heading', { name: 'Mochi' })).toBeVisible();
+  await expect(page.getByText('met 2x')).toBeVisible();
+  await expect(page.getByText('First meeting by the garden wall.')).toBeVisible();
+  await expect(page.getByText('Second meeting under the orange bench.')).toBeVisible();
+  await expect(page.getByText('Location saved')).toBeVisible();
+
+  await expect(page.getByText(/lat: 26\.76012°/i)).not.toBeVisible();
+  await page.getByText('Location saved').click();
+  await expect(page.getByText(/lat: 26\.76012°/i)).toBeVisible();
+  await expect(page.getByText(/long: 83\.37321°/i)).toBeVisible();
+  await expect(page.getByText(/accuracy: ±18 m/i)).toBeVisible();
+});
+
+test('browsing the saved scrapbook does not initialize or download AI models', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi', 'Local-only memory.');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+
+  const modelRequests: string[] = [];
+  page.on('request', (browserRequest) => {
+    const url = browserRequest.url();
+    if (
+      url.includes('huggingface.co/') ||
+      url.includes('cdn-lfs') ||
+      url.includes('xethub') ||
+      url.includes('/onnx/')
+    ) {
+      modelRequests.push(url);
+    }
+  });
+
+  await page.goto('/?skipWelcome=1');
+  await expect(page.getByRole('heading', { name: 'my meowfolio' })).toBeVisible();
+  await page.getByRole('button', { name: /Open Mochi, met 1 time/i }).click();
+  await expect(page.getByRole('heading', { name: 'Mochi' })).toBeVisible();
+  await page.getByRole('button', { name: '← scrapbook' }).click();
+  await expect(page.getByRole('heading', { name: 'my meowfolio' })).toBeVisible();
+
+  expect(modelRequests).toEqual([]);
 });
