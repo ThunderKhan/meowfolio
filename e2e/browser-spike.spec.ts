@@ -75,9 +75,20 @@ test('real WASM cat detection and DINOv2 embedding complete in Chromium', async 
   await expect(firstCat).toBeVisible();
   await firstCat.click();
 
-  await expect(
-    page.getByText(/Local pipeline complete: cat crop → normalized 384-value DINOv2 embedding\./i),
-  ).toBeVisible({ timeout: 120_000 });
+  await expect
+    .poll(
+      async () => (await page.getByTestId('status').textContent()) ?? '',
+      {
+        timeout: 120_000,
+        intervals: [250, 500, 1_000, 2_000],
+      },
+    )
+    .toMatch(/Local pipeline complete: cat crop → normalized 384-value DINOv2 embedding\.|EMBEDDING_FAILED|INVALID_EMBEDDING/i);
+
+  const embeddingStatus = (await page.getByTestId('status').textContent()) ?? '';
+  if (!/Local pipeline complete/i.test(embeddingStatus)) {
+    throw new Error('Embedding failed. Status: ' + JSON.stringify(embeddingStatus));
+  }
 
   await expect(page.getByText('384', { exact: true })).toBeVisible();
   await expect(page.getByText('wasm', { exact: true })).toBeVisible();
