@@ -85,7 +85,7 @@ User can see:
 - No automatic image upload to a server.
 
 ### Local cat detection
-- Model: `onnx-community/yolov10n`.
+- Model: `Xenova/yolos-tiny` pinned to `e2f9c7673f0fa61849efe2b56a0d7774779ebb9d` (verified WASM `uint8`; replaces unsupported YOLOv10n candidate).
 - Run in-browser.
 - Detect cat class and bounding boxes.
 - Graceful state for no-cat result.

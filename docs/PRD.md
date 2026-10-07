@@ -220,7 +220,7 @@ Users should know a local model download may use time and data.
 ## 12. AI requirements
 
 ### Detector
-Current choice: `onnx-community/yolov10n`
+Current choice: `Xenova/yolos-tiny` pinned to `e2f9c7673f0fa61849efe2b56a0d7774779ebb9d` after the YOLOv10n starting candidate failed the real-browser Transformers.js compatibility gate.
 
 Responsibilities:
 - cat presence,

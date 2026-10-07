@@ -298,7 +298,10 @@ The current prototype plan uses **two local browser models**.
 
 Current choice:
 
-**onnx-community/yolov10n**
+**Xenova/yolos-tiny**
+
+Pinned revision:
+`e2f9c7673f0fa61849efe2b56a0d7774779ebb9d`
 
 Purpose:
 - detect whether a cat is present,
@@ -306,21 +309,20 @@ Purpose:
 - crop the relevant region before feature extraction.
 
 Model page:
-https://huggingface.co/onnx-community/yolov10n
+https://huggingface.co/Xenova/yolos-tiny
 
 Runtime:
 - Transformers.js / ONNX in the browser.
 
 Why this model:
-- small YOLO "nano" variant,
-- browser-compatible ONNX weights are available,
-- object detection is fast enough to prototype interactively,
-- cats are among the common object classes.
+- real Chromium/WASM testing passed cat detection with the `uint8` artifact,
+- Transformers.js 4.3.0 directly supports the YOLOS object-detection architecture,
+- the upstream `hustvl/yolos-tiny` model is Apache-2.0,
+- it replaces the original YOLOv10n candidate, which failed because Transformers.js 4.3.0 did not support the `yolov10` model type.
 
 Important licensing note:
-- the referenced Hugging Face model page currently identifies the model license as **AGPL-3.0**.
-- Before final release, verify model and weight licensing and make sure repository/application licensing and notices are compatible.
-- Do not silently remove this consideration.
+- the original AGPL-marked YOLOv10n candidate is no longer part of the selected pipeline,
+- verify final conversion/source attribution and dependency notices before release.
 
 ## 7.2 Model B — visual feature extraction
 
@@ -725,7 +727,7 @@ As of 7 October 2026:
 - Product form: **browser-first web application**
 - Core challenge theme: **Touch Grass**
 - AI execution: **local/on-device browser inference**
-- Object detector: **onnx-community/yolov10n**
+- Object detector: **Xenova/yolos-tiny**
 - Visual feature model: **Xenova/dinov2-small**
 - Cat names: **chosen by the user**
 - LLM: **not part of the MVP**
@@ -754,7 +756,7 @@ Hacktoberfest / DEV:
 - https://hacktoberfest.com/activities/
 
 Models:
-- https://huggingface.co/onnx-community/yolov10n
+- https://huggingface.co/Xenova/yolos-tiny
 - https://huggingface.co/Xenova/dinov2-small
 - https://huggingface.co/facebook/dinov2-small
 

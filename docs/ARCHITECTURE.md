@@ -32,7 +32,7 @@ Camera / file input
 Browser image preprocessing
       │
       ▼
-YOLOv10n local detection
+YOLOS-tiny local detection
       │
       ├── no cat ──> retry
       │
@@ -143,7 +143,15 @@ Responsibilities:
 ## 5.1 Detection model
 
 Current model:
-`onnx-community/yolov10n`
+`Xenova/yolos-tiny`
+
+Pinned Slice 1 revision:
+`e2f9c7673f0fa61849efe2b56a0d7774779ebb9d`
+
+Verified WASM variant:
+`uint8`
+
+The earlier `onnx-community/yolov10n` candidate was rejected because Transformers.js 4.3.0 does not support its `yolov10` model type.
 
 Use it for:
 - cat class detection,
@@ -175,7 +183,7 @@ Current model:
 
 Use the selected crop to obtain a visual representation.
 
-The exact pooling/output extraction must be validated during the spike and documented in code. Do not assume every output tensor is an appropriate embedding.
+Slice 1 validated the browser output path: use the first CLS token from DINOv2 `last_hidden_state` (384 values) and L2-normalize it. Do not request pooled output; this bare DINOv2 conversion has no pooler layer.
 
 After selecting the representation:
 1. convert to a stable `Float32Array`,
