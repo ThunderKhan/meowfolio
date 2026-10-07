@@ -9,10 +9,10 @@ export interface ModelSpec {
 }
 
 export const MODEL_MANIFEST = {
-  version: '2026-10-07-spike-1',
+  version: '2026-10-07-spike-2',
   detector: {
     id: 'onnx-community/yolov10n',
-    revision: '99eec2d6d2becae0f038019f75054029ad5a9004',
+    revision: 'b85b7ff30a97fefcd3905ffae9ecf6e5047ae948',
     task: 'object-detection',
     dtype: { webgpu: 'fp16', wasm: 'int8' },
     releaseNote:
@@ -20,7 +20,7 @@ export const MODEL_MANIFEST = {
   },
   embedder: {
     id: 'Xenova/dinov2-small',
-    revision: 'a5406bdfce9ac07eb3dc08dd05cbea034f4648d8',
+    revision: 'c2bb04a51fab207c420665f1946016107bffc701',
     task: 'image-feature-extraction',
     dtype: { webgpu: 'fp16', wasm: 'uint8' },
     releaseNote:
@@ -139,6 +139,31 @@ function asUrl(input: RequestInfo | URL, base = 'https://meowfolio.invalid/'): U
   if (input instanceof URL) return input;
   if (typeof input === 'string') return new URL(input, base);
   return new URL(input.url, base);
+}
+
+export function pinModelAssetUrl(
+  input: RequestInfo | URL,
+  origin = 'https://meowfolio.invalid',
+): URL | null {
+  const url = asUrl(input, origin);
+  if (url.hostname !== 'huggingface.co') return null;
+
+  for (const model of [MODEL_MANIFEST.detector, MODEL_MANIFEST.embedder]) {
+    const base = '/' + model.id + '/resolve/';
+    const pinnedPrefix = base + model.revision + '/';
+    if (url.pathname.startsWith(pinnedPrefix)) {
+      return new URL(url);
+    }
+
+    const floatingPrefix = base + 'main/';
+    if (url.pathname.startsWith(floatingPrefix)) {
+      const pinned = new URL(url);
+      pinned.pathname = pinnedPrefix + url.pathname.slice(floatingPrefix.length);
+      return pinned;
+    }
+  }
+
+  return null;
 }
 
 export function classifyAiNetworkRequest(
