@@ -1,131 +1,151 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 const CAT_PHOTO =
   'https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/cats.png';
 
-test('real WASM cat detection and DINOv2 embedding complete in Chromium', async ({
-  page,
-  request,
-}) => {
-  const browserMessages: string[] = [];
-  page.on('console', (message) => browserMessages.push('console ' + message.type() + ': ' + message.text()));
-  page.on('pageerror', (error) => browserMessages.push('pageerror: ' + error.message));
+async function catPhoto(request: APIRequestContext): Promise<Buffer> {
+  const response = await request.get(CAT_PHOTO);
+  expect(response.ok()).toBeTruthy();
+  return response.body();
+}
 
-  const photoResponse = await request.get(CAT_PHOTO);
-  expect(photoResponse.ok()).toBeTruthy();
-  const photo = await photoResponse.body();
-
-  await page.goto('/');
-  await page.getByLabel('Execution provider').selectOption('wasm');
+async function startScan(page: Page, photo: Buffer): Promise<void> {
+  await page.getByRole('button', { name: 'Spot a cat' }).first().click();
   await page.locator('#cat-photo').setInputFiles({
     name: 'cats.png',
     mimeType: 'image/png',
     buffer: photo,
   });
-
   await expect(page.getByRole('button', { name: 'Find the cat' })).toBeEnabled();
   await page.getByRole('button', { name: 'Find the cat' }).click();
+}
+
+async function continueMultiCatIfNeeded(page: Page): Promise<void> {
+  const chooser = page.getByRole('heading', { name: 'Which cat are you adding?' });
+  if (await chooser.isVisible().catch(() => false)) {
+    await page.getByRole('button', { name: 'Continue with cat 1' }).click();
+  }
+}
+
+test('real WASM scan reaches a human identity decision in Chromium', async ({ page, request }) => {
+  const browserMessages: string[] = [];
+  page.on('console', (message) =>
+    browserMessages.push('console ' + message.type() + ': ' + message.text()),
+  );
+  page.on('pageerror', (error) => browserMessages.push('pageerror: ' + error.message));
+
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1');
+  await startScan(page, photo);
 
   const consent = page.getByRole('button', { name: 'Download models & continue' });
+  await expect(consent).toBeVisible({ timeout: 45_000 });
+  await consent.click();
+
+  const identity = page.getByTestId('identity-screen');
+  const chooser = page.getByRole('heading', { name: 'Which cat are you adding?' });
+
   try {
-    await expect(consent).toBeVisible({ timeout: 45_000 });
+    await expect(identity.or(chooser)).toBeVisible({ timeout: 180_000 });
   } catch (error) {
-    const status = await page.getByTestId('status').textContent().catch(() => null);
     throw new Error(
-      'Consent screen did not appear. Status: ' +
-        JSON.stringify(status) +
-        '\nBrowser messages:\n' +
+      'Real scan did not reach cat selection or identity. Browser messages:\n' +
         browserMessages.join('\n') +
         '\nOriginal assertion: ' +
         (error instanceof Error ? error.message : String(error)),
     );
   }
 
-  await consent.click();
+  await continueMultiCatIfNeeded(page);
+  await expect(identity).toBeVisible({ timeout: 120_000 });
+  await expect(identity).toHaveAttribute('data-embedding-dimension', '384');
+  await expect(page.getByRole('heading', { name: 'This looks like a new cat.' })).toBeVisible();
+});
 
-  const terminalStatus = page.getByTestId('status');
-  await expect
-    .poll(
-      async () => (await terminalStatus.textContent()) ?? '',
-      {
-        timeout: 180_000,
-        intervals: [250, 500, 1_000, 2_000],
-      },
-    )
-    .toMatch(/cats? found\.|CONSENT_REQUIRED|INITIALIZATION_FAILED|DETECTION_FAILED/i);
+test('controlled multi-cat flow pauses for the person to choose a crop', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=multi');
+  await startScan(page, photo);
 
-  const statusAfterPreparation = (await terminalStatus.textContent()) ?? '';
-  if (!/cats? found\./i.test(statusAfterPreparation)) {
-    const networkAudit = await page
-      .locator('details')
-      .filter({ hasText: 'AI network audit' })
-      .textContent()
-      .catch(() => null);
-    throw new Error(
-      'Model preparation/detection failed. Status: ' +
-        JSON.stringify(statusAfterPreparation) +
-        '\nNetwork audit: ' +
-        JSON.stringify(networkAudit) +
-        '\nBrowser messages:\n' +
-        browserMessages.join('\n'),
-    );
-  }
+  await expect(page.getByRole('heading', { name: 'Which cat are you adding?' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue with cat 1' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue with cat 2' })).toBeVisible();
 
-  const firstCat = page.getByRole('button', { name: /Cat 1.*detector score/i });
-  await expect(firstCat).toBeVisible();
-  await firstCat.click();
+  await page.getByRole('button', { name: 'Continue with cat 2' }).click();
+  await expect(page.getByTestId('identity-screen')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This looks like a new cat.' })).toBeVisible();
+});
 
-  await expect
-    .poll(
-      async () => (await page.getByTestId('status').textContent()) ?? '',
-      {
-        timeout: 120_000,
-        intervals: [250, 500, 1_000, 2_000],
-      },
-    )
-    .toMatch(/Local pipeline complete: cat crop → normalized 384-value DINOv2 embedding\.|EMBEDDING_FAILED|INVALID_EMBEDDING/i);
+test('controlled no-cat result is recoverable and keeps the photo', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=none');
+  await startScan(page, photo);
 
-  const embeddingStatus = (await page.getByTestId('status').textContent()) ?? '';
-  if (!/Local pipeline complete/i.test(embeddingStatus)) {
-    throw new Error('Embedding failed. Status: ' + JSON.stringify(embeddingStatus));
-  }
+  await expect(page.getByText(/couldn’t find a cat in this photo/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Choose another photo' })).toBeVisible();
+  await expect(page.getByAltText('Selected encounter')).toBeVisible();
+});
 
-  await expect(page.getByText('384', { exact: true })).toBeVisible();
-  await expect(page.getByText('wasm', { exact: true })).toBeVisible();
+test('controlled familiar-face flow keeps identity human-controlled', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single&catalog=familiar');
+  await startScan(page, photo);
 
-  // Prove the session-lived worker reuses initialized models on a second scan.
-  const warmStarted = Date.now();
-  await page.getByRole('button', { name: 'Find the cat' }).click();
-  await expect
-    .poll(
-      async () => (await terminalStatus.textContent()) ?? '',
-      {
-        timeout: 120_000,
-        intervals: [250, 500, 1_000, 2_000],
-      },
-    )
-    .toMatch(/cats? found\.|DETECTION_FAILED/i);
+  await expect(page.getByText('Possible familiar face')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Is this Mochi?' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Yes, it’s Mochi' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'No, this is a new cat' })).toBeVisible();
 
-  const warmDetectionStatus = (await terminalStatus.textContent()) ?? '';
-  if (!/cats? found\./i.test(warmDetectionStatus)) {
-    throw new Error('Warm detection failed. Status: ' + JSON.stringify(warmDetectionStatus));
-  }
+  await page.getByRole('button', { name: 'Choose another saved cat' }).click();
+  await expect(page.getByRole('heading', { name: 'Which cat is this?' })).toBeVisible();
+  await expect(page.getByText('Pepper')).toBeVisible();
 
-  await page.getByRole('button', { name: /Cat 1.*detector score/i }).click();
-  await expect
-    .poll(
-      async () => (await terminalStatus.textContent()) ?? '',
-      {
-        timeout: 120_000,
-        intervals: [250, 500, 1_000, 2_000],
-      },
-    )
-    .toMatch(/Local pipeline complete: cat crop → normalized 384-value DINOv2 embedding\.|EMBEDDING_FAILED|INVALID_EMBEDDING/i);
+  await page.getByRole('button', { name: /Pepper/ }).click();
+  await expect(page.getByRole('heading', { name: 'Another meeting with Pepper' })).toBeVisible();
+});
 
-  const warmFinalStatus = (await terminalStatus.textContent()) ?? '';
-  if (!/Local pipeline complete/i.test(warmFinalStatus)) {
-    throw new Error('Warm embedding failed. Status: ' + JSON.stringify(warmFinalStatus));
-  }
+test('controlled no-suggestion flow offers manual existing-cat fallback', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single&catalog=manual');
+  await startScan(page, photo);
 
-  console.log('MEOWFOLIO_WARM_SECOND_SCAN_MS=' + (Date.now() - warmStarted));
+  await expect(page.getByRole('heading', { name: 'No familiar cat suggested.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Choose an existing cat' }).click();
+  await expect(page.getByRole('heading', { name: 'Which cat is this?' })).toBeVisible();
+  await expect(page.getByText('Mochi')).toBeVisible();
+  await expect(page.getByText('Pepper')).toBeVisible();
+});
+
+test('back from new-cat details preserves entered name and note', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await startScan(page, photo);
+
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+  await page.getByLabel('Cat name').fill('Mochi');
+  await page.getByLabel(/Encounter note/).fill('Sleeping under the orange bench.');
+
+  await page.getByRole('button', { name: 'Change identity' }).click();
+  await expect(page.getByTestId('identity-screen')).toBeVisible();
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+
+  await expect(page.getByLabel('Cat name')).toHaveValue('Mochi');
+  await expect(page.getByLabel(/Encounter note/)).toHaveValue('Sleeping under the orange bench.');
+});
+
+test('discard requires confirmation and keep editing preserves the scan', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await startScan(page, photo);
+  await expect(page.getByTestId('identity-screen')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(page.getByTestId('identity-screen')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('button', { name: 'Discard scan' }).click();
+  await expect(page.getByRole('heading', { name: 'Your cat scrapbook' })).toBeVisible();
 });
