@@ -37,11 +37,17 @@ export interface RankedCandidate {
   similarity: number;
 }
 
+export interface QueryReferenceSet {
+  catId: string;
+  assetIds: string[];
+}
+
 export interface QueryScore {
   assetId: string;
   catId: string;
   strategy: EvaluationStrategy;
   negativeGallery: boolean;
+  referenceSets: QueryReferenceSet[];
   correctSimilarity: number | null;
   highestWrongSimilarity: number | null;
   highestWrongCatId: string | null;
@@ -91,6 +97,10 @@ export interface MatchingEvaluationReport {
   developmentSampleCount: number;
   holdoutSampleCount: number;
   failureCount: number;
+  failureSummary: {
+    byPartition: Record<EvaluationPartition, number>;
+    byReason: Record<EvaluationFailure['reason'], number>;
+  };
   strategyPolicies: Record<EvaluationStrategy, FrozenStrategyPolicy>;
   selectedPolicy: FrozenStrategyPolicy;
   holdoutByStrategy: Record<
