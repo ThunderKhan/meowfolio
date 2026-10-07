@@ -1,11 +1,11 @@
 ---
 doc: checklist
-status: draft
+status: approved
 ---
 
 # Build Checklist
 
-Build mode: pending learner choice (fast recommended for this project)
+Build mode: fast
 
 ## Slices
 
