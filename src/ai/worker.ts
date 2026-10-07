@@ -99,25 +99,6 @@ function assertNotCancelled(requestId: string): void {
   if (cancelled.has(requestId)) throw new Error('MEOWFOLIO_CANCELLED');
 }
 
-function toProgress(
-  requestId: string,
-  model: 'detector' | 'embedder',
-  event: unknown,
-): void {
-  if (!event || typeof event !== 'object') return;
-  const value = event as Record<string, unknown>;
-  post({
-    type: 'MODEL_PROGRESS',
-    requestId,
-    model,
-    status: typeof value.status === 'string' ? value.status : 'loading',
-    file: typeof value.file === 'string' ? value.file : undefined,
-    loaded: typeof value.loaded === 'number' ? value.loaded : undefined,
-    total: typeof value.total === 'number' ? value.total : undefined,
-    progress: typeof value.progress === 'number' ? value.progress : undefined,
-  });
-}
-
 async function disposePipeline(value: CallablePipeline | null): Promise<void> {
   if (value?.dispose) await value.dispose();
 }
@@ -159,6 +140,12 @@ async function loadModels(
 
   try {
     assertNotCancelled(requestId);
+    post({
+      type: 'MODEL_PROGRESS',
+      requestId,
+      model: 'detector',
+      status: 'initializing',
+    });
 
     nextDetector = (await withPinnedRevision(
       MODEL_MANIFEST.detector.revision,
@@ -175,6 +162,12 @@ async function loadModels(
     )) as unknown as CallablePipeline;
 
     assertNotCancelled(requestId);
+    post({
+      type: 'MODEL_PROGRESS',
+      requestId,
+      model: 'embedder',
+      status: 'initializing',
+    });
 
     nextEmbedder = (await withPinnedRevision(
       MODEL_MANIFEST.embedder.revision,
