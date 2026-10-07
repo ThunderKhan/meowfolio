@@ -31,7 +31,7 @@ Build mode: fast
   Commit: `feat: add human controlled scan flow`
   Evidence: GitHub Actions run `37668402128` passed `npm ci`, TypeScript, 17 Vitest checks, production build, and 8 Playwright flows on commit `b59870a88c0e41973ba82cc598de11fdaf6e7669`. Browser coverage includes the real WASM YOLOS→crop→DINOv2 identity path plus controlled multi-cat selection, no-cat retry, familiar-face confirmation, no-suggestion manual picker, Back-preserved name/note, discard confirmation, and browser Back recovery. The production build keeps matching disabled until Slice 5 evidence supplies an approved policy; controlled matching/catalog fixtures exist only in E2E mode. Real Android/outdoor exploration remains the separate hands-on checkpoint below and is not claimed complete here.
 
-- [ ] **3. A confirmed encounter saves exactly once and survives reopening**
+- [x] **3. A confirmed encounter saves exactly once and survives reopening**
   Becomes usable: A new cat or manually/AI-confirmed existing cat can be saved locally with its photo, encounter embedding, optional note, optional location, and atomic cat/reference updates; reopening retains it.
   Why now: Persistence is the product's first durable payoff and the place where retry/idempotency and centroid correctness can silently corrupt history if left late.
   PRD ref: `prd.md > F5 — Encounter Save and Optional Location`, `prd.md > F5a — Back, Discard, and Scan-Session Recovery`, `prd.md > States and Boundaries`
@@ -40,6 +40,7 @@ Build mode: fast
   Verify (mechanical): Run typecheck, Vitest, production build, and browser IndexedDB integration tests covering atomic new/repeat saves, duplicate retry, transaction failure, exact centroid math, incompatible embedding spaces, duplicate names, and location timeout/denial. Reload the app and verify saved records/photos remain.
   Learner check: Save a new cat, close/reopen the app, then add a repeat encounter. Confirm the encounter count changes once, the history survives reload, and denying location never blocks Save.
   Commit: `feat: persist cats and encounters locally`
+  Evidence: GitHub Actions run `37671041420` passed exact dependency install, TypeScript, 21 Vitest checks across 3 files, production build, and 16 Playwright browser tests on commit `e8cf02734d9700cdd4f4e27a65d18d5284425baa`. The browser suite verifies real YOLOS→DINOv2 scanning plus IndexedDB new-cat commit/reload, exact compatible centroid updates, same-ID idempotent retry and conflicting-retry rejection, incompatible-space history without reference mutation, duplicate names with distinct IDs, atomic failure with no partial encounter, pending-form preservation/retry, location denial, and the app-owned 8-second location-timeout path while Save remains available. Success UI is entered only after the cats+encounters transaction completes. Real Android hands-on persistence remains the learner checkpoint and is not claimed by CI.
 
 - [ ] **4. The scrapbook makes saved cats and their histories worth returning to**
   Becomes usable: The collection is image-first and each cat has a calm scrapbook detail page with cover photo, name, encounter count, first/last seen, encounter photos, notes, and collapsed private-location details.

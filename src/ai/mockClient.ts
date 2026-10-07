@@ -1,9 +1,10 @@
 import type { AiGateway } from './client';
 import { MODEL_MANIFEST, type ExecutionProvider, type WorkerResponse } from './shared';
 
-export type MockScenario = 'single' | 'multi' | 'none';
+export type MockScenario = 'single' | 'single-alt' | 'multi' | 'none';
 
 const embedding = Array.from({ length: 384 }, (_, index) => (index === 0 ? 1 : 0));
+const alternateEmbedding = Array.from({ length: 384 }, (_, index) => (index === 1 ? 1 : 0));
 
 export class MockAiClient implements AiGateway {
   constructor(private readonly scenario: MockScenario = 'single') {}
@@ -82,7 +83,7 @@ export class MockAiClient implements AiGateway {
     return {
       type: 'EMBEDDING_RESULT',
       requestId,
-      embedding,
+      embedding: this.scenario === 'single-alt' ? alternateEmbedding : embedding,
       dimension: 384,
       elapsedMs: 5,
       provider: 'wasm',

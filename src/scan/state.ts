@@ -10,6 +10,8 @@ export type ScanStep =
   | 'identity'
   | 'existing-picker'
   | 'details'
+  | 'saving'
+  | 'success'
   | 'recoverable-error';
 
 export interface EmbeddingResult {
@@ -49,6 +51,7 @@ export interface ScanState {
   note: string;
   error: string | null;
   slowWarning: boolean;
+  savedCatName: string | null;
 }
 
 export function createScanState(now = Date.now()): ScanState {
@@ -72,6 +75,7 @@ export function createScanState(now = Date.now()): ScanState {
     note: '',
     error: null,
     slowWarning: false,
+    savedCatName: null,
   };
 }
 
@@ -112,6 +116,9 @@ export type ScanAction =
   | { type: 'CHOOSE_NEW' }
   | { type: 'SET_NAME'; value: string }
   | { type: 'SET_NOTE'; value: string }
+  | { type: 'SAVE_START' }
+  | { type: 'SAVE_SUCCESS'; catName: string }
+  | { type: 'SAVE_FAILED'; message: string }
   | { type: 'KEEP_WAITING' }
   | { type: 'BACK' }
   | { type: 'RETRY' }
@@ -151,6 +158,7 @@ export function scanReducer(state: ScanState, action: ScanAction): ScanState {
         newCatId: null,
         error: null,
         slowWarning: false,
+        savedCatName: null,
       };
     case 'NEEDS_CONSENT':
       return { ...state, step: 'preparation-consent', error: null, slowWarning: false };
@@ -231,6 +239,12 @@ export function scanReducer(state: ScanState, action: ScanAction): ScanState {
       return { ...state, newCatName: action.value };
     case 'SET_NOTE':
       return { ...state, note: action.value };
+    case 'SAVE_START':
+      return { ...state, step: 'saving', error: null };
+    case 'SAVE_SUCCESS':
+      return { ...state, step: 'success', savedCatName: action.catName, error: null };
+    case 'SAVE_FAILED':
+      return { ...state, step: 'details', error: action.message };
     case 'SLOW_WARNING':
       return { ...state, slowWarning: true };
     case 'KEEP_WAITING':
@@ -265,6 +279,7 @@ export function scanReducer(state: ScanState, action: ScanAction): ScanState {
           slowWarning: false,
         };
       }
+      if (state.step === 'saving' || state.step === 'success') return state;
       if (state.step === 'existing-picker' || state.step === 'details') {
         return { ...state, step: 'identity', generation, error: null, slowWarning: false };
       }
