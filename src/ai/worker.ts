@@ -28,6 +28,7 @@ let loadedProvider: ExecutionProvider | null = null;
 let detector: CallablePipeline | null = null;
 let embedder: CallablePipeline | null = null;
 const cancelled = new Set<string>();
+const blockedNetworkRequests = new Set<string>();
 let queue = Promise.resolve();
 
 env.allowLocalModels = false;
@@ -68,6 +69,7 @@ env.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   }
 
   if (!allowed) {
+    blockedNetworkRequests.add(activeRequestId);
     throw new NetworkConsentError(url.toString());
   }
 
@@ -207,18 +209,21 @@ async function handle(request: WorkerRequest): Promise<void> {
   if (request.type === 'DISPOSE') {
     await disposeModels();
     cancelled.clear();
+    blockedNetworkRequests.clear();
     return;
   }
 
   if (cancelled.has(request.requestId)) return;
 
   if (request.type === 'CHECK_ASSETS') {
+    blockedNetworkRequests.delete(request.requestId);
     const provider = chooseProvider(request.provider, hasWebGpu());
     try {
       await loadModels(request.requestId, provider, false);
+      blockedNetworkRequests.delete(request.requestId);
       post({ type: 'ASSET_STATUS', requestId: request.requestId, ready: true, provider });
     } catch (error) {
-      if (isNetworkConsentError(error)) {
+      if (blockedNetworkRequests.delete(request.requestId) || isNetworkConsentError(error)) {
         post({
           type: 'ASSET_STATUS',
           requestId: request.requestId,
