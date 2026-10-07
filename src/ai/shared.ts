@@ -14,7 +14,7 @@ export const MODEL_MANIFEST = {
     id: 'Xenova/yolos-tiny',
     revision: 'e2f9c7673f0fa61849efe2b56a0d7774779ebb9d',
     task: 'object-detection',
-    dtype: { webgpu: 'fp16', wasm: 'int8' },
+    dtype: { webgpu: 'fp16', wasm: 'uint8' },
     releaseNote:
       'Transformers.js-compatible YOLOS-tiny conversion. Upstream hustvl/yolos-tiny is Apache-2.0.',
   },
