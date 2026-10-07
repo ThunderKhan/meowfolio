@@ -80,6 +80,11 @@ describe('matching evaluator', () => {
     expect(selected.negativeResults.every((result) => result.negativeGallery === true)).toBe(true);
     expect(selected.results.every((result) => result.correctSimilarity !== null)).toBe(true);
     expect(
+      selected.results.every((result) =>
+        result.referenceSets.every((reference) => !reference.assetIds.includes(result.assetId)),
+      ),
+    ).toBe(true);
+    expect(
       selected.results.every(
         (result) =>
           result.highestWrongSimilarity !== null && result.highestWrongCatId !== null,
@@ -141,6 +146,11 @@ describe('matching evaluator', () => {
 
     const report = evaluateMatching(dataset);
     expect(report.failureCount).toBe(1);
+    expect(report.failureSummary.byPartition.holdout).toBe(1);
+    expect(report.failureSummary.byReason['no-cat']).toBe(1);
+    const selected = report.holdoutByStrategy[report.selectedPolicy.strategy].summary;
+    expect(selected.processingFailures).toBe(1);
+    expect(selected.repeatQueries).toBe(4);
   });
 
   it('exports anonymized public evidence without raw asset or cat identifiers', () => {
@@ -157,5 +167,13 @@ describe('matching evaluator', () => {
     expect(publicSelected.results[0].trueCat).toMatch(/^C\d{2}$/);
     expect(evidence.holdoutByStrategy['first-only'].results).toHaveLength(3);
     expect(evidence.holdoutByStrategy.centroid.results).toHaveLength(3);
+    expect(evidence.failureSummary.byPartition.holdout).toBe(0);
+    expect(
+      publicSelected.results.every((result) =>
+        result.referenceSets.every((reference) =>
+          reference.refs.every((ref) => /^Q\d{3}$/.test(ref)),
+        ),
+      ),
+    ).toBe(true);
   });
 });
