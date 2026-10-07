@@ -7,6 +7,10 @@ test('real WASM cat detection and DINOv2 embedding complete in Chromium', async 
   page,
   request,
 }) => {
+  const browserMessages: string[] = [];
+  page.on('console', (message) => browserMessages.push('console ' + message.type() + ': ' + message.text()));
+  page.on('pageerror', (error) => browserMessages.push('pageerror: ' + error.message));
+
   const photoResponse = await request.get(CAT_PHOTO);
   expect(photoResponse.ok()).toBeTruthy();
   const photo = await photoResponse.body();
@@ -19,9 +23,24 @@ test('real WASM cat detection and DINOv2 embedding complete in Chromium', async 
     buffer: photo,
   });
 
+  await expect(page.getByRole('button', { name: 'Find the cat' })).toBeEnabled();
   await page.getByRole('button', { name: 'Find the cat' }).click();
+
   const consent = page.getByRole('button', { name: 'Download models & continue' });
-  await expect(consent).toBeVisible();
+  try {
+    await expect(consent).toBeVisible({ timeout: 45_000 });
+  } catch (error) {
+    const status = await page.getByTestId('status').textContent().catch(() => null);
+    throw new Error(
+      'Consent screen did not appear. Status: ' +
+        JSON.stringify(status) +
+        '\nBrowser messages:\n' +
+        browserMessages.join('\n') +
+        '\nOriginal assertion: ' +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
+
   await consent.click();
 
   await expect(page.getByText(/cats? found\./i)).toBeVisible({ timeout: 180_000 });
