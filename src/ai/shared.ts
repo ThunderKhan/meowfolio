@@ -81,7 +81,7 @@ export type WorkerResponse =
       type: 'NETWORK_ACTIVITY';
       requestId: string;
       url: string;
-      category: 'same-origin' | 'model' | 'runtime';
+      category: 'same-origin' | 'model' | 'runtime' | 'blocked';
       allowed: boolean;
     }
   | {
