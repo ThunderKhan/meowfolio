@@ -27,6 +27,21 @@ async function continueMultiCatIfNeeded(page: Page): Promise<void> {
   }
 }
 
+async function saveFirstCat(
+  page: Page,
+  photo: Buffer,
+  name = 'Mochi',
+  note = 'First meeting.',
+): Promise<void> {
+  await startScan(page, photo);
+  await expect(page.getByTestId('identity-screen')).toBeVisible();
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+  await page.getByLabel('Cat name').fill(name);
+  await page.getByLabel(/Encounter note/).fill(note);
+  await page.getByRole('button', { name: 'Save encounter' }).click();
+  await expect(page.getByRole('heading', { name: name + ' is in your Meowfolio.' })).toBeVisible();
+}
+
 test('real WASM scan reaches a human identity decision in Chromium', async ({ page, request }) => {
   const browserMessages: string[] = [];
   page.on('console', (message) =>
@@ -169,4 +184,228 @@ test('browser Back returns within the scan without losing entered details', asyn
   await page.getByRole('button', { name: 'Name this cat' }).click();
   await expect(page.getByLabel('Cat name')).toHaveValue('Mochi');
   await expect(page.getByLabel(/Encounter note/)).toHaveValue('Near the old wall.');
+});
+
+
+test('new cat commits once, duplicate retry is idempotent, and the record survives reload', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi', 'By the garden wall.');
+
+  const integrity = await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const cats = await repository.listCats();
+    const cat = cats[0];
+    const encounters = await repository.listEncountersForCat(cat.id);
+    const encounter = encounters[0];
+
+    const duplicate = await repository.saveEncounter({
+      encounterId: encounter.id,
+      timestamp: encounter.timestamp,
+      photo: encounter.photo,
+      crop: encounter.crop,
+      embedding: Array.from(encounter.embedding),
+      embeddingSpace: encounter.embeddingSpace,
+      detection: encounter.detection,
+      note: encounter.note,
+      location: encounter.location,
+      identity: { kind: 'new', catId: cat.id, name: cat.name },
+    });
+
+    let conflictRejected = false;
+    try {
+      await repository.saveEncounter({
+        encounterId: encounter.id,
+        timestamp: encounter.timestamp,
+        photo: encounter.photo,
+        crop: encounter.crop,
+        embedding: Array.from(encounter.embedding),
+        embeddingSpace: encounter.embeddingSpace,
+        detection: encounter.detection,
+        note: 'different payload',
+        location: encounter.location,
+        identity: { kind: 'new', catId: cat.id, name: cat.name },
+      });
+    } catch {
+      conflictRejected = true;
+    }
+
+    const after = await repository.getCat(cat.id);
+    return {
+      duplicate: duplicate.duplicate,
+      conflictRejected,
+      encounterCount: after.encounterCount,
+      referenceCount: after.referenceEmbeddingCount,
+      encounterRows: (await repository.listEncountersForCat(cat.id)).length,
+    };
+  });
+
+  expect(integrity).toEqual({
+    duplicate: true,
+    conflictRejected: true,
+    encounterCount: 1,
+    referenceCount: 1,
+    encounterRows: 1,
+  });
+
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await expect(page.getByText('1 cat in this browser')).toBeVisible();
+  await expect(page.getByText('Mochi')).toBeVisible();
+  await expect(page.getByText('Met 1 time')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText('Mochi')).toBeVisible();
+  await expect(page.getByText('Met 1 time')).toBeVisible();
+});
+
+test('confirmed repeat updates the exact centroid once and survives reopening', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+
+  await page.goto('/?skipWelcome=1&mockAi=single-alt');
+  await startScan(page, photo);
+  await expect(page.getByRole('heading', { name: 'No familiar cat suggested.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Choose an existing cat' }).click();
+  await page.getByRole('button', { name: /Mochi/ }).click();
+  await expect(page.getByRole('heading', { name: 'Another meeting with Mochi' })).toBeVisible();
+  await page.getByRole('button', { name: 'Save encounter' }).click();
+  await expect(page.getByRole('heading', { name: 'Another Mochi encounter saved.' })).toBeVisible();
+
+  const centroid = await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const cat = (await repository.listCats())[0];
+    return {
+      encounterCount: cat.encounterCount,
+      referenceCount: cat.referenceEmbeddingCount,
+      sum0: cat.referenceEmbeddingSum[0],
+      sum1: cat.referenceEmbeddingSum[1],
+      ref0: cat.referenceEmbedding[0],
+      ref1: cat.referenceEmbedding[1],
+      encounters: (await repository.listEncountersForCat(cat.id)).length,
+    };
+  });
+
+  expect(centroid.encounterCount).toBe(2);
+  expect(centroid.referenceCount).toBe(2);
+  expect(centroid.encounters).toBe(2);
+  expect(centroid.sum0).toBeCloseTo(1, 6);
+  expect(centroid.sum1).toBeCloseTo(1, 6);
+  expect(centroid.ref0).toBeCloseTo(Math.SQRT1_2, 5);
+  expect(centroid.ref1).toBeCloseTo(Math.SQRT1_2, 5);
+
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.reload();
+  await expect(page.getByText('Mochi')).toBeVisible();
+  await expect(page.getByText('Met 2 times')).toBeVisible();
+});
+
+test('incompatible-space history saves without mutating the old reference', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+
+  const result = await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const cat = (await repository.listCats())[0];
+    const first = (await repository.listEncountersForCat(cat.id))[0];
+
+    const incompatible = await repository.saveEncounter({
+      encounterId: crypto.randomUUID(),
+      timestamp: first.timestamp + 1_000,
+      photo: first.photo,
+      crop: first.crop,
+      embedding: Array.from({ length: 384 }, (_, index) => (index === 1 ? 1 : 0)),
+      embeddingSpace: { ...first.embeddingSpace, revision: 'different-space' },
+      detection: first.detection,
+      identity: { kind: 'existing', catId: cat.id },
+    });
+
+    return {
+      encounterCount: incompatible.cat.encounterCount,
+      referenceCount: incompatible.cat.referenceEmbeddingCount,
+      sum0: incompatible.cat.referenceEmbeddingSum[0],
+      sum1: incompatible.cat.referenceEmbeddingSum[1],
+      rows: (await repository.listEncountersForCat(cat.id)).length,
+    };
+  });
+
+  expect(result.encounterCount).toBe(2);
+  expect(result.referenceCount).toBe(1);
+  expect(result.sum0).toBeCloseTo(1, 6);
+  expect(result.sum1).toBeCloseTo(0, 6);
+  expect(result.rows).toBe(2);
+});
+
+test('failed existing-cat save leaves no encounter and the pending form remains retryable', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+
+  const atomicFailure = await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const firstCat = (await repository.listCats())[0];
+    const first = (await repository.listEncountersForCat(firstCat.id))[0];
+    const failedId = crypto.randomUUID();
+
+    let failed = false;
+    try {
+      await repository.saveEncounter({
+        encounterId: failedId,
+        timestamp: first.timestamp + 2_000,
+        photo: first.photo,
+        crop: first.crop,
+        embedding: Array.from(first.embedding),
+        embeddingSpace: first.embeddingSpace,
+        detection: first.detection,
+        identity: { kind: 'existing', catId: 'missing-cat' },
+      });
+    } catch {
+      failed = true;
+    }
+
+    return {
+      failed,
+      partialEncounterExists: Boolean(await repository.getEncounter(failedId)),
+      cats: (await repository.listCats()).length,
+    };
+  });
+
+  expect(atomicFailure).toEqual({
+    failed: true,
+    partialEncounterExists: false,
+    cats: 1,
+  });
+});
+
+test('location denial never blocks saving', async ({ page, request }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: (_success: unknown, error: (value: { code: number }) => void) =>
+          error({ code: 1 }),
+      },
+    });
+  });
+
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await startScan(page, photo);
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+  await page.getByLabel('Cat name').fill('Mochi');
+  await page.getByRole('button', { name: 'Add location' }).click();
+  await expect(page.getByText(/save.*without location/i)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save encounter' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Save encounter' }).click();
+  await expect(page.getByRole('heading', { name: 'Mochi is in your Meowfolio.' })).toBeVisible();
+
+  const hasLocation = await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const cat = (await repository.listCats())[0];
+    const encounter = (await repository.listEncountersForCat(cat.id))[0];
+    return Boolean(encounter.location);
+  });
+  expect(hasLocation).toBe(false);
 });
