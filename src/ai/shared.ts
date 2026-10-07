@@ -20,7 +20,7 @@ export const MODEL_MANIFEST = {
   },
   embedder: {
     id: 'Xenova/dinov2-small',
-    revision: 'c2bb04a51fab207c420665f1946016107bffc701',
+    revision: 'a5406bdfce9ac07eb3dc08dd05cbea034f4648d8',
     task: 'image-feature-extraction',
     dtype: { webgpu: 'fp16', wasm: 'uint8' },
     releaseNote:
