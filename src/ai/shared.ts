@@ -9,10 +9,10 @@ export interface ModelSpec {
 }
 
 export const MODEL_MANIFEST = {
-  version: '2026-10-07-spike-2',
+  version: '2026-10-07-spike-3',
   detector: {
     id: 'onnx-community/yolov10n',
-    revision: 'b85b7ff30a97fefcd3905ffae9ecf6e5047ae948',
+    revision: '99eec2d6d2becae0f038019f75054029ad5a9004',
     task: 'object-detection',
     dtype: { webgpu: 'fp16', wasm: 'int8' },
     releaseNote:
