@@ -18,6 +18,7 @@ const THRESHOLD_EPSILON = 1e-6;
 interface Reference {
   catId: string;
   embedding: Float32Array;
+  assetIds: string[];
 }
 
 function assertDataset(dataset: EvaluationDataset): string {
@@ -84,7 +85,11 @@ function buildReferences(
     group.sort((left, right) => left.order - right.order);
 
     if (strategy === 'first-only') {
-      references.push({ catId, embedding: normalized(group[0].embedding) });
+      references.push({
+        catId,
+        embedding: normalized(group[0].embedding),
+        assetIds: [group[0].assetId],
+      });
       continue;
     }
 
@@ -94,7 +99,11 @@ function buildReferences(
       const vector = normalized(sample.embedding);
       for (let index = 0; index < dimension; index += 1) sum[index] += vector[index];
     }
-    references.push({ catId, embedding: normalizeEmbedding(sum) });
+    references.push({
+      catId,
+      embedding: normalizeEmbedding(sum),
+      assetIds: group.map((sample) => sample.assetId),
+    });
   }
 
   return references;
@@ -137,6 +146,10 @@ function scoreQuery(
     catId: query.catId,
     strategy,
     negativeGallery,
+    referenceSets: eligible.map((reference) => ({
+      catId: reference.catId,
+      assetIds: [...reference.assetIds],
+    })),
     correctSimilarity: correct?.similarity ?? null,
     highestWrongSimilarity: highestWrong?.similarity ?? null,
     highestWrongCatId: highestWrong?.catId ?? null,
@@ -323,6 +336,30 @@ function evaluateHoldout(
 
 export function evaluateMatching(dataset: EvaluationDataset): MatchingEvaluationReport {
   const spaceKey = assertDataset(dataset);
+  const failures = dataset.failures ?? [];
+  const failureSummary: MatchingEvaluationReport['failureSummary'] = {
+    byPartition: {
+      reference: failures.filter((failure) => failure.partition === 'reference').length,
+      'development-query': failures.filter(
+        (failure) => failure.partition === 'development-query',
+      ).length,
+      holdout: failures.filter((failure) => failure.partition === 'holdout').length,
+    },
+    byReason: {
+      'decode-failed': failures.filter((failure) => failure.reason === 'decode-failed').length,
+      'no-cat': failures.filter((failure) => failure.reason === 'no-cat').length,
+      'multiple-cats': failures.filter((failure) => failure.reason === 'multiple-cats').length,
+      'detection-failed': failures.filter(
+        (failure) => failure.reason === 'detection-failed',
+      ).length,
+      'embedding-failed': failures.filter(
+        (failure) => failure.reason === 'embedding-failed',
+      ).length,
+      'incompatible-space': failures.filter(
+        (failure) => failure.reason === 'incompatible-space',
+      ).length,
+    },
+  };
   const first = chooseDevelopmentPolicy(dataset, 'first-only', spaceKey);
   const centroid = chooseDevelopmentPolicy(dataset, 'centroid', spaceKey);
   const selected = pickReleaseStrategy(first, centroid);
@@ -356,7 +393,8 @@ export function evaluateMatching(dataset: EvaluationDataset): MatchingEvaluation
     holdoutSampleCount:
       dataset.samples.filter((sample) => sample.partition === 'holdout').length +
       (dataset.failures?.filter((failure) => failure.partition === 'holdout').length ?? 0),
-    failureCount: dataset.failures?.length ?? 0,
+    failureCount: failures.length,
+    failureSummary,
     strategyPolicies: {
       'first-only': first,
       centroid,
