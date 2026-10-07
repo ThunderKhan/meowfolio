@@ -41,10 +41,10 @@ Source: `scope.md > The Core Loop` and `The POC Boundary`.
 
 ## Look and Feel
 - Feel like opening a personal scrapbook: “these are the cats you’ve met,” not a dashboard of stored data.
-- Warm off-white/paper-like background, dark readable text, muted natural greens for main actions, and a restrained terracotta accent.
-- Large cat photography is the strongest visual element. Soft borders, subtle shadows, lightly tactile cards, generous spacing, and minimal navigation support it.
+- Use a **late-1990s/2000s pink pixel-scrapbook** visual language: candy-pink/checkerboard canvas, pale-pink/cream surfaces, deep plum text, hot-pink primary actions, square/beveled controls, chunky 2px borders, pixel-offset shadows, faux desktop-window chrome, tiny stickers/hearts/stars, and system monospace/bitmap-adjacent typography without a network font.
+- Large cat photography remains the strongest visual element. The retro chrome frames the memories rather than competing with them; navigation stays minimal and mobile controls remain large and readable.
 - Modern and clean, personal and handmade without becoming childish or overly cute. Exact typefaces are not yet chosen; prioritize readability.
-- Avoid generic AI gradients, neon/cyberpunk styling, pervasive glassmorphism, admin-dashboard layouts, Pokémon-like visual language, excessive animation, and decorative paw-icon clutter.
+- Avoid generic AI gradients, neon/cyberpunk styling, pervasive glassmorphism, admin-dashboard layouts, Pokémon-like visual language/trade dress, excessive animation, and decoration that obscures the cat photos or interaction hierarchy.
 
 Source: `scope.md > Inspiration & Identity`; refined by the learner’s collection/detail direction.
 
