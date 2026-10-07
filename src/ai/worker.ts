@@ -32,6 +32,7 @@ const blockedNetworkRequests = new Set<string>();
 let queue = Promise.resolve();
 
 env.allowLocalModels = false;
+env.allowRemoteModels = true;
 env.useBrowserCache = true;
 env.useWasmCache = true;
 
@@ -112,6 +113,19 @@ async function disposeModels(): Promise<void> {
   loadedProvider = null;
 }
 
+async function withPinnedRevision<T>(
+  revision: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const previousTemplate = env.remotePathTemplate;
+  env.remotePathTemplate = `{model}/resolve/${revision}/`;
+  try {
+    return await operation();
+  } finally {
+    env.remotePathTemplate = previousTemplate;
+  }
+}
+
 async function loadModels(
   requestId: string,
   provider: ExecutionProvider,
@@ -130,28 +144,36 @@ async function loadModels(
   try {
     assertNotCancelled(requestId);
 
-    nextDetector = (await pipeline(
-      MODEL_MANIFEST.detector.task,
-      MODEL_MANIFEST.detector.id,
-      {
-        revision: MODEL_MANIFEST.detector.revision,
-        device: provider,
-        dtype: MODEL_MANIFEST.detector.dtype[provider],
-        progress_callback: (event: unknown) => toProgress(requestId, 'detector', event),
-      } as any,
+    nextDetector = (await withPinnedRevision(
+      MODEL_MANIFEST.detector.revision,
+      async () =>
+        pipeline(
+          MODEL_MANIFEST.detector.task,
+          MODEL_MANIFEST.detector.id,
+          {
+            revision: MODEL_MANIFEST.detector.revision,
+            device: provider,
+            dtype: MODEL_MANIFEST.detector.dtype[provider],
+            progress_callback: (event: unknown) => toProgress(requestId, 'detector', event),
+          } as any,
+        ),
     )) as unknown as CallablePipeline;
 
     assertNotCancelled(requestId);
 
-    nextEmbedder = (await pipeline(
-      MODEL_MANIFEST.embedder.task,
-      MODEL_MANIFEST.embedder.id,
-      {
-        revision: MODEL_MANIFEST.embedder.revision,
-        device: provider,
-        dtype: MODEL_MANIFEST.embedder.dtype[provider],
-        progress_callback: (event: unknown) => toProgress(requestId, 'embedder', event),
-      } as any,
+    nextEmbedder = (await withPinnedRevision(
+      MODEL_MANIFEST.embedder.revision,
+      async () =>
+        pipeline(
+          MODEL_MANIFEST.embedder.task,
+          MODEL_MANIFEST.embedder.id,
+          {
+            revision: MODEL_MANIFEST.embedder.revision,
+            device: provider,
+            dtype: MODEL_MANIFEST.embedder.dtype[provider],
+            progress_callback: (event: unknown) => toProgress(requestId, 'embedder', event),
+          } as any,
+        ),
     )) as unknown as CallablePipeline;
 
     assertNotCancelled(requestId);
@@ -218,26 +240,33 @@ async function handle(request: WorkerRequest): Promise<void> {
     const provider = chooseProvider(request.provider, hasWebGpu());
 
     try {
-      const [detectorCached, embedderCached] = await Promise.all([
-        ModelRegistry.is_pipeline_cached(
-          MODEL_MANIFEST.detector.task,
-          MODEL_MANIFEST.detector.id,
-          {
-            revision: MODEL_MANIFEST.detector.revision,
-            device: provider,
-            dtype: MODEL_MANIFEST.detector.dtype[provider],
-          },
-        ),
-        ModelRegistry.is_pipeline_cached(
-          MODEL_MANIFEST.embedder.task,
-          MODEL_MANIFEST.embedder.id,
-          {
-            revision: MODEL_MANIFEST.embedder.revision,
-            device: provider,
-            dtype: MODEL_MANIFEST.embedder.dtype[provider],
-          },
-        ),
-      ]);
+      const detectorCached = await withPinnedRevision(
+        MODEL_MANIFEST.detector.revision,
+        async () =>
+          ModelRegistry.is_pipeline_cached(
+            MODEL_MANIFEST.detector.task,
+            MODEL_MANIFEST.detector.id,
+            {
+              revision: MODEL_MANIFEST.detector.revision,
+              device: provider,
+              dtype: MODEL_MANIFEST.detector.dtype[provider],
+            },
+          ),
+      );
+
+      const embedderCached = await withPinnedRevision(
+        MODEL_MANIFEST.embedder.revision,
+        async () =>
+          ModelRegistry.is_pipeline_cached(
+            MODEL_MANIFEST.embedder.task,
+            MODEL_MANIFEST.embedder.id,
+            {
+              revision: MODEL_MANIFEST.embedder.revision,
+              device: provider,
+              dtype: MODEL_MANIFEST.embedder.dtype[provider],
+            },
+          ),
+      );
 
       if (!detectorCached || !embedderCached) {
         post({
