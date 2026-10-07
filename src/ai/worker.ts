@@ -67,7 +67,7 @@ env.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     });
   }
 
-  if (!allowed || category === 'blocked') {
+  if (!allowed) {
     throw new NetworkConsentError(url.toString());
   }
 
