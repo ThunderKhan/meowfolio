@@ -38,9 +38,9 @@ export async function requestEncounterLocation(timeoutMs = 8_000): Promise<Locat
         finish({
           status: 'unavailable',
           reason:
-            error.code === error.PERMISSION_DENIED
+            error.code === 1 || error.code === error.PERMISSION_DENIED
               ? 'denied'
-              : error.code === error.TIMEOUT
+              : error.code === 3 || error.code === error.TIMEOUT
                 ? 'timeout'
                 : 'error',
         }),
