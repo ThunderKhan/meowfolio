@@ -17,17 +17,31 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
 button:focus-visible,
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+textarea:focus-visible {
   outline: 3px solid rgba(47, 107, 79, 0.35);
   outline-offset: 3px;
 }
 
 .paper-shadow {
   box-shadow: 0 1px 2px rgba(31, 26, 23, 0.06), 0 14px 36px rgba(31, 26, 23, 0.08);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

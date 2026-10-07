@@ -1,6 +1,29 @@
 import type { ExecutionProvider, WorkerRequest, WorkerResponse } from './shared';
 
-type ProgressListener = (message: WorkerResponse) => void;
+export type AiProgressListener = (message: WorkerResponse) => void;
+
+export interface AiGateway {
+  checkAssets(
+    provider: 'auto' | ExecutionProvider,
+    requestId?: string,
+  ): Promise<Extract<WorkerResponse, { type: 'ASSET_STATUS' }>>;
+  loadModels(
+    provider: 'auto' | ExecutionProvider,
+    allowDownload: boolean,
+    requestId?: string,
+  ): Promise<Extract<WorkerResponse, { type: 'MODELS_READY' }>>;
+  detect(
+    image: Blob,
+    threshold?: number,
+    requestId?: string,
+  ): Promise<Extract<WorkerResponse, { type: 'DETECTIONS' }>>;
+  embed(
+    image: Blob,
+    requestId?: string,
+  ): Promise<Extract<WorkerResponse, { type: 'EMBEDDING_RESULT' }>>;
+  cancel(requestId: string): void;
+  dispose(): void;
+}
 
 interface PendingRequest {
   finalTypes: Set<WorkerResponse['type']>;
@@ -8,12 +31,12 @@ interface PendingRequest {
   reject: (error: Error) => void;
 }
 
-export class AiClient {
+export class AiClient implements AiGateway {
   private readonly worker: Worker;
   private readonly pending = new Map<string, PendingRequest>();
-  private readonly onProgress?: ProgressListener;
+  private readonly onProgress?: AiProgressListener;
 
-  constructor(onProgress?: ProgressListener) {
+  constructor(onProgress?: AiProgressListener) {
     this.onProgress = onProgress;
     this.worker = new Worker(new URL('./worker.ts', import.meta.url), {
       type: 'module',
@@ -65,8 +88,8 @@ export class AiClient {
 
   async checkAssets(
     provider: 'auto' | ExecutionProvider,
+    requestId = crypto.randomUUID(),
   ): Promise<Extract<WorkerResponse, { type: 'ASSET_STATUS' }>> {
-    const requestId = crypto.randomUUID();
     return (await this.request(
       { type: 'CHECK_ASSETS', requestId, provider },
       ['ASSET_STATUS'],
@@ -76,8 +99,8 @@ export class AiClient {
   async loadModels(
     provider: 'auto' | ExecutionProvider,
     allowDownload: boolean,
+    requestId = crypto.randomUUID(),
   ): Promise<Extract<WorkerResponse, { type: 'MODELS_READY' }>> {
-    const requestId = crypto.randomUUID();
     return (await this.request(
       { type: 'LOAD_MODELS', requestId, provider, allowDownload },
       ['MODELS_READY'],
@@ -87,8 +110,8 @@ export class AiClient {
   async detect(
     image: Blob,
     threshold = 0.25,
+    requestId = crypto.randomUUID(),
   ): Promise<Extract<WorkerResponse, { type: 'DETECTIONS' }>> {
-    const requestId = crypto.randomUUID();
     return (await this.request(
       { type: 'DETECT_IMAGE', requestId, image, threshold },
       ['DETECTIONS'],
@@ -97,12 +120,21 @@ export class AiClient {
 
   async embed(
     image: Blob,
+    requestId = crypto.randomUUID(),
   ): Promise<Extract<WorkerResponse, { type: 'EMBEDDING_RESULT' }>> {
-    const requestId = crypto.randomUUID();
     return (await this.request(
       { type: 'EMBED_CROP', requestId, image },
       ['EMBEDDING_RESULT'],
     )) as Extract<WorkerResponse, { type: 'EMBEDDING_RESULT' }>;
+  }
+
+  cancel(requestId: string): void {
+    const pending = this.pending.get(requestId);
+    if (pending) {
+      this.pending.delete(requestId);
+      pending.reject(new Error('CANCELLED: This request was cancelled.'));
+    }
+    this.worker.postMessage({ type: 'CANCEL_REQUEST', requestId } satisfies WorkerRequest);
   }
 
   dispose(): void {
