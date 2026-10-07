@@ -359,6 +359,10 @@ export function ScanFlow({
     clearWarmTimers();
     cancelActive();
     generationRef.current = stateRef.current.generation + 1;
+    locationRequestRef.current += 1;
+    setLocation(null);
+    setLocationStatus('idle');
+    setLocationMessage(null);
     setPhotoValidationError(null);
 
     try {
