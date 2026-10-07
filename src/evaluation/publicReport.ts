@@ -11,6 +11,7 @@ export interface PublicMatchingEvidence {
   developmentSampleCount: number;
   holdoutSampleCount: number;
   failureCount: number;
+  failureSummary: MatchingEvaluationReport['failureSummary'];
   selectedPolicy: {
     strategy: EvaluationStrategy;
     threshold: number;
@@ -40,6 +41,7 @@ export interface PublicQueryResult {
   threshold: number;
   outcome: ThresholdResult['outcome'];
   suggestedCat: string | null;
+  referenceSets: Array<{ cat: string; refs: string[] }>;
 }
 
 function aliases(report: MatchingEvaluationReport): {
@@ -57,6 +59,10 @@ function aliases(report: MatchingEvaluationReport): {
       if (result.topCandidate) catIds.add(result.topCandidate.catId);
       if (result.suggestedCatId) catIds.add(result.suggestedCatId);
       assetIds.add(result.assetId);
+      for (const reference of result.referenceSets) {
+        catIds.add(reference.catId);
+        for (const assetId of reference.assetIds) assetIds.add(assetId);
+      }
     }
   }
 
@@ -92,6 +98,10 @@ function publicResult(
     suggestedCat: result.suggestedCatId
       ? maps.cat.get(result.suggestedCatId) ?? null
       : null,
+    referenceSets: result.referenceSets.map((reference) => ({
+      cat: maps.cat.get(reference.catId) ?? 'C??',
+      refs: reference.assetIds.map((assetId) => maps.query.get(assetId) ?? 'Q???'),
+    })),
   };
 }
 
@@ -120,6 +130,7 @@ export function createPublicMatchingEvidence(
     developmentSampleCount: report.developmentSampleCount,
     holdoutSampleCount: report.holdoutSampleCount,
     failureCount: report.failureCount,
+    failureSummary: report.failureSummary,
     selectedPolicy: {
       strategy: report.selectedPolicy.strategy,
       threshold: report.selectedPolicy.threshold,
