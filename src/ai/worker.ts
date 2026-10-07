@@ -408,11 +408,9 @@ async function handle(request: WorkerRequest): Promise<void> {
       // DINOv2's first sequence token is the CLS token. The tensor is laid out
       // row-major as [batch, sequence, hidden], so the first hiddenSize values
       // are the CLS representation for the first image.
-      const cls = Array.from(
-        (features.data as ArrayLike<number>).slice
-          ? (features.data as any).slice(0, EMBEDDING_DIMENSION)
-          : Array.from(features.data as ArrayLike<number>).slice(0, EMBEDDING_DIMENSION),
-        Number,
+      const cls = Array.from(features.data as ArrayLike<number>, Number).slice(
+        0,
+        EMBEDDING_DIMENSION,
       );
 
       if (cls.length !== EMBEDDING_DIMENSION) {
