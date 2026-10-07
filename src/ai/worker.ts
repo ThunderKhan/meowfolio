@@ -391,16 +391,37 @@ async function handle(request: WorkerRequest): Promise<void> {
       assertNotCancelled(request.requestId);
       post({ type: 'PROCESSING_STAGE', requestId: request.requestId, stage: 'embedding' });
       const image = await RawImage.read(request.image);
-      const features = await embedder(image, { pool: true });
-      const raw = Array.from(features.data as ArrayLike<number>, Number);
+      const features = await embedder(image);
+      const dims = Array.from(features.dims as ArrayLike<number>, Number);
+      const hiddenSize = dims.at(-1);
 
-      if (raw.length !== EMBEDDING_DIMENSION) {
+      if (hiddenSize !== EMBEDDING_DIMENSION || dims.length < 2) {
         throw new Error(
-          'Expected ' + EMBEDDING_DIMENSION + ' pooled DINOv2 values, received ' + raw.length + '.',
+          'Expected DINOv2 hidden states ending in ' +
+            EMBEDDING_DIMENSION +
+            ' values, received dims [' +
+            dims.join(', ') +
+            '].',
         );
       }
 
-      const normalized = normalizeEmbedding(raw);
+      // DINOv2's first sequence token is the CLS token. The tensor is laid out
+      // row-major as [batch, sequence, hidden], so the first hiddenSize values
+      // are the CLS representation for the first image.
+      const cls = Array.from(
+        (features.data as ArrayLike<number>).slice
+          ? (features.data as any).slice(0, EMBEDDING_DIMENSION)
+          : Array.from(features.data as ArrayLike<number>).slice(0, EMBEDDING_DIMENSION),
+        Number,
+      );
+
+      if (cls.length !== EMBEDDING_DIMENSION) {
+        throw new Error(
+          'Expected ' + EMBEDDING_DIMENSION + ' CLS-token values, received ' + cls.length + '.',
+        );
+      }
+
+      const normalized = normalizeEmbedding(cls);
       assertNotCancelled(request.requestId);
 
       post({
@@ -416,7 +437,7 @@ async function handle(request: WorkerRequest): Promise<void> {
           dtype: MODEL_MANIFEST.embedder.dtype[loadedProvider],
           preprocessingVersion: 1,
           dimension: EMBEDDING_DIMENSION,
-          pooling: 'pool',
+          pooling: 'cls-token',
         },
       });
     } catch (error) {
