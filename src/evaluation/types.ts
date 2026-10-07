@@ -67,6 +67,7 @@ export interface FrozenStrategyPolicy {
     wrongSuggestions: number;
     correctCatCount: number;
     correctRate: number;
+    processingFailures: number;
   };
 }
 
@@ -78,6 +79,7 @@ export interface EvaluationSummary {
   wrongSuggestions: number;
   correctCatCount: number;
   correctRate: number;
+  processingFailures: number;
   zeroWrong: boolean;
   practicalTargetReached: boolean;
 }
