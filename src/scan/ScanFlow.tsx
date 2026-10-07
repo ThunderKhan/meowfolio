@@ -126,8 +126,9 @@ export function ScanFlow({
   stateRef.current = state;
 
   const chosenCat = useMemo(() => {
-    if (state.identity?.kind !== 'existing') return null;
-    return cats.find((cat) => cat.id === state.identity?.catId) ?? null;
+    const identity = state.identity;
+    if (!identity || identity.kind !== 'existing') return null;
+    return cats.find((cat) => cat.id === identity.catId) ?? null;
   }, [cats, state.identity]);
 
   const newNameError =
