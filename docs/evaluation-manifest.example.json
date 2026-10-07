@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "samples": [
+    {
+      "assetId": "c01-r1",
+      "file": "c01-reference-01.jpg",
+      "catId": "c01",
+      "partition": "reference",
+      "order": 1
+    },
+    {
+      "assetId": "c01-r2",
+      "file": "c01-reference-02.jpg",
+      "catId": "c01",
+      "partition": "reference",
+      "order": 2
+    },
+    {
+      "assetId": "c01-d1",
+      "file": "c01-development-03.jpg",
+      "catId": "c01",
+      "partition": "development-query",
+      "order": 3
+    },
+    {
+      "assetId": "c01-h1",
+      "file": "c01-holdout-04.jpg",
+      "catId": "c01",
+      "partition": "holdout",
+      "order": 4
+    },
+    {
+      "assetId": "c02-r1",
+      "file": "c02-reference-01.jpg",
+      "catId": "c02",
+      "partition": "reference",
+      "order": 1
+    },
+    {
+      "assetId": "c02-r2",
+      "file": "c02-reference-02.jpg",
+      "catId": "c02",
+      "partition": "reference",
+      "order": 2
+    },
+    {
+      "assetId": "c02-d1",
+      "file": "c02-development-03.jpg",
+      "catId": "c02",
+      "partition": "development-query",
+      "order": 3
+    },
+    {
+      "assetId": "c02-h1",
+      "file": "c02-holdout-04.jpg",
+      "catId": "c02",
+      "partition": "holdout",
+      "order": 4
+    }
+  ]
+}
