@@ -46,7 +46,12 @@ export function StudioPage({
       <div className="studio-page-shell mx-auto max-w-6xl">
         <header className="studio-page-nav">
           <button type="button" className="pixel-secondary" onClick={onBack}>← Back to scrapbook</button>
-          <span className="pixel-kicker">Meowfolio · Story Studio</span>
+          <div className="studio-page-identity">
+            <p className="pixel-kicker">Meowfolio / Creative Studio</p>
+            <h1 id="studio-title" tabIndex={-1} className="pixel-heading">
+              {entry ? entry.cat.name + '’s story' : 'Story Studio'}
+            </h1>
+          </div>
         </header>
         {error ? (
           <section className="pixel-window mt-6 p-6" role="alert">
