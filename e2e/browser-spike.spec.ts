@@ -80,11 +80,15 @@ test('real WASM scan reaches a human identity decision in Chromium', async ({ pa
   // after a reload creates a completely new worker instance.
   await page.reload();
   await startScan(page, photo);
-  await expect(page.getByTestId('identity-screen').or(page.getByRole('heading', { name: 'Which cat are you adding?' })))
-    .toBeVisible({ timeout: 150_000 });
+  const returnToDecision = page.getByTestId('identity-screen')
+    .or(page.getByRole('heading', { name: 'Which cat are you adding?' }));
+  await expect(returnToDecision.or(consent)).toBeVisible({ timeout: 90_000 });
+  if (await consent.isVisible()) {
+    throw new Error('A new worker requested model download consent even though the files were already fetched.');
+  }
   await continueMultiCatIfNeeded(page);
-  await expect(page.getByTestId('identity-screen')).toBeVisible({ timeout: 100_000 });
-  await expect(page.getByRole('button', { name: 'Download models & continue' })).toHaveCount(0);
+  await expect(page.getByTestId('identity-screen')).toBeVisible({ timeout: 90_000 });
+  await expect(consent).toHaveCount(0);
 });
 
 test('controlled multi-cat flow pauses for the person to choose a crop', async ({ page, request }) => {
