@@ -685,15 +685,15 @@ test('mobile cat details keep legible form text and adjacent save/change buttons
 
 test('local profile personalizes the scrapbook and makes a downloadable story card', async ({ page, request }) => {
   const photo = await catPhoto(request);
-  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/?skipWelcome=1&mockAi=single');
-  await page.getByRole('button', { name: /create my space/i }).click();
+  await page.getByRole('button', { name: /create my local profile/i }).click();
   await page.getByLabel('Your display name').fill('Ayan');
   await page.getByRole('button', { name: 'Save my profile' }).click();
   await expect(page.getByRole('button', { name: /Ayan.*edit/i })).toBeVisible();
 
   await saveFirstCat(page, photo, 'Mochi', 'She waited under the flowers.');
   await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: /Open Mochi, met 1 time/ }).click();
   await page.getByRole('button', { name: 'Make story card' }).click();
 
