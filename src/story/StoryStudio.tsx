@@ -33,6 +33,8 @@ export function StoryStudio({
   const lastUrl = useRef<string | null>(null);
   const previewRef = useRef<HTMLImageElement | null>(null);
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ distance: number; zoom: number } | null>(null);
 
   const sourceImage = photo.source === 'closeup' ? encounter.crop : encounter.photo;
   const placement = useMemo(
@@ -111,14 +113,29 @@ export function StoryStudio({
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || !placement) return;
-    if (!placement.maxOffsetX && !placement.maxOffsetY) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.preventDefault();
-    drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    touches.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     event.currentTarget.setPointerCapture(event.pointerId);
+    if (touches.current.size === 2) {
+      const [a, b] = Array.from(touches.current.values());
+      pinch.current = { distance: Math.hypot(a.x - b.x, a.y - b.y), zoom: photo.zoom };
+      drag.current = null;
+    } else if (touches.current.size === 1) {
+      drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    }
   }
 
   function onPointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!touches.current.has(event.pointerId)) return;
+    touches.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (touches.current.size >= 2 && pinch.current) {
+      const [a, b] = Array.from(touches.current.values());
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      const zoom = Math.max(100, Math.min(300, Math.round(pinch.current.zoom * distance / Math.max(pinch.current.distance, 1))));
+      setPhoto(value => ({ ...value, zoom }));
+      return;
+    }
     const previous = drag.current;
     if (!previous || previous.id !== event.pointerId || !placement) return;
     const previewWidth = previewRef.current?.getBoundingClientRect().width;
@@ -133,7 +150,13 @@ export function StoryStudio({
   }
 
   function onPointerEnd(event: PointerEvent<HTMLDivElement>) {
+    touches.current.delete(event.pointerId);
+    pinch.current = null;
     if (drag.current?.id === event.pointerId) drag.current = null;
+    if (touches.current.size === 1) {
+      const [id, position] = Array.from(touches.current.entries())[0];
+      drag.current = { id, ...position };
+    }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -229,8 +252,8 @@ export function StoryStudio({
               </label>
             </div>
             <p className="mt-3 text-xs leading-5 text-[#74445f]">
-              Drag the cat photo in the preview, or use the position sliders below.
-              To move a fully fitted photo, zoom in first.
+              Pinch with two fingers to zoom, then drag to crop and reposition.
+              The sliders remain available for precise adjustments.
             </p>
             <label className="story-range-label mt-4" htmlFor="story-zoom">
               <span>Zoom</span><output htmlFor="story-zoom">{photo.zoom}%</output>
@@ -312,7 +335,7 @@ export function StoryStudio({
             </div>
           )}
           <p className="mt-3 text-center text-xs font-bold text-[#8a3c67]">
-            PREVIEW • 9:16 • DRAG TO REPOSITION
+            PREVIEW • 9:16 • PINCH TO ZOOM · DRAG TO CROP
           </p>
         </div>
       </div>
