@@ -16,16 +16,19 @@ Required:
 
 AI model files may be fetched from Hugging Face or later self-hosted.
 
-## 2. Candidate hosts
+## 2. Chosen host: Vercel
 
-Evaluate quickly:
-- Cloudflare Pages,
-- Vercel,
-- GitHub Pages.
+The MVP host is **Vercel**, using the static Vite output from this repository's `vercel.json`.
 
-Choose one based on fastest reliable deployment with correct routing/headers.
+- Production branch: `main`.
+- Install command: `npm ci`.
+- Build command: `npm run build`.
+- Output directory: `dist`.
+- No Vercel Functions, runtime server, auth, or cloud database.
+- Verify the final HTTPS URL manually: a configuration file is **not** proof of a live deployment.
+- Do not change the production origin once users have recorded cats; IndexedDB is bound to the origin.
 
-Do not create multi-cloud infrastructure.
+Preview deployments are optional testing aids; their local storage is **not** shared with the production domain.
 
 ## 3. Environments
 
@@ -97,13 +100,13 @@ Pin model revision when practical once stable.
 
 ## 8. Headers
 
-If host supports:
-- sensible Content Security Policy after runtime testing,
-- `X-Content-Type-Options: nosniff`,
-- referrer policy,
-- permissions policy where helpful.
+The checked-in `vercel.json` applies:
+- `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`,
+- same-origin geolocation/camera permission policy and disabled microphone,
+- HTML root revalidation,
+- immutable hashed Vite assets.
 
-Do not add headers that break ONNX/Transformers.js on submission day without testing.
+It deliberately does **not** add unverified restrictive CSP, COOP or COEP headers because the first-use flow fetches pinned model assets from Hugging Face and may fetch WASM runtime assets from its supported CDN. Audit network behaviour on the deployed origin before introducing tighter cross-origin restrictions.
 
 ## 9. Caching
 
@@ -159,7 +162,7 @@ Before production release:
 
 ## 11. Release freeze
 
-On 11 October:
+By 11 October:
 - stop discretionary feature work,
 - fix P0/P1,
 - avoid dependency/model upgrades,
@@ -189,6 +192,10 @@ Tag only when:
 - README/submission links point to the intended state.
 
 ## 14. Production smoke test
+
+CI now runs `npm run audit:production` and `npm run test:e2e:production` against the **ordinary** Vite output before running the E2E-only fixture build. That checks static artifacts, production-only route isolation, pixel theme and the explicit model-download consent boundary.
+
+These CI checks do not substitute for the real Android and Vercel tests documented in [ANDROID_FIELD_TEST.md](ANDROID_FIELD_TEST.md).
 
 From a fresh/incognito browser profile where practical:
 1. open production URL,

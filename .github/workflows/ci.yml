@@ -43,6 +43,12 @@ jobs:
       - name: Install Chromium
         run: npx playwright install chromium
 
+      - name: Audit ordinary production artifact
+        run: npm run audit:production
+
+      - name: Production-mode browser smoke
+        run: npm run test:e2e:production
+
       - name: Real browser AI spike
         run: npm run test:e2e
 
