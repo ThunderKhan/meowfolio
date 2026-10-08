@@ -121,6 +121,7 @@ test('mobile scrapbook presents adjacent capture actions and compact empty state
     await page.goto('/');
     const enter = page.getByRole('button', { name: /open my scrapbook/i });
     if (await enter.isVisible()) await enter.click();
+    await expect(page.locator('.empty-scrapbook-panel')).toBeVisible();
 
     const layout = await page.evaluate(() => {
       const controls = document.querySelector('.home-capture-actions');
