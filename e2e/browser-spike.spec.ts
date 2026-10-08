@@ -719,6 +719,11 @@ test('local profile personalizes the scrapbook and makes a downloadable story ca
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
   await page.reload();
+  // Reload stays on the new dedicated studio route; it must restore the
+  // selected cat and render locally without a new browser tab.
+  await expect(page).toHaveURL(/studio/);
+  await expect(page.getByRole('heading', { name: /a story starring Mochi/ })).toBeVisible();
+  await page.getByRole('button', { name: '← Back to scrapbook' }).click();
   await expect(page.getByRole('button', { name: /Ayan.*edit/i })).toBeVisible();
 });
 
