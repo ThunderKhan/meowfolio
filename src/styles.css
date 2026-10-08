@@ -1316,6 +1316,8 @@ textarea {
 .story-theme-candy { background: #ffd8ea; color: #702744; }
 .story-theme-midnight { background: #342244; color: #ffe5f5; }
 .story-theme-midnight input { accent-color: #ffafd8; }
+.story-theme-buttercream { background: #fff0cf; color: #6b3c2e; }
+.story-theme-buttercream input { accent-color: #a75b34; }
 .story-note-toggle { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 800; line-height: 1.5; }
 .story-note-toggle input { width: 20px; height: 20px; accent-color: #b72370; }
 .story-export-actions { display: flex; flex-wrap: wrap; gap: 10px; }
