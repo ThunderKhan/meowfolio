@@ -1145,3 +1145,11 @@ textarea {
     animation: none;
   }
 }
+
+/* Keep the established desktop processing ring; pixel cat is mobile-only. */
+.scan-cat-loader { display: none; }
+.scan-desktop-loader { display: block; }
+@media (max-width: 760px) {
+  .scan-cat-loader { display: grid; }
+  .scan-desktop-loader { display: none; }
+}
