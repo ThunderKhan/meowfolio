@@ -759,8 +759,8 @@ export function ScanFlow({
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Preparing local AI</h1>
           <p className="mt-4 max-w-2xl leading-7 text-[#7f4b67]">
-            The detector and visual model files are not fully cached yet. Downloading them can use
-            noticeable data. Your cat photo is not sent to a hosted inference service.
+            The cat-finding models aren't fully downloaded yet. They may use a noticeable amount
+            of data, but your photo stays on this device for processing.
           </p>
           <div className="scan-action-row mt-6">
             <ActionButton onClick={() => void downloadAndContinue()}>
@@ -815,7 +815,7 @@ export function ScanFlow({
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Which cat are you adding?</h1>
           <p className="mt-3 leading-7 text-[#7f4b67]">
-            Choose the cat this encounter is about. Only that crop continues to the visual check.
+            Choose the cat this encounter is about. You'll choose their name or a saved cat next.
           </p>
 
           <div className="relative mt-6 overflow-hidden rounded-none border border-black/10 bg-[#ffd8ed]">
@@ -1122,7 +1122,7 @@ export function ScanFlow({
             <div className="meow-spinner mx-auto" aria-hidden="true" />
             <h1 className="mt-6 font-serif text-3xl font-semibold">Saving this encounter locally</h1>
             <p className="mt-3 leading-7 text-[#7f4b67]">
-              Success appears only after the cat and encounter transaction has fully committed.
+              Saving this cat's photo and encounter details in your browser.
             </p>
           </div>
         </section>
@@ -1143,7 +1143,7 @@ export function ScanFlow({
                 : 'Encounter saved.'}
             </h1>
             <p className="mt-3 leading-7 text-[#7f4b67]">
-              The photo, embedding, and encounter details are now committed to this browser.
+              Your cat's photo and encounter details are saved in this browser.
             </p>
             <div className="mt-6">
               <ActionButton onClick={onExit}>Back to collection</ActionButton>
