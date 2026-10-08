@@ -8,6 +8,7 @@ import { loadRuntimeCatalog } from './scan/referenceCatalog';
 import { RELEASE_MATCHING_POLICY } from './evaluation/releasePolicy';
 import { MatchingLab } from './evaluation/MatchingLab';
 import { Scrapbook } from './scrapbook/Scrapbook';
+import { PendingPhotos } from './scrapbook/PendingPhotos';
 import { MeowfolioRepository } from './storage/repository';
 
 const WELCOME_KEY = 'meowfolio.welcome-complete';
@@ -67,6 +68,7 @@ export function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [scanning, setScanning] = useState(false);
   const [initialScanPhoto, setInitialScanPhoto] = useState<File | null>(null);
+  const [initialPendingId, setInitialPendingId] = useState<string | null>(null);
   const [welcomeComplete, setWelcomeComplete] = useState(() => {
     if (e2eEnabled && params.get('skipWelcome') === '1') return true;
     try {
@@ -138,7 +140,7 @@ export function App() {
     }
   }
 
-  async function startScan(photo: File | null = null): Promise<void> {
+  async function startScan(photo: File | null = null, pendingId: string | null = null): Promise<void> {
     await refreshScanCats();
 
     // Retain the worker/models between encounters; do not force each scan to
@@ -149,6 +151,7 @@ export function App() {
     reusableAiRef.current = gateway;
 
     setInitialScanPhoto(photo);
+    setInitialPendingId(pendingId);
     setAi(gateway);
     setScanning(true);
   }
@@ -156,6 +159,7 @@ export function App() {
   function leaveScan(): void {
     setScanning(false);
     setInitialScanPhoto(null);
+    setInitialPendingId(null);
     setAi(null);
     // The AI worker stays alive for another scan within this page session.
     // ScanFlow invalidates outstanding requests on unmount.
@@ -170,8 +174,16 @@ export function App() {
   }
 
   async function afterSave(): Promise<void> {
+    if (initialPendingId) {
+      await repository.deletePendingPhoto(initialPendingId);
+    }
     setRefreshKey((value) => value + 1);
     await refreshScanCats();
+  }
+
+  async function afterSavedForLater(): Promise<void> {
+    setRefreshKey((value) => value + 1);
+    leaveScan();
   }
 
   if (matchingLabEnabled) {
@@ -251,11 +263,13 @@ export function App() {
     return (
       <ScanFlow
         initialPhoto={initialScanPhoto}
+        initialPendingId={initialPendingId}
         ai={ai}
         repository={repository}
         cats={catalogMode ? fixtureCats : scanCats}
         matchingPolicy={matchingPolicy}
         onSaved={afterSave}
+        onSavedForLater={afterSavedForLater}
         onExit={leaveScan}
       />
     );
@@ -309,6 +323,11 @@ export function App() {
         </div>
       </header>
 
+      <PendingPhotos
+        repository={repository}
+        refreshKey={refreshKey}
+        onProcess={(photo, id) => void startScan(photo, id)}
+      />
       <Scrapbook
         repository={repository}
         refreshKey={refreshKey}
