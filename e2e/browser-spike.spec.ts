@@ -700,6 +700,7 @@ test('local profile personalizes the scrapbook and makes a downloadable story ca
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: /Open Mochi, met 1 time/ }).click();
   await page.getByRole('button', { name: 'Make story card' }).click();
+  await expect(page).toHaveURL(/\\/studio\\//);
 
   const preview = page.getByRole('img', { name: /9 by 16 story preview for Mochi/ });
   await expect(preview).toBeVisible({ timeout: 30_000 });
@@ -782,4 +783,40 @@ test('story photo framing defaults to whole original and exports repositioned PN
   await expect(zoom).toHaveValue('100');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
+});
+
+
+test('studio is a dedicated same-tab screen and browser Back restores the scrapbook', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.getByRole('button', { name: /Open Mochi, met 1 time/ }).click();
+  const tabs: string[] = [];
+  page.context().on('page', (newPage) => tabs.push(newPage.url()));
+  await page.getByRole('button', { name: 'Make story card' }).click();
+  await expect(page).toHaveURL(/\\/studio\\//);
+  await expect(page.getByRole('heading', { name: /a story starring Mochi/ })).toBeVisible();
+  await expect(page.getByRole('img', { name: /9 by 16 story preview/ })).toBeVisible();
+  expect(tabs).toHaveLength(0);
+  await page.goBack();
+  await expect(page).not.toHaveURL(/\\/studio\\//);
+  await expect(page.getByRole('heading', { name: 'my meowfolio' })).toBeVisible();
+  await page.getByRole('button', { name: /Open Mochi, met 1 time/ }).click();
+  await page.getByRole('button', { name: 'Make story card' }).click();
+  await page.getByRole('button', { name: '← Back to scrapbook' }).click();
+  await expect(page).not.toHaveURL(/\\/studio\\//);
+});
+
+test('saved cat photos open an on-device pinch viewer and close without mutation', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.getByRole('button', { name: /Open Mochi, met 1 time/ }).click();
+  await page.getByRole('button', { name: 'View full photo' }).first().click();
+  await expect(page.getByRole('dialog', { name: /View full photo/ })).toBeVisible();
+  await expect(page.getByText(/pinch to zoom/i).first()).toBeVisible();
+  await page.getByRole('button', { name: '← Close photo' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
