@@ -175,7 +175,7 @@ label:has(> input.sr-only:focus-visible) {
 
 .pixel-primary {
   color: #fff;
-  background: linear-gradient(#ef65ad, #d63384);
+  background: linear-gradient(160deg, #c13577, #a91f68);
   text-shadow: 1px 1px 0 #7e154d;
 }
 
@@ -812,7 +812,7 @@ textarea {
   .welcome-mini-sticker {
     margin-top: 14px;
     padding: 8px 10px;
-    font-size: 0.7rem;
+    font-size: 0.82rem;
   }
 
   .welcome-actions {
@@ -1040,7 +1040,7 @@ textarea {
     font-size: 0.82rem;
   }
   .scan-page > header p {
-    font-size: 0.7rem;
+    font-size: 0.82rem;
     letter-spacing: 0.11em;
   }
   .scan-preview-panel {
@@ -1664,7 +1664,6 @@ textarea {
   .pending-photo-actions button { font-size: 12px; min-height: 48px; }
   .photo-viewer-topbar-label { display: none; }
   .story-theme-option b { font-size: 12px; }
-  .empty-scrapbook-cta { display: inline-flex; align-items: center; justify-content: center; }
   .scrapbook-collection-bottom { display: block; }
 }
 @media (max-width: 359px) {
