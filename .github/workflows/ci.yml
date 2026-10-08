@@ -62,6 +62,14 @@ jobs:
             playwright-report
           if-no-files-found: ignore
 
+      - name: Upload visual audit screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meowfolio-visual-audit
+          path: audit-screenshots
+          if-no-files-found: ignore
+
       - name: Preserve generated lockfile
         uses: actions/upload-artifact@v4
         with:
