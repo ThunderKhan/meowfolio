@@ -1026,7 +1026,7 @@ export function ScanFlow({
       )}
 
       {state.step === 'details' && (
-        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
+        <section className="scan-details-panel paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
             Identity confirmed
           </p>
@@ -1100,15 +1100,17 @@ export function ScanFlow({
             </p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="scan-details-actions mt-6 flex flex-wrap gap-3">
             <ActionButton
               disabled={state.identity?.kind === 'new' && Boolean(newNameError)}
               onClick={() => void saveEncounter()}
             >
-              Save encounter
+              <span className="scan-desktop-label">Save encounter</span>
+              <span className="scan-mobile-label">Save cat</span>
             </ActionButton>
             <ActionButton variant="secondary" onClick={goBack}>
-              Change identity
+              <span className="scan-desktop-label">Change identity</span>
+              <span className="scan-mobile-label">Change cat</span>
             </ActionButton>
           </div>
         </section>

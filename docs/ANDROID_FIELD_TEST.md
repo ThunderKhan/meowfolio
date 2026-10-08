@@ -106,3 +106,14 @@ A passing CI build is **not** sufficient to close Slice 6. Record the actual And
 
 ## Android model reliability follow-up (8 Oct 2026)
 The mobile WASM kernel remains unverified on the user's phone. Retained worker memory, local-only cache fallback, 960px detector input and 90-second upper bound are implemented mitigations, **not evidence of passing real-device inference**. Record whether detection or embedding takes most time and whether a second warm scan avoids model consent.
+
+## October 8 mobile storage recovery follow-up
+
+A real Android browser test reached the naming/details screen in approximately **5–7 seconds** but the final save displayed “A previous Meowfolio tab is blocking storage setup.” This message is consistent with a blocked IndexedDB v1→v2 upgrade. The previous implementation rejected instantly in `onblocked` and permanently cached the rejected open promise. The corrective change waits for the upgrade to complete, closes current database connections on `versionchange`, and permits retry if a blocked open eventually times out. It does **not** delete or reset user records.
+
+Validate after the new deploy:
+- First v1→v2 app upgrade on Android, with and without another tab.
+- Confirm full-size original cat photo, name and encounter note are saved; reopen after browser refresh.
+- Confirm a transient blocker self-recovers, or that a Save retry works after other tabs release storage.
+- Verify mobile detail text contrast and adjacent Save/Change buttons at widths 320px and 390px.
+- Record first and second warm scan times separately; 5–7s is tolerable for this PoC but not proof of reaching the ≤6s target consistently.
