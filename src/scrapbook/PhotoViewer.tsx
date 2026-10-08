@@ -84,13 +84,13 @@ export function PhotoViewer({ src, alt, onClose }: {
   return (
     <div ref={dialogRef} onKeyDown={trapFocus} className="photo-viewer-backdrop" role="dialog" aria-modal="true" aria-label={'View full photo: ' + alt}>
       <div className="photo-viewer-topbar">
-        <button ref={closeRef} type="button" className="pixel-secondary" onClick={onClose}>← Close photo</button>
+        <button ref={closeRef} type="button" className="pixel-secondary" onClick={onClose}>Close photo</button>
         <span className="photo-viewer-topbar-label">Original photo · private to this browser</span>
         <div className="photo-viewer-actions">
           <button type="button" className="pixel-secondary" aria-label="Zoom out" disabled={zoom <= 1} onClick={() => changeZoom(-0.5)}>−</button>
           <span aria-live="polite">{Math.round(zoom * 100)}%</span>
           <button type="button" className="pixel-secondary" aria-label="Zoom in" disabled={zoom >= 5} onClick={() => changeZoom(0.5)}>+</button>
-          <button type="button" className="pixel-secondary" onClick={reset}>↺ Reset</button>
+          <button type="button" className="pixel-secondary" onClick={reset}>Reset</button>
         </div>
       </div>
       <div

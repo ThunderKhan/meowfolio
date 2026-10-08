@@ -41,7 +41,7 @@ export function ProfilePanel({
 
   return (
     <section className="pixel-window profile-editor mt-5" aria-label="My local profile">
-      <div className="pixel-window-title"><span>♡ MY_PROFILE.DAT</span><span aria-hidden="true">★</span></div>
+      <div className="pixel-window-title"><span>♡ MY_PROFILE.DAT</span><span className="pixel-window-hint">Personal</span></div>
       <form onSubmit={submit} className="profile-editor-body">
         <div>
           <p className="pixel-kicker">a scrapbook with your name on it</p>
@@ -70,10 +70,11 @@ export function ProfilePanel({
                 <label key={symbol} className={'profile-avatar-choice' + (avatar === symbol ? ' is-selected' : '')}>
                   <input
                     type="radio" name="profile-avatar" value={symbol}
+                    aria-label={symbol === '🐱' ? 'Cat sticker' : symbol === '🌷' ? 'Flower sticker' : symbol === '⭐' ? 'Star sticker' : 'Ribbon sticker'}
                     checked={avatar === symbol}
                     onChange={() => setAvatar(symbol)}
                   />
-                  <span aria-label={'Avatar ' + symbol}>{symbol}</span>
+                  <span aria-hidden="true">{symbol}</span>
                 </label>
               ))}
             </div>

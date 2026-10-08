@@ -59,7 +59,7 @@ export function PendingPhotos({
 
   return (
     <section className="pixel-window pending-photo-panel mt-5" aria-label="Photos saved for later">
-      <div className="pixel-window-title"><span>♡ PHOTO_INBOX.DAT</span><span aria-hidden="true">□ ×</span></div>
+      <div className="pixel-window-title"><span>♡ PHOTO_INBOX.DAT</span><span className="pixel-window-hint">Not processed yet</span></div>
       <div className="p-4 sm:p-6">
         <h2 className="pixel-heading text-xl sm:text-2xl">saved for later ♡</h2>
         <p className="mt-2 text-sm leading-6 text-[#75405c]">

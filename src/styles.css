@@ -1737,3 +1737,208 @@ textarea {
     gap: 3px;
   }
 }
+
+
+/* Selection controls: the entire card is the radio target.
+   Inputs remain native and keyboard-accessible but their browser-drawn
+   circles never sit on top of stickers or inside the design. */
+.profile-avatar-choice,
+.story-theme-option,
+.story-segmented label {
+  position: relative;
+  isolation: isolate;
+}
+.profile-avatar-choice input[type="radio"],
+.story-theme-option input[type="radio"],
+.story-segmented input[type="radio"] {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  box-shadow: none;
+}
+.profile-avatar-choice {
+  width: 66px;
+  padding: 0;
+  align-content: center;
+  justify-items: stretch;
+}
+.profile-avatar-choice > span {
+  width: 100%;
+  height: 62px;
+  font-size: 30px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.profile-avatar-choice.is-selected > span {
+  border-color: #962458;
+  background: #ffd0e7;
+  box-shadow: 3px 3px 0 #ac427e, inset 2px 2px 0 #fff;
+}
+.profile-avatar-choice.is-selected::after,
+.story-theme-option.is-selected::after,
+.story-segmented label.is-selected::after {
+  content: "✓";
+  position: absolute;
+  z-index: 3;
+  top: -8px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #fffafc;
+  border-radius: 50%;
+  background: #8e265b;
+  color: white;
+  box-shadow: 1px 2px 0 #83365d;
+  font: 800 13px/1 system-ui, sans-serif;
+  pointer-events: none;
+}
+.story-theme-option.is-selected {
+  outline: none;
+  border-color: #7f2557;
+  box-shadow: 4px 4px 0 #ad628e, inset 0 0 0 2px rgba(255,255,255,.5);
+}
+.story-theme-option > span,
+.story-theme-option > b,
+.story-segmented label > span {
+  pointer-events: none;
+}
+.story-segmented label {
+  justify-content: center;
+  text-align: center;
+  padding-right: 13px;
+}
+.story-segmented label > span {
+  width: 100%;
+}
+.story-segmented label.is-selected::after {
+  top: -7px;
+  right: -6px;
+  width: 19px;
+  height: 19px;
+  font-size: 11px;
+}
+.profile-avatar-choice:focus-within,
+.story-theme-option:focus-within,
+.story-segmented label:focus-within {
+  outline: 3px solid #862552;
+  outline-offset: 4px;
+}
+
+/* Drop simulated minimize/maximize/close glyphs, which suggested inert
+   controls, and replace them with quiet, meaningful section metadata. */
+.pixel-window-hint {
+  margin-left: auto;
+  color: #76234f;
+  font: 800 10px/1.35 var(--font-display);
+  letter-spacing: .04em;
+  white-space: nowrap;
+  opacity: .82;
+}
+
+/* Native disclosure triangles were inconsistent across browser engines.
+   Use a single restrained chevron only for interactive disclosures. */
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details > summary::marker {
+  content: "";
+}
+.welcome-privacy > summary,
+.pixel-location > summary,
+.story-advanced > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.welcome-privacy > summary::after,
+.pixel-location > summary::after,
+.story-advanced > summary::after {
+  content: "";
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin: -4px 2px 0;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 140ms ease;
+}
+.welcome-privacy[open] > summary::after,
+.pixel-location[open] > summary::after,
+.story-advanced[open] > summary::after {
+  transform: rotate(225deg);
+  margin-top: 4px;
+}
+.story-advanced > summary::before {
+  content: none;
+}
+
+/* Wide desktop: spend the available canvas on photos, real controls and
+   scrapbook content, rather than merely enlarging margins or body copy. */
+@media (min-width: 1360px) {
+  .home-page,
+  .studio-page-shell {
+    width: min(100%, 96rem);
+  }
+  .home-header-body {
+    padding-inline: clamp(24px, 3vw, 48px);
+    padding-block: 24px;
+  }
+  .home-desktop-brand .pixel-heading {
+    font-size: clamp(1.5rem, 2vw, 2rem);
+  }
+  .scrapbook-cards {
+    gap: clamp(20px, 2vw, 30px);
+  }
+  .profile-editor-body {
+    padding: clamp(24px, 3vw, 42px);
+    gap: 22px;
+  }
+  .profile-editor-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(290px, .7fr);
+    column-gap: clamp(24px, 4vw, 64px);
+  }
+  .studio-page .story-studio-body {
+    grid-template-columns: minmax(0, 1fr) minmax(350px, .85fr);
+  }
+  .studio-page .story-preview-wrap {
+    width: min(100%, 460px);
+    max-width: 460px;
+  }
+}
+@media (max-width: 760px) {
+  .pixel-window-hint {
+    font-size: 9px;
+    white-space: normal;
+    text-align: right;
+  }
+  .profile-avatar-choice {
+    width: 62px;
+  }
+  .profile-avatar-choice > span {
+    height: 58px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-privacy > summary::after,
+  .pixel-location > summary::after,
+  .story-advanced > summary::after,
+  .profile-avatar-choice > span {
+    transition: none;
+  }
+}

@@ -198,7 +198,7 @@ export function StoryStudio({
 
   return (
     <section className="pixel-window story-studio mt-6" aria-label="Create a story card">
-      <div className="pixel-window-title"><span>✦ STORY_CARD.EXE</span><span aria-hidden="true">♡</span></div>
+      <div className="pixel-window-title"><span>✦ STORY_CARD.EXE</span><span className="pixel-window-hint">Story maker</span></div>
       <div className="story-studio-body">
         <div className="story-controls">
           <p className="pixel-kicker">Make it yours</p>
@@ -212,15 +212,15 @@ export function StoryStudio({
             <legend className="text-sm font-bold">Choose a style</legend>
             <div className="story-theme-options mt-3">
               <label className={'story-theme-option story-theme-candy' + (theme === 'candy' ? ' is-selected' : '')}>
-                <input type="radio" name="story-theme" value="candy" checked={theme === 'candy'} onChange={() => setTheme('candy')} />
+                <input type="radio" name="story-theme" value="candy" aria-label="Candy scrapbook" checked={theme === 'candy'} onChange={() => setTheme('candy')} />
                 <span>♡</span><b>Candy scrapbook</b>
               </label>
               <label className={'story-theme-option story-theme-midnight' + (theme === 'midnight' ? ' is-selected' : '')}>
-                <input type="radio" name="story-theme" value="midnight" checked={theme === 'midnight'} onChange={() => setTheme('midnight')} />
+                <input type="radio" name="story-theme" value="midnight" aria-label="Midnight diary" checked={theme === 'midnight'} onChange={() => setTheme('midnight')} />
                 <span>✦</span><b>Midnight diary</b>
               </label>
               <label className={'story-theme-option story-theme-buttercream' + (theme === 'buttercream' ? ' is-selected' : '')}>
-                <input type="radio" name="story-theme" value="buttercream" checked={theme === 'buttercream'} onChange={() => setTheme('buttercream')} />
+                <input type="radio" name="story-theme" value="buttercream" aria-label="Golden hour" checked={theme === 'buttercream'} onChange={() => setTheme('buttercream')} />
                 <span>☀</span><b>Golden hour</b>
               </label>
             </div>
@@ -231,21 +231,21 @@ export function StoryStudio({
             <p className="mt-2 text-xs leading-5 text-[#74445f]">The whole photo is shown by default, without cutting off ears or tails.</p>
             <div className="story-segmented mt-3" aria-label="Photo source">
               <label className={photo.source === 'original' ? 'is-selected' : ''}>
-                <input type="radio" name="photo-source" checked={photo.source === 'original'} onChange={() => setSource('original')} />
+                <input type="radio" name="photo-source" aria-label="Original photo" checked={photo.source === 'original'} onChange={() => setSource('original')} />
                 <span>Original photo</span>
               </label>
               <label className={photo.source === 'closeup' ? 'is-selected' : ''}>
-                <input type="radio" name="photo-source" checked={photo.source === 'closeup'} onChange={() => setSource('closeup')} />
+                <input type="radio" name="photo-source" aria-label="Cat close-up" checked={photo.source === 'closeup'} onChange={() => setSource('closeup')} />
                 <span>Cat close-up</span>
               </label>
             </div>
             <div className="story-segmented mt-3" aria-label="Photo fit">
               <label className={photo.fit === 'contain' ? 'is-selected' : ''}>
-                <input type="radio" name="photo-fit" checked={photo.fit === 'contain'} onChange={() => setFit('contain')} />
+                <input type="radio" name="photo-fit" aria-label="Fit whole photo" checked={photo.fit === 'contain'} onChange={() => setFit('contain')} />
                 <span>Fit whole photo</span>
               </label>
               <label className={photo.fit === 'cover' ? 'is-selected' : ''}>
-                <input type="radio" name="photo-fit" checked={photo.fit === 'cover'} onChange={() => setFit('cover')} />
+                <input type="radio" name="photo-fit" aria-label="Fill the frame" checked={photo.fit === 'cover'} onChange={() => setFit('cover')} />
                 <span>Fill the frame</span>
               </label>
             </div>
@@ -281,7 +281,7 @@ export function StoryStudio({
 
               </div>
             </details>
-            <button className="story-reset-button mt-3" type="button" onClick={resetFraming}>↺ Reset photo framing</button>
+            <button className="story-reset-button mt-3" type="button" onClick={resetFraming}>Reset framing</button>
           </fieldset>
 
           {encounter.note?.trim() && (
@@ -295,10 +295,10 @@ export function StoryStudio({
           </p>
           <div className="story-export-actions mt-6">
             <button className="pixel-primary" type="button" onClick={download} disabled={!output || busy || !!error}>
-              ↓ Save story PNG
+              Save story PNG
             </button>
             <button className="pixel-secondary" type="button" onClick={share} disabled={!output || busy || !!error}>
-              ↗ Share image
+              Share image
             </button>
           </div>
           {shareError && <p role="status" className="mt-3 text-xs text-[#713f5b]">{shareError}</p>}
