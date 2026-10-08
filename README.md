@@ -8,7 +8,8 @@ Photograph a cat, let two locally executed computer-vision models find and descr
 
 ## What works
 
-- 🐾 Photo capture or image picker → preview → local cat detection → choose a cat crop if there is more than one.
+- 🐾 Mobile one-tap native camera or photo picker → preview → local cat detection → choose a crop if there is more than one.
+- 💾 **Save photo for later:** original unprocessed photos are stored in a private IndexedDB inbox and can be reopened for AI detection after a reload, even if the phone's model is too slow. No fabricated identity is created.
 - 👤 **Human-controlled identity**: add a new named cat, or manually attach a repeat sighting to a saved cat.
 - 📓 Persistent local collection and per-cat history, with dates, encounter photos, optional notes and a collapsed, optional precise-location disclosure.
 - 🔐 Photos, embeddings, names, notes and coordinates live in **IndexedDB** in your current browser profile/origin. No account or backend is required.
@@ -24,8 +25,8 @@ Photograph a cat, let two locally executed computer-vision models find and descr
   - Cat detection: `Xenova/yolos-tiny` (`e2f9c7673f0fa61849efe2b56a0d7774779ebb9d`).
   - Image embedding: `Xenova/dinov2-small` (`a5406bdfce9ac07eb3dc08dd05cbea034f4648d8`), 384-dimensional normalized CLS-token embedding.
 - Both models run in a Web Worker. The current user-facing scan deliberately requests the **WASM** provider to keep the evaluation embedding space consistent; WebGPU remains an unverified optimization.
-- Model/runtime files can be downloaded from **Hugging Face and supporting runtime CDNs**, but cat images are not uploaded for inference. First-time downloads require an explicit button click. Cached availability is rechecked rather than assumed permanent.
-- IndexedDB uses atomic transactions and idempotent encounter IDs. Similarity references do not combine embeddings from incompatible model/preprocessing versions.
+- Model/runtime files can be downloaded from **Hugging Face and supporting runtime CDNs**, but cat images are not uploaded for inference. First-time downloads require an explicit button click. Cached availability is rechecked rather than assumed permanent. An initialized worker is now reused across scans on the same page; a subsequent browser reload may still need initialization or, if storage was evicted, another authorized download.
+- IndexedDB uses atomic transactions and idempotent encounter IDs. Its schema v2 also stores pending photo inbox records without changing existing saved-cat data. Similarity references do not combine embeddings from incompatible model/preprocessing versions.
 
 See [architecture](docs/ARCHITECTURE.md), [AI evaluation](docs/AI_EVALUATION.md), [dependencies and license register](docs/DEPENDENCIES_LICENSES.md), and [release guide](docs/DEPLOYMENT_RELEASE.md).
 
