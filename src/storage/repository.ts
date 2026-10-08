@@ -74,8 +74,25 @@ export class MeowfolioRepository {
   private open(): Promise<IDBDatabase> {
     if (this.dbPromise) return this.dbPromise;
 
-    this.dbPromise = new Promise((resolve, reject) => {
+    // An upgrade from schema v1 to v2 can emit "blocked" briefly while an
+    // older document releases its connection. IDB still completes that open
+    // automatically; rejecting in onblocked poisoned dbPromise permanently.
+    // Wait for onsuccess, and permit a fresh retry if an old tab truly stays open.
+    const attempt = new Promise<IDBDatabase>((resolve, reject) => {
+      let finished = false;
+      let blockedTimer: ReturnType<typeof setTimeout> | null = null;
       const opening = indexedDB.open(this.dbName, DB_VERSION);
+
+      const finish = (reason?: Error, database?: IDBDatabase) => {
+        if (finished) {
+          database?.close();
+          return;
+        }
+        finished = true;
+        if (blockedTimer !== null) clearTimeout(blockedTimer);
+        if (reason) reject(reason);
+        else if (database) resolve(database);
+      };
 
       opening.onupgradeneeded = () => {
         const db = opening.result;
@@ -95,12 +112,44 @@ export class MeowfolioRepository {
         }
       };
 
-      opening.onsuccess = () => resolve(opening.result);
-      opening.onerror = () => reject(opening.error ?? new Error('Could not open local scrapbook.'));
-      opening.onblocked = () => reject(new Error('A previous Meowfolio tab is blocking storage setup.'));
+      opening.onsuccess = () => {
+        const db = opening.result;
+        if (finished) {
+          db.close();
+          return;
+        }
+        db.onversionchange = () => {
+          // Another tab or an updated release needs a newer schema. Release
+          // our connection promptly without deleting any user records.
+          db.close();
+          if (this.dbPromise === attempt) this.dbPromise = null;
+        };
+        finish(undefined, db);
+      };
+
+      opening.onerror = () => finish(
+        opening.error ?? new Error('Could not open local scrapbook. Please try saving again.'),
+      );
+
+      opening.onblocked = () => {
+        if (blockedTimer !== null) return;
+        blockedTimer = setTimeout(() => {
+          finish(new Error(
+            'The browser is still waiting for an older Meowfolio storage connection to close. ' +
+            'Close other Meowfolio tabs (including background tabs), then try Save again. ' +
+            'Your photo, name and note are still here. Do not clear site data.',
+          ));
+        }, 12_000);
+      };
     });
 
-    return this.dbPromise;
+    this.dbPromise = attempt;
+    // Crucially, a failed/blocked upgrade must not remain cached forever.
+    // This lets Save retry without deleting IndexedDB or refreshing the form.
+    void attempt.catch(() => {
+      if (this.dbPromise === attempt) this.dbPromise = null;
+    });
+    return attempt;
   }
 
   async savePendingPhoto(photo: Blob, id: string = crypto.randomUUID(), filename = 'cat-photo.jpg'): Promise<PendingPhoto> {
@@ -135,7 +184,7 @@ export class MeowfolioRepository {
     await done;
   }
 
-    async listCats(): Promise<CatRecord[]> {
+  async listCats(): Promise<CatRecord[]> {
     const db = await this.open();
     const tx = db.transaction(CATS, 'readonly');
     const cats = (await request(tx.objectStore(CATS).getAll())) as CatRecord[];
@@ -299,9 +348,10 @@ export class MeowfolioRepository {
   }
 
   close(): void {
-    if (!this.dbPromise) return;
-    void this.dbPromise.then((db) => db.close());
+    const active = this.dbPromise;
     this.dbPromise = null;
+    if (!active) return;
+    void active.then((db) => db.close(), () => {});
   }
 }
 
