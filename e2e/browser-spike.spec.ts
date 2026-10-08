@@ -722,7 +722,7 @@ test('local profile personalizes the scrapbook and makes a downloadable story ca
   // Reload stays on the new dedicated studio route; it must restore the
   // selected cat and render locally without a new browser tab.
   await expect(page).toHaveURL(/studio/);
-  await expect(page.getByRole('heading', { name: /a story starring Mochi/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Mochi.*story/i })).toBeVisible();
   await page.getByRole('button', { name: '← Back to scrapbook' }).click();
   await expect(page.getByRole('button', { name: /Ayan.*edit/i })).toBeVisible();
 });
@@ -737,6 +737,7 @@ test('story photo framing defaults to whole original and exports repositioned PN
   await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
   await page.getByRole('button', { name: 'Make story card' }).click();
 
+  await page.getByText('Fine-tune zoom and position').click();
   const preview = page.getByRole('img', { name: /9 by 16 story preview for Sunshine/ });
   const zoom = page.getByRole('slider', { name: 'Zoom' });
   const horizontal = page.getByRole('slider', { name: 'Horizontal position' });
@@ -801,7 +802,7 @@ test('studio is a dedicated same-tab screen and browser Back restores the scrapb
   page.context().on('page', (newPage) => tabs.push(newPage.url()));
   await page.getByRole('button', { name: 'Make story card' }).click();
   await expect(page).toHaveURL(/studio/);
-  await expect(page.getByRole('heading', { name: /a story starring Mochi/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Mochi.*story/i })).toBeVisible();
   await expect(page.getByRole('img', { name: /9 by 16 story preview/ })).toBeVisible();
   expect(tabs).toHaveLength(0);
   await page.goBack();
@@ -843,15 +844,23 @@ test('visual audit captures welcome, collection, profile, cat detail and studio 
   await page.setViewportSize({ width: 1280, height: 900 });
   await saveFirstCat(page, photo, 'Sunshine', 'A beautiful little cat I met today.');
   await page.getByRole('button', { name: 'Back to collection' }).click();
+  await expect(page.getByRole('button', { name: /Open Sunshine, met 1 time/ })).toBeVisible();
   await page.screenshot({ path: 'audit-screenshots/04-collection-desktop.png', fullPage: true });
   await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
+  await expect(page.getByRole('heading', { name: 'Sunshine', exact: true })).toBeVisible();
   await page.screenshot({ path: 'audit-screenshots/05-cat-detail-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Make story card' }).click();
   await expect(page.getByRole('img', { name: /9 by 16 story preview/ })).toBeVisible();
   await page.screenshot({ path: 'audit-screenshots/06-studio-desktop.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'audit-screenshots/07-studio-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 320, height: 700 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+  await page.screenshot({ path: 'audit-screenshots/09-studio-small-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: '← Back to scrapbook' }).click();
   await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
+  await expect(page.getByRole('heading', { name: 'Sunshine', exact: true })).toBeVisible();
   await page.screenshot({ path: 'audit-screenshots/08-cat-detail-mobile.png', fullPage: true });
 });
