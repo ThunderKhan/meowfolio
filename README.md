@@ -14,6 +14,9 @@ Photograph a cat, let two locally executed computer-vision models find and descr
 - 📓 Persistent local collection and per-cat history, with dates, encounter photos, optional notes and a collapsed, optional precise-location disclosure.
 - 🔐 Photos, embeddings, names, notes and coordinates live in **IndexedDB** in your current browser profile/origin. No account or backend is required.
 - 🎀 Pink, square-edged Y2K/pixel scrapbook presentation, mobile touch targets and reduced-motion support.
+- 👤 **Local profile**: set a scrapbook display name and sticker avatar, and edit them anytime. This is explicitly **not a sign-in account**: no password, server, or cross-device sync.
+- 📱 **Story Studio**: open any saved cat, choose **Make story card**, and export a 1080×1920 PNG for Instagram/WhatsApp Stories. Three original themes (Candy, Midnight, Golden Hour), optional encounter note off by default, no location/EXIF overlay and no image upload.
+- 💿 **Pinned model cache fallback**: on-device Cache Storage keeps approved model/runtime responses across reloads; future scans reuse the same revisions when files remain cached. If files are removed by browser storage eviction, explicit download consent is shown again.
 - 🧪 Local-only Matching Lab in development mode for reproducible real-photo matching evaluations.
 
 **Scope limitations:** This is a hackathon proof of concept, not a validated pet-identification or outdoor tracking service. The benchmark was not a field test. Browsers can evict locally cached models and, depending on storage conditions, local scrapbook records; there is no cloud sync, backup/export or multi-device transfer in the MVP. Clearing site data, changing profiles, or changing the production **origin** can lose access to saved records. Do not use this for precise public animal location sharing.
@@ -25,6 +28,7 @@ Photograph a cat, let two locally executed computer-vision models find and descr
   - Cat detection: `Xenova/yolos-tiny` (`e2f9c7673f0fa61849efe2b56a0d7774779ebb9d`).
   - Image embedding: `Xenova/dinov2-small` (`a5406bdfce9ac07eb3dc08dd05cbea034f4648d8`), 384-dimensional normalized CLS-token embedding.
 - Both models run in a Web Worker. The current user-facing scan deliberately requests the **WASM** provider to keep the evaluation embedding space consistent; WebGPU remains an unverified optimization.
+- Approved model/runtime assets are stored in a versioned origin-scoped browser Cache Storage as a fallback to Transformers.js/ONNX-managed caches. Cache reads work in fresh workers after reload. The browser can still evict assets or reject cache writes because of storage quota, so this is not a promise of permanent offline availability.
 - Model/runtime files can be downloaded from **Hugging Face and supporting runtime CDNs**, but cat images are not uploaded for inference. First-time downloads require an explicit button click. Cached availability is rechecked rather than assumed permanent. An initialized worker is now reused across scans on the same page; a subsequent browser reload may still need initialization or, if storage was evicted, another authorized download.
 - IndexedDB uses atomic transactions and idempotent encounter IDs. Its schema v2 also stores pending photo inbox records without changing existing saved-cat data. Similarity references do not combine embeddings from incompatible model/preprocessing versions.
 
@@ -73,6 +77,7 @@ Meowfolio does **not** upload cat photos to Vercel. The Vercel server only provi
 - Saved cat photos and their selected crops are stored as **Blob** values inside this browser profile's **IndexedDB**, in the `meowfolio` database, `encounters` store. Names, embeddings, dates, optional notes, and any voluntarily saved coordinates are in the associated `cats` and `encounters` records.
 - Unprocessed **Save photo for later** originals are stored separately in the `pendingPhotos` IndexedDB store until processed, confirmed, and committed (or manually deleted).
 - AI model weights and supporting WASM runtime files use browser-managed caches. They are **not** the same storage as the scrapbook photos.
+- Display name/avatar live in origin-scoped `localStorage` separately from cat photos. Story cards are rendered locally into a temporary canvas/Blob and downloaded or shared only when explicitly requested.
 - Storage is tied to **this device, this browser profile, and the HTTPS origin** `https://mymeowfolio.vercel.app`. It does not sync across phones/computers. Clearing site data, browser storage eviction, or changing the website domain may make these photos unavailable; there is not yet an export/backup feature.
 - A temporary IndexedDB upgrade block can occur when a previously loaded version of Meowfolio still holds a connection. Current releases wait for the old connection to release, close their own connection on version-change requests, and let failed opens retry. **Never clear site data as a first troubleshooting step.**
 
