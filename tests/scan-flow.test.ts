@@ -154,11 +154,12 @@ describe('scan reducer', () => {
 });
 
 describe('warm processing bands', () => {
-  it('implements the agreed 10/20 second recovery thresholds', () => {
+  it('uses 10-second slow warning and 90-second mobile fallback deadline', () => {
     expect(warmRecoveryBand(9_999)).toBe('normal');
     expect(warmRecoveryBand(10_000)).toBe('slow');
-    expect(warmRecoveryBand(19_999)).toBe('slow');
-    expect(warmRecoveryBand(20_000)).toBe('expired');
+    expect(warmRecoveryBand(20_000)).toBe('slow');
+    expect(warmRecoveryBand(89_999)).toBe('slow');
+    expect(warmRecoveryBand(90_000)).toBe('expired');
   });
 });
 
