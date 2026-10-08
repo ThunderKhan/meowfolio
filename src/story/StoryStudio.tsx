@@ -100,6 +100,13 @@ export function StoryStudio({
                 />
                 <span>✦</span><b>Midnight diary</b>
               </label>
+              <label className={'story-theme-option story-theme-buttercream' + (theme === 'buttercream' ? ' is-selected' : '')}>
+                <input
+                  type="radio" name="story-theme" value="buttercream" checked={theme === 'buttercream'}
+                  onChange={() => setTheme('buttercream')}
+                />
+                <span>☀</span><b>Golden hour</b>
+              </label>
             </div>
           </fieldset>
           {encounter.note?.trim() && (
