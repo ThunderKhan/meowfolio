@@ -270,7 +270,7 @@ export function App() {
         <section className="pixel-window welcome-card" aria-labelledby="welcome-title">
           <div className="pixel-window-title">
             <span>♥ MEOWFOLIO.EXE</span>
-            <span aria-hidden="true">_ □ ×</span>
+            <span className="pixel-window-hint">Meowfolio</span>
           </div>
 
           <div className="welcome-content">
@@ -351,11 +351,11 @@ export function App() {
   }
 
   return (
-    <main className="home-page mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 sm:py-9">
+    <main className="home-page mx-auto min-h-screen max-w-[96rem] px-4 py-6 sm:px-6 lg:px-8 sm:py-9">
       <header className="pixel-window home-header">
         <div className="pixel-window-title">
           <span>♥ MEOWFOLIO.HTML</span>
-          <span aria-hidden="true">_ □ ×</span>
+          <span className="pixel-window-hint">Meowfolio</span>
         </div>
         <div className="home-header-body flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="home-desktop-brand">
