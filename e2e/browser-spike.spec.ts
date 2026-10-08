@@ -720,3 +720,62 @@ test('local profile personalizes the scrapbook and makes a downloadable story ca
   await page.reload();
   await expect(page.getByRole('button', { name: /Ayan.*edit/i })).toBeVisible();
 });
+
+
+test('story photo framing defaults to whole original and exports repositioned PNG', async ({ page, request }) => {
+  const original = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, original, 'Sunshine', 'Hello from the park.');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
+  await page.getByRole('button', { name: 'Make story card' }).click();
+
+  const preview = page.getByRole('img', { name: /9 by 16 story preview for Sunshine/ });
+  const zoom = page.getByRole('slider', { name: 'Zoom' });
+  const horizontal = page.getByRole('slider', { name: 'Horizontal position' });
+  const vertical = page.getByRole('slider', { name: 'Vertical position' });
+  await expect(preview).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('radio', { name: 'Original photo' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Fit whole photo' })).toBeChecked();
+  await expect(zoom).toHaveValue('100');
+  await expect(horizontal).toBeDisabled();
+  await expect(vertical).toBeDisabled();
+
+  const firstUrl = await preview.getAttribute('src');
+  await page.getByRole('radio', { name: 'Fill the frame' }).check();
+  await expect.poll(() => preview.getAttribute('src')).not.toBe(firstUrl);
+  await page.getByRole('radio', { name: 'Cat close-up' }).check();
+  await expect(page.getByRole('radio', { name: 'Cat close-up' })).toBeChecked();
+
+  await page.getByRole('radio', { name: 'Original photo' }).check();
+  await zoom.focus();
+  await zoom.press('End');
+  await expect(zoom).toHaveValue('300');
+  await expect(horizontal).toBeEnabled();
+  await expect(vertical).toBeEnabled();
+  const startY = await vertical.inputValue();
+  const target = page.getByRole('button', { name: /Drag photo to reposition/ });
+  const box = await target.boundingBox();
+  if (!box) throw new Error('Story crop drag target was not visible.');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 26, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(() => vertical.inputValue()).not.toBe(startY);
+
+  // Controls and exported PNG refer to the same generation, not a stale frame.
+  await expect(page.getByRole('button', { name: /Save story PNG/ })).toBeEnabled();
+  const adjustedUrl = await preview.getAttribute('src');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Save story PNG/ }).click();
+  expect((await download).suggestedFilename()).toBe('meowfolio-sunshine-story.png');
+  expect(await preview.getAttribute('src')).toBe(adjustedUrl);
+
+  await page.getByRole('button', { name: /Reset photo framing/ }).click();
+  await expect(page.getByRole('radio', { name: 'Fit whole photo' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Original photo' })).toBeChecked();
+  await expect(zoom).toHaveValue('100');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+});
