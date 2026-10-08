@@ -115,7 +115,13 @@ env.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
         : pinnedModelUrl;
 
   const response = await nativeFetch(effectiveInput, init);
-  if (cache && response.ok) {
+  // Transformers.js probes optional pinned files (e.g. tokenizer_config.json)
+  // which are legitimately absent. Their 404 is part of the successful
+  // model resolution path, not an uncached download. Cache this *exact*
+  // negative result so a new worker does not ask permission again on reload.
+  // Only immutable, revision-pinned model files receive negative caching.
+  const stableNotFound = category === 'model' && response.status === 404;
+  if (cache && (response.ok || stableNotFound)) {
     try {
       // Complete the cache write before declaring model initialization ready.
       // Cache failures never corrupt a successful inference/download.
