@@ -602,3 +602,25 @@ test('browsing the saved scrapbook does not initialize or download AI models', a
 
   expect(modelRequests).toEqual([]);
 });
+
+
+test('matching lab does not fetch models before explicit preparation', async ({ page }) => {
+  const modelRequests: string[] = [];
+  page.on('request', (browserRequest) => {
+    const url = browserRequest.url();
+    if (
+      url.includes('huggingface.co/') ||
+      url.includes('cdn-lfs') ||
+      url.includes('xethub') ||
+      url.includes('/onnx/')
+    ) {
+      modelRequests.push(url);
+    }
+  });
+
+  await page.goto('/?matchingLab=1');
+  await expect(page.getByRole('heading', { name: 'familiar-face matching lab' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'download / prepare models' })).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(modelRequests).toEqual([]);
+});

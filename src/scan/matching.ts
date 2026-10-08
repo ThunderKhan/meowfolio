@@ -12,8 +12,10 @@ export interface CatReference {
 
 export interface MatchingPolicy {
   enabled: boolean;
+  strategy?: 'first-only' | 'centroid';
   threshold?: number;
   minimumMargin?: number;
+  embeddingSpaceKey?: string;
 }
 
 export const DISABLED_MATCHING_POLICY: MatchingPolicy = {
@@ -39,6 +41,7 @@ export function findFamiliarSuggestion(
   if (!policy.enabled || policy.threshold === undefined) return null;
 
   const querySpace = embeddingSpaceKey(query.space);
+  if (policy.embeddingSpaceKey && policy.embeddingSpaceKey !== querySpace) return null;
   const compatible = cats
     .filter(
       (cat) =>
