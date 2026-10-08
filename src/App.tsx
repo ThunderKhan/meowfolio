@@ -165,6 +165,26 @@ export function App() {
     // ScanFlow invalidates outstanding requests on unmount.
   }
 
+  function resetAiAfterTimeout(): void {
+    reusableAiRef.current?.dispose();
+    const gateway = mockScenario
+      ? new MockAiClient(mockScenario as MockScenario)
+      : new AiClient();
+    reusableAiRef.current = gateway;
+    setAi(gateway);
+  }
+
+  function openCameraOrScan(): void {
+    if (window.matchMedia('(max-width: 760px)').matches) {
+      const input = document.getElementById('home-camera') as HTMLInputElement | null;
+      if (input) {
+        input.click();
+        return;
+      }
+    }
+    void startScan();
+  }
+
   function onQuickCameraPhoto(event: ChangeEvent<HTMLInputElement>): void {
     const photo = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
@@ -174,11 +194,17 @@ export function App() {
   }
 
   async function afterSave(): Promise<void> {
+    // The encounter has already been committed. A failed inbox cleanup must
+    // never turn an actually successful save into a false "save failed" UI.
     if (initialPendingId) {
-      await repository.deletePendingPhoto(initialPendingId);
+      try {
+        await repository.deletePendingPhoto(initialPendingId);
+      } catch {
+        // Leave the pending photo recoverable rather than misreport success.
+      }
     }
     setRefreshKey((value) => value + 1);
-    await refreshScanCats();
+    await refreshScanCats().catch(() => {});
   }
 
   async function afterSavedForLater(): Promise<void> {
@@ -270,6 +296,7 @@ export function App() {
         matchingPolicy={matchingPolicy}
         onSaved={afterSave}
         onSavedForLater={afterSavedForLater}
+        onResetAi={resetAiAfterTimeout}
         onExit={leaveScan}
       />
     );
@@ -331,7 +358,7 @@ export function App() {
       <Scrapbook
         repository={repository}
         refreshKey={refreshKey}
-        onSpotCat={() => void startScan()}
+        onSpotCat={openCameraOrScan}
       />
 
       <footer className="mt-9 border-t-2 border-dashed border-[#b7588b] py-5 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#82405f]">
