@@ -273,3 +273,79 @@ test('mobile scan action labels are large and a save-later button exists before 
   );
   expect(horizontalScroll).toBeLessThanOrEqual(2);
 });
+
+
+test('version 1 scrapbook survives a temporarily blocked version 2 storage upgrade', async ({ page, context }) => {
+  const oldTab = await context.newPage();
+  await oldTab.route('**/legacy-db-holder', (route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Old tab</title>' }),
+  );
+  await oldTab.goto('/legacy-db-holder');
+  // Emulate an old production tab holding a v1 connection open while the
+  // updated release starts a v2 migration. No app code is allowed to clear
+  // or overwrite the original cats store.
+  await oldTab.evaluate(async () => {
+    await new Promise<void>((resolve, reject) => {
+      const opening = indexedDB.open('meowfolio', 1);
+      opening.onupgradeneeded = () => {
+        const db = opening.result;
+        db.createObjectStore('cats', { keyPath: 'id' });
+        const encounters = db.createObjectStore('encounters', { keyPath: 'id' });
+        encounters.createIndex('catId', 'catId', { unique: false });
+        encounters.createIndex('catId_timestamp', ['catId', 'timestamp'], { unique: false });
+      };
+      opening.onerror = () => reject(opening.error);
+      opening.onsuccess = () => {
+        const db = opening.result;
+        (window as Window & { heldOldDb?: IDBDatabase }).heldOldDb = db;
+        const tx = db.transaction('cats', 'readwrite');
+        tx.objectStore('cats').put({
+          id: 'legacy-cat',
+          name: 'Previous saved cat',
+          createdAt: 1,
+          updatedAt: 1,
+          firstSeenAt: 1,
+          lastSeenAt: 1,
+          encounterCount: 1,
+          coverEncounterId: 'not-used',
+          referenceEmbeddingSum: new Float64Array(384),
+          referenceEmbedding: new Float32Array(384),
+          referenceEmbeddingCount: 1,
+          embeddingSpace: {
+            modelId: 'legacy', revision: 'old', dtype: 'uint8',
+            preprocessingVersion: 1, dimension: 384, pooling: 'cls-token',
+          },
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /open my scrapbook/i }).click();
+  // Release the blocked upgrade after the new app has started. The database
+  // open should continue automatically without poisoning subsequent saves.
+  await oldTab.waitForTimeout(350);
+  await oldTab.evaluate(() => {
+    (window as Window & { heldOldDb?: IDBDatabase }).heldOldDb?.close();
+  });
+  await expect(page.locator('.empty-scrapbook-panel')).toBeVisible({ timeout: 12_000 });
+  const record = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const opening = indexedDB.open('meowfolio', 2);
+      opening.onsuccess = () => resolve(opening.result);
+      opening.onerror = () => reject(opening.error);
+    });
+    const result = await new Promise<{ marker: boolean; pendingStore: boolean }>((resolve, reject) => {
+      const pendingStore = db.objectStoreNames.contains('pendingPhotos');
+      const lookup = db.transaction('cats', 'readonly').objectStore('cats').get('legacy-cat');
+      lookup.onsuccess = () => resolve({ marker: lookup.result?.name === 'Previous saved cat', pendingStore });
+      lookup.onerror = () => reject(lookup.error);
+    });
+    db.close();
+    return result;
+  });
+  expect(record).toEqual({ marker: true, pendingStore: true });
+  await oldTab.close();
+});
