@@ -199,3 +199,77 @@ test('processing spinner actually rotates and respects reduced motion', async ({
   });
   expect(reduced).toBe('none');
 });
+
+
+test('phone photo actions share one row and a photo can be saved locally without AI', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /open my scrapbook/i }).click();
+
+  // The mobile home photo shortcut skips the redundant empty preview.
+  const imageBase64 = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 160;
+    canvas.height = 120;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#d9a7c2';
+    ctx.fillRect(0, 0, 160, 120);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
+  await page.locator('#home-gallery').setInputFiles({
+    name: 'captured-cat.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(imageBase64, 'base64'),
+  });
+  await expect(page.getByRole('img', { name: 'Cat encounter preview' })).toBeVisible();
+
+  const controls = page.locator('.scan-capture-actions button');
+  await expect(controls).toHaveCount(3);
+  const rectangles = await controls.evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const r = node.getBoundingClientRect();
+      return { top: r.top, left: r.left, right: r.right };
+    }),
+  );
+  expect(rectangles[0].top).toBe(rectangles[1].top);
+  expect(rectangles[1].top).toBe(rectangles[2].top);
+  expect(rectangles[0].right).toBeLessThan(rectangles[1].left);
+  expect(rectangles[1].right).toBeLessThan(rectangles[2].left);
+  await expect(page.getByRole('button', { name: 'Find cat' })).toBeEnabled();
+
+  await page.getByRole('button', { name: /save photo for later/i }).click();
+  await expect(page.getByRole('heading', { name: /saved for later/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /your meowfolio is empty/i })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: /saved for later/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Process photo' })).toBeVisible();
+  await page.getByRole('button', { name: 'Process photo' }).click();
+  await expect(page.getByRole('img', { name: 'Cat encounter preview' })).toBeVisible();
+});
+
+test('mobile scan action labels are large and a save-later button exists before model consent', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 730 });
+  await page.goto('/');
+  await page.getByRole('button', { name: /open my scrapbook/i }).click();
+  await page.locator('#home-gallery').setInputFiles({
+    name: 'portrait.png',
+    mimeType: 'image/png',
+    buffer: await page.evaluate(async () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      canvas.getContext('2d')!.fillRect(0, 0, 64, 64);
+      return [...new Uint8Array(await (await fetch(canvas.toDataURL())).arrayBuffer())];
+    }).then((values) => Buffer.from(values)),
+  });
+  await expect(page.getByRole('button', { name: 'Find cat' })).toBeEnabled();
+  const size = await page.locator('.scan-capture-actions button').first().evaluate((node) =>
+    Number.parseFloat(getComputedStyle(node).fontSize),
+  );
+  expect(size).toBeGreaterThanOrEqual(14);
+  const horizontalScroll = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(horizontalScroll).toBeLessThanOrEqual(2);
+});
