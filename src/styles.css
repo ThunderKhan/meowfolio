@@ -39,16 +39,16 @@ body {
   min-height: 100vh;
   background-color: var(--pink-canvas);
   background-image:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.22) 25%, transparent 25%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.13) 25%, transparent 25%),
     linear-gradient(-45deg, rgba(255, 255, 255, 0.45) 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.45) 75%),
     linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.45) 75%);
-  background-size: 28px 28px;
+  background-size: 40px 40px;
   background-position:
     0 0,
-    0 14px,
-    14px -14px,
-    -14px 0;
+    0 20px,
+    20px -20px,
+    -20px 0;
 }
 
 body::before {
@@ -1725,4 +1725,15 @@ textarea {
   .studio-page-nav { gap: 10px; padding: 10px 12px; }
   .studio-page .story-studio { margin-top: 12px; }
   .studio-page .story-studio-body .story-preview { box-shadow: 4px 6px 0 #873e69, 7px 9px 0 rgba(95,34,66,.13); }
+}
+
+/* Narrowest phones: give story styles enough room for whole words. */
+@media (max-width: 359px) {
+  .story-theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .story-theme-option:last-child {
+    grid-column: 1 / -1;
+    min-height: 74px;
+    align-content: center;
+    gap: 3px;
+  }
 }
