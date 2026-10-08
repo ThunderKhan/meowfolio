@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { AiClient, type AiGateway } from './ai/client';
 import { MockAiClient, type MockScenario } from './ai/mockClient';
 import { MODEL_MANIFEST } from './ai/shared';
@@ -65,6 +65,7 @@ export function App() {
   const scanCatUrlsRef = useRef<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [scanning, setScanning] = useState(false);
+  const [initialScanPhoto, setInitialScanPhoto] = useState<File | null>(null);
   const [welcomeComplete, setWelcomeComplete] = useState(() => {
     if (e2eEnabled && params.get('skipWelcome') === '1') return true;
     try {
@@ -134,23 +135,33 @@ export function App() {
     }
   }
 
-  async function startScan(): Promise<void> {
+  async function startScan(photo: File | null = null): Promise<void> {
     await refreshScanCats();
 
     const gateway: AiGateway = mockScenario
       ? new MockAiClient(mockScenario as MockScenario)
       : new AiClient();
 
+    setInitialScanPhoto(photo);
     setAi(gateway);
     setScanning(true);
   }
 
   function leaveScan(): void {
     setScanning(false);
+    setInitialScanPhoto(null);
     setAi((current) => {
       current?.dispose();
       return null;
     });
+  }
+
+  function onQuickCameraPhoto(event: ChangeEvent<HTMLInputElement>): void {
+    const photo = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!photo) return;
+    completeWelcome();
+    void startScan(photo);
   }
 
   async function afterSave(): Promise<void> {
@@ -164,65 +175,68 @@ export function App() {
 
   if (!welcomeComplete) {
     return (
-      <main className="mx-auto grid min-h-screen max-w-5xl items-center px-4 py-10 sm:px-6">
-        <section className="pixel-window overflow-hidden">
+      <main className="welcome-screen">
+        <section className="pixel-window welcome-card" aria-labelledby="welcome-title">
           <div className="pixel-window-title">
-            <span>♥ MEOWFOLIO_SETUP.EXE</span>
+            <span>♥ MEOWFOLIO.EXE</span>
             <span aria-hidden="true">_ □ ×</span>
           </div>
-          <div className="grid lg:grid-cols-[1.08fr_0.92fr]">
-            <div className="p-6 sm:p-9 lg:p-12">
-              <p className="pixel-kicker">★ welcome to your local cat archive ★</p>
-              <h1 className="pixel-heading mt-4 max-w-xl text-5xl sm:text-6xl">
-                remember the cats you meet outside_♥
+
+          <div className="welcome-content">
+            <div className="welcome-copy">
+              <p className="pixel-kicker welcome-eyebrow">✦ your pocket cat scrapbook ✦</p>
+              <h1 id="welcome-title" className="pixel-heading welcome-title">
+                little cats,<br />big memories<span aria-hidden="true"> ♥</span>
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-8 text-[#6d3454]">
-                Meowfolio is a tiny private scrapbook for real cat encounters. Local visual AI
-                finds the cat in your photo; <strong>you</strong> decide who the cat is.
+              <p className="welcome-description">
+                Spot a cat? Snap a photo, give them a name, and keep every meeting in your own
+                tiny scrapbook.
               </p>
 
-              <div className="pixel-note mt-7">
-                <p className="pixel-kicker">privacy_readme.txt</p>
-                <p className="mt-2 text-sm leading-6 text-[#54233d]">
-                  No account. No hosted photo inference. Names, photos, embeddings, notes, and
-                  optional location stay in this browser scrapbook. The first scan may download
-                  local AI model files after you approve it.
+              <div className="welcome-mini-sticker" aria-hidden="true">
+                <span className="welcome-mini-cat">ฅ^•ﻌ•^ฅ</span>
+                <span>your next memory is one tap away!</span>
+                <span>✦</span>
+              </div>
+
+              <div className="welcome-actions">
+                <label htmlFor="welcome-camera" className="pixel-primary welcome-camera-button">
+                  <span aria-hidden="true">📷</span> Open camera
+                </label>
+                <input
+                  id="welcome-camera"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="sr-only"
+                  onChange={onQuickCameraPhoto}
+                />
+                <button type="button" className="pixel-secondary welcome-browse-button" onClick={completeWelcome}>
+                  Open my scrapbook
+                </button>
+              </div>
+
+              <details className="welcome-privacy">
+                <summary>♡ Privacy &amp; local AI</summary>
+                <p>
+                  No account and no hosted photo inference. Your saved cats stay in this
+                  browser. If models are missing, we'll ask before downloading them.
                 </p>
-              </div>
-
-              <button type="button" onClick={completeWelcome} className="pixel-primary mt-8">
-                ♥ start my meowfolio ♥
-              </button>
+              </details>
             </div>
 
-            <div className="relative min-h-80 overflow-hidden border-t-2 border-[#7b3157] bg-[#ffc4e0] p-7 lg:border-l-2 lg:border-t-0">
-              <div className="absolute left-4 top-3 text-xs font-bold text-[#9f1f62]">
-                ☆ ☆ ☆ ONLINE MEMORY CARD ☆ ☆ ☆
+            <aside className="welcome-art" aria-hidden="true">
+              <div className="welcome-art-stars">★ ✦ ♡ ★</div>
+              <div className="welcome-art-card">
+                <span className="welcome-art-tag">CAT_001.JPG</span>
+                <div className="welcome-art-cat">ฅ^•ﻌ•^ฅ</div>
+                <div className="welcome-art-name">mochi ♡</div>
+                <p>a little friend, remembered forever.</p>
               </div>
-              <div className="pixel-window absolute bottom-8 left-7 right-14 rotate-[-2deg] bg-[#fff6fb]">
-                <div className="pixel-window-title">
-                  <span>CAT_001.JPG</span>
-                  <span>×</span>
-                </div>
-                <div className="p-5">
-                  <div className="grid aspect-[4/3] place-items-center border-2 border-[#7b3157] bg-[#ffd7ec] text-5xl">
-                    ฅ^•ﻌ•^ฅ
-                  </div>
-                  <p className="pixel-heading mt-4 text-2xl">Mochi</p>
-                  <p className="mt-1 text-xs text-[#7f4b67]">
-                    STATUS: met again on evening walk ♥
-                  </p>
-                </div>
-              </div>
-              <div className="absolute right-4 top-14 rotate-[3deg] border-2 border-dashed border-[#a91f68] bg-[#fff3a8] px-4 py-3 text-xs font-bold text-[#6d3454] shadow-[3px_3px_0_#d96ca5]">
-                DON’T FORGET:
-                <br />
-                orange cat by
-                <br />
-                garden wall!!
-              </div>
-            </div>
+              <div className="welcome-art-caption">cute encounters.zip ✿</div>
+            </aside>
           </div>
+          <div className="welcome-footer" aria-hidden="true">♥ local-first · made for spontaneous cat sightings ♥</div>
         </section>
       </main>
     );
@@ -231,6 +245,7 @@ export function App() {
   if (scanning && ai) {
     return (
       <ScanFlow
+        initialPhoto={initialScanPhoto}
         ai={ai}
         repository={repository}
         cats={catalogMode ? fixtureCats : scanCats}
@@ -253,9 +268,22 @@ export function App() {
             <p className="pixel-kicker">personal neighborhood cat scrapbook</p>
             <p className="pixel-heading mt-1 text-2xl">meowfolio // local save file</p>
           </div>
-          <button type="button" className="pixel-primary" onClick={() => void startScan()}>
-            + spot a cat
-          </button>
+          <div className="home-capture-actions">
+            <label htmlFor="home-camera" className="pixel-primary welcome-camera-button">
+              <span aria-hidden="true">📷</span> Quick camera
+            </label>
+            <input
+              id="home-camera"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={onQuickCameraPhoto}
+            />
+            <button type="button" className="pixel-secondary" onClick={() => void startScan()}>
+              Spot a cat
+            </button>
+          </div>
         </div>
       </header>
 
