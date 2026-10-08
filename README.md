@@ -66,6 +66,16 @@ Headers protect the HTML from stale caching and allow immutable hashed assets. N
 
 Deployment is prepared in code, **not claimed live** until an HTTPS Vercel URL has been confirmed and an Android real-device check has passed. Follow [the release checklist](docs/DEPLOYMENT_RELEASE.md).
 
+## Where photos actually live
+
+Meowfolio does **not** upload cat photos to Vercel. The Vercel server only provides the website files; browser-local inference runs in a dedicated worker.
+
+- Saved cat photos and their selected crops are stored as **Blob** values inside this browser profile's **IndexedDB**, in the `meowfolio` database, `encounters` store. Names, embeddings, dates, optional notes, and any voluntarily saved coordinates are in the associated `cats` and `encounters` records.
+- Unprocessed **Save photo for later** originals are stored separately in the `pendingPhotos` IndexedDB store until processed, confirmed, and committed (or manually deleted).
+- AI model weights and supporting WASM runtime files use browser-managed caches. They are **not** the same storage as the scrapbook photos.
+- Storage is tied to **this device, this browser profile, and the HTTPS origin** `https://mymeowfolio.vercel.app`. It does not sync across phones/computers. Clearing site data, browser storage eviction, or changing the website domain may make these photos unavailable; there is not yet an export/backup feature.
+- A temporary IndexedDB upgrade block can occur when a previously loaded version of Meowfolio still holds a connection. Current releases wait for the old connection to release, close their own connection on version-change requests, and let failed opens retry. **Never clear site data as a first troubleshooting step.**
+
 ## Privacy and honest evidence
 
 - No account, hosted photo inference, public location map, or app-side analytics.
