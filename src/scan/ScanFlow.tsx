@@ -703,7 +703,7 @@ export function ScanFlow({
 
       {state.step === 'preview' && (
         <section className="scan-preview-panel paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             Spot a cat
           </p>
           <h1 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">Add this meeting to your scrapbook.</h1>
@@ -754,7 +754,7 @@ export function ScanFlow({
 
       {state.step === 'preparation-consent' && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#ef65ad]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             First local scan
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Preparing local AI</h1>
@@ -810,7 +810,7 @@ export function ScanFlow({
 
       {state.step === 'select-cat' && previewUrl && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             More than one cat
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Which cat are you adding?</h1>
@@ -862,7 +862,7 @@ export function ScanFlow({
 
       {state.step === 'recoverable-error' && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#ef65ad]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             Try another look
           </p>
           <h1 className="mt-2 font-serif text-3xl font-semibold">We can recover from this.</h1>
@@ -896,7 +896,7 @@ export function ScanFlow({
         >
           {cats.length === 0 ? (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
                 First page
               </p>
               <h1 className="mt-2 font-serif text-4xl font-semibold">This looks like a new cat.</h1>
@@ -919,7 +919,7 @@ export function ScanFlow({
             </>
           ) : state.suggestion ? (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
                 Possible familiar face
               </p>
               <h1 className="mt-2 font-serif text-4xl font-semibold">
@@ -967,7 +967,7 @@ export function ScanFlow({
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
                 Your call
               </p>
               <h1 className="mt-2 font-serif text-4xl font-semibold">No familiar cat suggested.</h1>
@@ -997,7 +997,7 @@ export function ScanFlow({
 
       {state.step === 'existing-picker' && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             Your scrapbook
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Which cat is this?</h1>
@@ -1027,7 +1027,7 @@ export function ScanFlow({
 
       {state.step === 'details' && (
         <section className="scan-details-panel paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             Identity confirmed
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">
@@ -1132,7 +1132,7 @@ export function ScanFlow({
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <div className="mx-auto max-w-lg py-10 text-center">
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#ffd4e9] text-3xl">✓</div>
-            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
               Saved locally
             </p>
             <h1 className="mt-2 font-serif text-4xl font-semibold">
