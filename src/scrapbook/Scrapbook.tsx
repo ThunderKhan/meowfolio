@@ -109,6 +109,13 @@ function EmptyCollection({ onSpotCat }: { onSpotCat: () => void }) {
             Every cat has a story. Start yours with the camera above. ♡
           </span>
         </p>
+        <div className="empty-mobile-steps" aria-label="How Meowfolio works">
+          <span><b>01</b> snap</span>
+          <span aria-hidden="true">→</span>
+          <span><b>02</b> name</span>
+          <span aria-hidden="true">→</span>
+          <span><b>03</b> remember</span>
+        </div>
         <button type="button" className="pixel-primary empty-scrapbook-cta mt-6" onClick={onSpotCat}>
           ♥ Spot a cat ♥
         </button>
