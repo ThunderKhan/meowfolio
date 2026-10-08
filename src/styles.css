@@ -570,6 +570,208 @@ textarea {
   gap: 10px;
 }
 
+
+/* The scan's original animate-pulse only changed opacity; it never rotated.
+   Use a visible, explicit spinner animation for model and storage work. */
+@keyframes meow-spin {
+  to { transform: rotate(360deg); }
+}
+
+.meow-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3b4d5;
+  border-top-color: #a21f66;
+  border-right-color: #d63384;
+  border-radius: 50%;
+  animation: meow-spin 850ms linear infinite;
+}
+
+.home-mobile-brand,
+.home-action-mobile,
+.empty-description-mobile {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  /* Mobile app layout only. Desktop classes remain unchanged. */
+  .home-page {
+    min-height: 100svh;
+    padding: 14px 14px max(16px, env(safe-area-inset-bottom));
+  }
+
+  .home-header-body {
+    gap: 14px;
+    padding: 16px 16px 18px;
+  }
+
+  .home-desktop-brand,
+  .home-action-desktop,
+  .empty-description-desktop {
+    display: none;
+  }
+
+  .home-mobile-brand,
+  .home-action-mobile,
+  .empty-description-mobile {
+    display: block;
+  }
+
+  .home-mobile-brand .pixel-kicker {
+    font-size: 10px;
+    letter-spacing: 0.105em;
+  }
+
+  .home-mobile-brand .pixel-heading {
+    margin-top: 5px;
+    font-size: clamp(1.8rem, 8vw, 2.35rem);
+    line-height: 1.04;
+  }
+
+  .home-brand-heart {
+    color: #cf2c7d;
+  }
+
+  .home-mobile-brand > p:last-child {
+    margin-top: 7px;
+    color: #75435f;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .home-capture-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    width: 100%;
+  }
+
+  .home-capture-actions .pixel-primary,
+  .home-capture-actions .pixel-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 50px;
+    padding: 9px 6px;
+    font-size: clamp(0.76rem, 3.2vw, 0.92rem);
+    line-height: 1.1;
+    white-space: nowrap;
+    text-transform: none;
+  }
+
+  .home-capture-actions .welcome-camera-button {
+    gap: 5px;
+  }
+
+  .empty-scrapbook-panel {
+    margin-top: 15px;
+  }
+
+  .empty-scrapbook-body {
+    padding: 18px 16px 20px;
+  }
+
+  .empty-scrapbook-sticker {
+    padding: 8px 14px;
+    font-size: 20px;
+    transform: rotate(-1deg);
+  }
+
+  .empty-scrapbook-count {
+    margin-top: 14px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+
+  .empty-scrapbook-title {
+    margin-top: 6px;
+    font-size: clamp(1.37rem, 5.4vw, 1.8rem);
+    line-height: 1.15;
+  }
+
+  .empty-scrapbook-description {
+    margin-top: 9px;
+    max-width: 33ch;
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .empty-scrapbook-cta {
+    display: none;
+  }
+
+  .scrapbook-collection-heading {
+    margin-top: 17px;
+    gap: 10px;
+  }
+
+  .scrapbook-collection-heading .pixel-heading {
+    font-size: 1.75rem;
+  }
+
+  .scrapbook-collection-heading p:last-child {
+    margin-top: 7px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .scrapbook-collection-heading > button,
+  .scrapbook-collection-bottom {
+    display: none;
+  }
+
+  .scrapbook-divider {
+    margin-block: 13px;
+  }
+
+  .scrapbook-cards {
+    gap: 12px;
+  }
+
+  .scrapbook-cards .pixel-heading {
+    font-size: 1.1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .scrapbook-cards .pixel-badge {
+    min-height: 24px;
+    padding: 2px 5px;
+  }
+
+  .home-page > footer {
+    margin-top: 20px;
+    padding: 12px 2px 8px;
+    font-size: 9px;
+    line-height: 1.6;
+  }
+}
+
+@media (min-width: 360px) and (max-width: 760px) {
+  .scrapbook-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 359px) {
+  .home-page {
+    padding-inline: 9px;
+  }
+
+  .home-header-body {
+    padding-inline: 12px;
+  }
+
+  .home-capture-actions {
+    gap: 7px;
+  }
+
+  .empty-scrapbook-body {
+    padding-inline: 12px;
+  }
+}
+
 @media (max-width: 760px) {
   .welcome-screen {
     padding: max(10px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom));
@@ -673,6 +875,11 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .meow-spinner {
+    animation: none;
+  }
+
+
   *,
   *::before,
   *::after {
