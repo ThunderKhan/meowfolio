@@ -327,7 +327,7 @@ export function validateCatName(value: string): string | null {
 export type WarmRecoveryBand = 'normal' | 'slow' | 'expired';
 
 export function warmRecoveryBand(elapsedMs: number): WarmRecoveryBand {
-  if (elapsedMs >= 20_000) return 'expired';
+  if (elapsedMs >= 90_000) return 'expired';
   if (elapsedMs >= 10_000) return 'slow';
   return 'normal';
 }

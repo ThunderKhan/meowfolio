@@ -890,3 +890,266 @@ textarea {
     transform: none !important;
   }
 }
+
+/* An original lightweight CSS pixel cat; no external GIFs or network dependencies. */
+.scan-cat-loader {
+  position: relative;
+  width: 116px;
+  height: 116px;
+  display: grid;
+  place-items: center;
+}
+.scan-cat-orbit {
+  position: absolute;
+  inset: 13px;
+  width: 90px;
+  height: 90px;
+  border-width: 5px;
+}
+.scan-cat-face {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 71px;
+  height: 61px;
+  border: 3px solid #8c2454;
+  border-radius: 45% 45% 38% 38%;
+  background: #ffd6eb;
+  color: #83204f;
+  box-shadow: 3px 4px 0 #ed8cbe;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.17em;
+  transform-origin: bottom center;
+  animation: meow-head-bob 1.3s ease-in-out infinite;
+}
+.scan-cat-face::before,
+.scan-cat-face::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -18px;
+  width: 20px;
+  height: 24px;
+  border: 3px solid #8c2454;
+  background: #ffd6eb;
+  clip-path: polygon(0 100%, 30% 0, 100% 100%);
+}
+.scan-cat-face::before { left: 2px; transform: rotate(-10deg); }
+.scan-cat-face::after { right: 2px; transform: scaleX(-1) rotate(-10deg); }
+.scan-cat-sparkle {
+  position: absolute;
+  top: 1px;
+  right: -2px;
+  color: #d63384;
+  animation: meow-sparkle 1.3s steps(2, end) infinite;
+}
+@keyframes meow-head-bob {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-5px) rotate(4deg); }
+}
+@keyframes meow-sparkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+.scan-mobile-label,
+.home-mobile-gallery {
+  display: none;
+}
+.empty-mobile-steps {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .home-page {
+    display: flex;
+    flex-direction: column;
+  }
+  .home-page > .empty-scrapbook-panel {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .empty-scrapbook-panel > .empty-scrapbook-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .empty-mobile-steps {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 22px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #863052;
+  }
+  .empty-mobile-steps span:not([aria-hidden]) {
+    display: flex;
+    flex-direction: column;
+    min-width: 65px;
+    gap: 5px;
+    padding: 7px 8px;
+    border: 2px dashed #b44b85;
+    background: #ffe6f1;
+    box-shadow: 2px 2px 0 #f1add2;
+  }
+  .empty-mobile-steps b {
+    font-size: 13px;
+    color: #ce267a;
+  }
+  .home-capture-actions .pixel-primary,
+  .home-capture-actions .pixel-secondary {
+    font-size: clamp(0.95rem, 4vw, 1.1rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+  }
+  .home-capture-actions .home-desktop-spot {
+    display: none;
+  }
+  .home-capture-actions .home-mobile-gallery {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+    cursor: pointer;
+  }
+
+  .scan-page {
+    min-height: 100svh;
+    padding: 12px 13px max(15px, env(safe-area-inset-bottom));
+  }
+  .scan-page > header {
+    margin-bottom: 11px;
+    gap: 5px;
+  }
+  .scan-page > header button {
+    padding-inline: 4px;
+    font-size: 0.82rem;
+  }
+  .scan-page > header p {
+    font-size: 0.7rem;
+    letter-spacing: 0.11em;
+  }
+  .scan-preview-panel {
+    padding: 16px 14px 18px;
+  }
+  .scan-preview-panel h1 {
+    font-size: clamp(1.55rem, 6vw, 2.05rem);
+    line-height: 1.2;
+  }
+  .scan-preview-panel > p:nth-of-type(2) {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .scan-preview-panel img {
+    max-height: min(43svh, 400px);
+  }
+  .scan-preview-panel > div:has(> button) {
+    min-width: 0;
+  }
+  .scan-capture-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .scan-capture-actions > button {
+    min-width: 0;
+    width: 100%;
+    min-height: 54px;
+    padding: 10px 4px;
+    font-size: clamp(0.88rem, 3.8vw, 1rem);
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+  }
+  .scan-desktop-label {
+    display: none;
+  }
+  .scan-mobile-label {
+    display: inline;
+  }
+  .scan-warning {
+    margin-bottom: 12px;
+    padding: 12px;
+    font-size: 0.91rem;
+  }
+  .scan-warning p {
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+  .scan-warning-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .scan-warning-actions > button {
+    min-width: 0;
+    min-height: 50px;
+    padding: 10px;
+    font-size: 0.95rem;
+  }
+  .scan-processing-panel {
+    min-height: calc(100svh - 116px);
+    display: grid;
+    place-items: center;
+    padding: 16px 14px;
+  }
+  .scan-processing-content {
+    width: 100%;
+    padding-block: 16px;
+  }
+  .scan-processing-content h1 {
+    font-size: clamp(1.48rem, 6vw, 2rem);
+    line-height: 1.2;
+    margin-top: 17px;
+  }
+  .scan-processing-content p {
+    font-size: 0.91rem;
+    line-height: 1.6;
+  }
+  .scan-processing-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .scan-processing-actions > button {
+    min-width: 0;
+    padding: 10px 6px;
+    min-height: 52px;
+    font-size: 0.8rem;
+  }
+  .scan-defer-row > button {
+    width: 100%;
+    font-size: 0.92rem;
+  }
+}
+@media (max-width: 350px) {
+  .scan-capture-actions > button {
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    padding-inline: 1px;
+  }
+  .empty-mobile-steps span:not([aria-hidden]) {
+    min-width: 58px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-cat-face,
+  .scan-cat-sparkle {
+    animation: none;
+  }
+}
+
+/* Keep the established desktop processing ring; pixel cat is mobile-only. */
+.scan-cat-loader { display: none; }
+.scan-desktop-loader { display: block; }
+@media (max-width: 760px) {
+  .scan-cat-loader { display: grid; }
+  .scan-desktop-loader { display: none; }
+}

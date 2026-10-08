@@ -43,9 +43,19 @@ Target from approved spec:
 - ≤6 seconds: target.
 - 6–10 seconds: tolerable PoC.
 - At 10 seconds: visible slow/wait/recovery feedback.
-- At 20 seconds: invalidated request, recoverable failure state; late results must not advance the flow.
+- Updated following Android reports: at 90 seconds, invalidate the request, reset the worker, and offer recovery. The original 20-second limit caused false timeouts on mobile; the ≤6s target is unchanged.
 
-### C. Actual scrapbook loop
+### C. Save now, process later (Android failure fallback)
+
+1. Before running AI, take a camera photo and choose **Save photo for later**.
+2. Verify a local PHOTO_INBOX.DAT card appears; reload the same production origin; photo remains.
+3. Use **Process photo** on the saved item. If inference fails, confirm the saved pending item still exists and the original photo was not modified.
+4. After a successful confirmed encounter, verify the corresponding pending photo disappears and the saved cat has exactly one new encounter.
+5. Check the second scan in the same page session reuses initialized models without showing unnecessary download consent.
+6. On an oversized camera image, ensure detected boxes map to the original full-resolution image, or record the failure.
+7. If Android scans still regularly exceed 10s, mark the performance gate as unproven even if the new 90-second recovery avoids total loss.
+
+### D. Actual scrapbook loop
 
 1. Name a new cat and write a short **encounter-specific** note.
 2. Save, wait until confirmation, return to the collection; reopen history and verify the photo, name, timestamp, and note.
@@ -55,7 +65,7 @@ Target from approved spec:
 6. Deny optional geolocation: verify Save still succeeds. If granted, verify coordinates stay collapsed until tapped.
 7. Press Back and Discard during an unfinished scan; ensure no phantom encounter is created.
 
-### D. Same-origin frontend redeploy
+### E. Same-origin frontend redeploy
 
 1. Before deploying again, record cat count, encounter count and a recognizable note on the **existing** stable production URL.
 2. Redeploy new frontend to **the same origin** (without purging browser storage).
@@ -63,7 +73,7 @@ Target from approved spec:
 4. Record whether a model download was required again (model caches may be evicted independently of IndexedDB).
 5. Do not claim that persistence across changing Vercel preview URLs is guaranteed.
 
-### E. Accessibility and failures
+### F. Accessibility and failures
 
 Test 320px viewport, large controls, visible focus, reduced motion, a no-cat photo, offline/network-denied model preparation, a corrupted photo and location denied/timeout.
 
@@ -84,7 +94,7 @@ Test 320px viewport, large controls, visible focus, reduced motion, a no-cat pho
 | Warm embedding | NOT MEASURED |
 | Warm total to identity | NOT MEASURED |
 | 10s warning observed | NOT TESTED |
-| 20s recovery observed | NOT TESTED |
+| 90s recovery observed | NOT TESTED |
 | New-cat save/reopen | NOT TESTED |
 | Repeat-cat manual association/reopen | NOT TESTED |
 | Same-origin redeploy persistence | NOT TESTED |
@@ -93,3 +103,6 @@ Test 320px viewport, large controls, visible focus, reduced motion, a no-cat pho
 ## Decision
 
 A passing CI build is **not** sufficient to close Slice 6. Record the actual Android/outdoor findings, fix any blockers, retest, and only then mark the final hands-on checkpoint complete.
+
+## Android model reliability follow-up (8 Oct 2026)
+The mobile WASM kernel remains unverified on the user's phone. Retained worker memory, local-only cache fallback, 960px detector input and 90-second upper bound are implemented mitigations, **not evidence of passing real-device inference**. Record whether detection or embedding takes most time and whether a second warm scan avoids model consent.

@@ -246,6 +246,14 @@ async function handle(request: WorkerRequest): Promise<void> {
     blockedNetworkRequests.delete(request.requestId);
     const provider = chooseProvider(request.provider, hasWebGpu());
 
+    // A worker reused between encounters already has its pipelines in memory.
+    // A Cache Storage probe can under-report readiness (e.g. missing WASM
+    // metadata) even when an initialized in-memory pipeline is usable.
+    if (detector && embedder && loadedProvider === provider) {
+      post({ type: 'ASSET_STATUS', requestId: request.requestId, ready: true, provider });
+      return;
+    }
+
     try {
       const detectorCached = await withPinnedRevision(
         MODEL_MANIFEST.detector.revision,
@@ -275,20 +283,13 @@ async function handle(request: WorkerRequest): Promise<void> {
           ),
       );
 
-      if (!detectorCached || !embedderCached) {
-        post({
-          type: 'ASSET_STATUS',
-          requestId: request.requestId,
-          ready: false,
-          provider,
-          reason: 'Required AI files are not fully cached.',
-        });
-        return;
-      }
-
-      // Cache state can change between inspection and initialization. Keep remote
-      // fetches disabled here; the guarded fetch converts an eviction race back
-      // into the explicit consent flow instead of silently downloading.
+      // Cache probes are advisory: browser ONNX/WASM assets and pinned model
+      // files can have different cache providers. Attempt a local-only load
+      // even when the probe says "missing". env.fetch blocks remote requests
+      // until this user's explicit download consent, so this never silently
+      // fetches model files over the network.
+      void detectorCached;
+      void embedderCached;
       await loadModels(request.requestId, provider, false);
       blockedNetworkRequests.delete(request.requestId);
       post({ type: 'ASSET_STATUS', requestId: request.requestId, ready: true, provider });

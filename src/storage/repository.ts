@@ -15,9 +15,17 @@ import type {
 } from './types';
 
 const DB_NAME = 'meowfolio';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const CATS = 'cats';
 const ENCOUNTERS = 'encounters';
+const PENDING_PHOTOS = 'pendingPhotos';
+
+export interface PendingPhoto {
+  id: string;
+  photo: Blob;
+  savedAt: number;
+  filename: string;
+}
 
 function request<T>(value: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -76,6 +84,10 @@ export class MeowfolioRepository {
           db.createObjectStore(CATS, { keyPath: 'id' });
         }
 
+        if (!db.objectStoreNames.contains(PENDING_PHOTOS)) {
+          db.createObjectStore(PENDING_PHOTOS, { keyPath: 'id' });
+        }
+
         if (!db.objectStoreNames.contains(ENCOUNTERS)) {
           const encounters = db.createObjectStore(ENCOUNTERS, { keyPath: 'id' });
           encounters.createIndex('catId', 'catId', { unique: false });
@@ -91,7 +103,39 @@ export class MeowfolioRepository {
     return this.dbPromise;
   }
 
-  async listCats(): Promise<CatRecord[]> {
+  async savePendingPhoto(photo: Blob, id: string = crypto.randomUUID(), filename = 'cat-photo.jpg'): Promise<PendingPhoto> {
+    const db = await this.open();
+    const tx = db.transaction(PENDING_PHOTOS, 'readwrite');
+    const done = transactionDone(tx);
+    const store = tx.objectStore(PENDING_PHOTOS);
+    const existing = (await request(store.get(id))) as PendingPhoto | undefined;
+    if (existing) {
+      await done;
+      return existing;
+    }
+    const record: PendingPhoto = { id, photo, filename, savedAt: Date.now() };
+    await request(store.add(record));
+    await done;
+    return record;
+  }
+
+  async listPendingPhotos(): Promise<PendingPhoto[]> {
+    const db = await this.open();
+    const tx = db.transaction(PENDING_PHOTOS, 'readonly');
+    const records = (await request(tx.objectStore(PENDING_PHOTOS).getAll())) as PendingPhoto[];
+    await transactionDone(tx);
+    return records.sort((a, b) => b.savedAt - a.savedAt);
+  }
+
+  async deletePendingPhoto(id: string): Promise<void> {
+    const db = await this.open();
+    const tx = db.transaction(PENDING_PHOTOS, 'readwrite');
+    const done = transactionDone(tx);
+    await request(tx.objectStore(PENDING_PHOTOS).delete(id));
+    await done;
+  }
+
+    async listCats(): Promise<CatRecord[]> {
     const db = await this.open();
     const tx = db.transaction(CATS, 'readonly');
     const cats = (await request(tx.objectStore(CATS).getAll())) as CatRecord[];

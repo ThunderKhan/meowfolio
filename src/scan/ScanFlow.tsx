@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { AiGateway } from '../ai/client';
-import { cropImageBlob } from '../browser/images';
+import { cropImageBlob, prepareDetectionImage } from '../browser/images';
 import { requestEncounterLocation } from '../browser/location';
 import type { Detection } from '../ai/shared';
 import { detectionRecordFor, MeowfolioRepository } from '../storage/repository';
@@ -29,6 +29,9 @@ import {
 
 interface ScanFlowProps {
   initialPhoto?: File | null;
+  initialPendingId?: string | null;
+  onSavedForLater?: () => void | Promise<void>;
+  onResetAi?: () => void;
   ai: AiGateway;
   repository: MeowfolioRepository;
   cats?: CatReference[];
@@ -115,6 +118,9 @@ function CatPhoto({
 
 export function ScanFlow({
   initialPhoto = null,
+  initialPendingId = null,
+  onSavedForLater,
+  onResetAi,
   ai,
   repository,
   cats = [],
@@ -124,6 +130,9 @@ export function ScanFlow({
 }: ScanFlowProps) {
   const [state, dispatch] = useReducer(scanReducer, undefined, () => createScanState());
   const [modelsReady, setModelsReady] = useState(false);
+  useEffect(() => { setModelsReady(false); }, [ai]);
+  const [savingForLater, setSavingForLater] = useState(false);
+  const [saveForLaterError, setSaveForLaterError] = useState<string | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [photoValidationError, setPhotoValidationError] = useState<string | null>(null);
   const [location, setLocation] = useState<EncounterLocation | null>(null);
@@ -167,7 +176,9 @@ export function ScanFlow({
   function armWarmDeadline(generation: number, elapsedMs: number): void {
     clearWarmTimers();
     const slowIn = 10_000 - elapsedMs;
-    const expireIn = 20_000 - elapsedMs;
+    // Mobile WASM is slower than desktop, especially on first inference.
+    // Keep a bounded deadline but let people preserve a photo at any time.
+    const expireIn = 90_000 - elapsedMs;
 
     if (slowIn <= 0) {
       dispatch({ type: 'SLOW_WARNING', generation });
@@ -182,6 +193,7 @@ export function ScanFlow({
     const expire = () => {
       if (generationRef.current !== generation) return;
       cancelActive();
+      onResetAi?.();
       generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
@@ -258,23 +270,38 @@ export function ScanFlow({
     activeRequestRef.current = requestId;
 
     try {
-      const result = await ai.detect(photo, 0.25, requestId);
+      const prepared = await prepareDetectionImage(photo);
+      if (generationRef.current !== generation) return;
+      const result = await ai.detect(prepared.image, 0.25, requestId);
       if (activeRequestRef.current === requestId) activeRequestRef.current = null;
       if (generationRef.current !== generation) return;
 
       const elapsedMs = performance.now() - started;
       clearWarmTimers();
+      // The user's archival photo keeps its original pixels, so detector
+      // boxes from the smaller inference image must be mapped back.
+      const detections = prepared.resized
+        ? result.detections.map((detection) => ({
+            ...detection,
+            box: {
+              xmin: detection.box.xmin * prepared.scaleX,
+              xmax: detection.box.xmax * prepared.scaleX,
+              ymin: detection.box.ymin * prepared.scaleY,
+              ymax: detection.box.ymax * prepared.scaleY,
+            },
+          }))
+        : result.detections;
       dispatch({
         type: 'DETECTIONS_READY',
         generation,
-        detections: result.detections,
-        width: result.width,
-        height: result.height,
+        detections,
+        width: prepared.resized ? Math.round(result.width * prepared.scaleX) : result.width,
+        height: prepared.resized ? Math.round(result.height * prepared.scaleY) : result.height,
         elapsedMs,
       });
 
-      if (result.detections.length === 1) {
-        await processDetection(photo, result.detections[0], elapsedMs, generation);
+      if (detections.length === 1) {
+        await processDetection(photo, detections[0], elapsedMs, generation);
       }
     } catch (error) {
       clearWarmTimers();
@@ -355,6 +382,7 @@ export function ScanFlow({
   }
 
   async function setSelectedPhoto(file: File): Promise<void> {
+    setSaveForLaterError(null);
     clearWarmTimers();
     cancelActive();
     generationRef.current = stateRef.current.generation + 1;
@@ -377,6 +405,35 @@ export function ScanFlow({
     }
   }
 
+  async function savePhotoForLater(): Promise<void> {
+    const photo = stateRef.current.photo;
+    if (!photo || savingForLater) return;
+    setSavingForLater(true);
+    setSaveForLaterError(null);
+    try {
+      // Store the original, full-resolution photo, not a detection crop.
+      await repository.savePendingPhoto(
+        photo,
+        initialPendingId ?? stateRef.current.encounterId,
+        photo.name,
+      );
+      clearWarmTimers();
+      cancelActive();
+      if (['preparing', 'detecting', 'embedding'].includes(stateRef.current.step)) {
+        // WASM kernels cannot be forcibly interrupted mid-inference. Stop the
+        // occupied worker so a future photo is not queued behind old work.
+        onResetAi?.();
+      }
+      await onSavedForLater?.();
+    } catch (reason) {
+      setSaveForLaterError(
+        reason instanceof Error ? reason.message : 'Could not save this photo locally.',
+      );
+    } finally {
+      setSavingForLater(false);
+    }
+  }
+
   async function onPhotoChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
@@ -384,9 +441,12 @@ export function ScanFlow({
   }
 
   function goBack(): void {
+    const current = stateRef.current;
     clearWarmTimers();
     cancelActive();
-    const current = stateRef.current;
+    if (['preparing', 'detecting', 'embedding'].includes(current.step)) {
+      onResetAi?.();
+    }
     if (current.step === 'saving' || current.step === 'success') return;
     if (current.step === 'preview') {
       if (current.photo) setDiscardOpen(true);
@@ -565,7 +625,7 @@ export function ScanFlow({
   ) : (
     <button
       type="button"
-      onClick={() => fileInputRef.current?.click()}
+      onClick={() => cameraInputRef.current?.click()}
       className="grid min-h-44 w-full place-items-center rounded-none border border-dashed border-black/20 bg-white px-7 text-center"
     >
       <span>
@@ -578,7 +638,7 @@ export function ScanFlow({
   );
 
   return (
-    <main className="mx-auto min-h-screen max-w-4xl px-4 py-5 sm:px-6 sm:py-8">
+    <main className="scan-page mx-auto min-h-screen max-w-4xl px-4 py-5 sm:px-6 sm:py-8">
       <input
         ref={fileInputRef}
         id="cat-photo"
@@ -619,24 +679,30 @@ export function ScanFlow({
       </header>
 
       {state.slowWarning && (
-        <section className="mb-5 rounded-none border border-[#ef65ad]/35 bg-[#fff0f7] p-4">
+        <section className="scan-warning mb-5 rounded-none border border-[#ef65ad]/35 bg-[#fff0f7] p-4">
           <p className="font-semibold">This is taking longer than expected.</p>
           <p className="mt-1 text-sm leading-6 text-[#7f4b67]">
-            Local processing can continue, but this scan still has the original 20-second limit.
+            Local processing is slower on this device. You can wait up to 90 seconds or save your photo to process later.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="scan-warning-actions mt-3 flex flex-wrap gap-2">
             <ActionButton variant="secondary" onClick={() => dispatch({ type: 'KEEP_WAITING' })}>
-              Keep waiting
+              <span className="scan-desktop-label">Keep waiting</span><span className="scan-mobile-label">Wait</span>
             </ActionButton>
             <ActionButton variant="quiet" onClick={goBack}>
-              Cancel and go back
+              <span className="scan-desktop-label">Cancel and go back</span><span className="scan-mobile-label">Back</span>
             </ActionButton>
           </div>
         </section>
       )}
 
+      {saveForLaterError && (
+        <p role="alert" className="mb-4 border-2 border-[#9e1b55] bg-[#fff0f7] p-3 text-sm text-[#9e1b55]">
+          {saveForLaterError}
+        </p>
+      )}
+
       {state.step === 'preview' && (
-        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
+        <section className="scan-preview-panel paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
             Spot a cat
           </p>
@@ -650,12 +716,14 @@ export function ScanFlow({
               {photoValidationError}
             </p>
           )}
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="scan-capture-actions mt-4 flex flex-wrap gap-3">
             <ActionButton variant="secondary" onClick={() => cameraInputRef.current?.click()}>
-              📷 Open camera
+              <span className="scan-desktop-label">📷 Open camera</span>
+              <span className="scan-mobile-label">Camera</span>
             </ActionButton>
             <ActionButton variant="secondary" onClick={() => fileInputRef.current?.click()}>
-              {state.photo ? 'Choose another photo' : 'Choose from gallery'}
+              <span className="scan-desktop-label">{state.photo ? 'Choose another photo' : 'Choose from gallery'}</span>
+              <span className="scan-mobile-label">Gallery</span>
             </ActionButton>
             <ActionButton
               disabled={!state.photo}
@@ -663,11 +731,26 @@ export function ScanFlow({
                 if (state.photo) void beginProcessing(state.photo, state.generation);
               }}
             >
-              Find the cat
+              <span className="scan-desktop-label">Find the cat</span>
+              <span className="scan-mobile-label">Find cat</span>
             </ActionButton>
           </div>
         </section>
       )}
+
+      {state.photo && state.step !== 'saving' && state.step !== 'success' &&
+        state.step !== 'preparing' && state.step !== 'detecting' && state.step !== 'embedding' && (
+          <div className="scan-defer-row mt-3">
+            <button
+              type="button"
+              className="pixel-secondary"
+              disabled={savingForLater}
+              onClick={() => void savePhotoForLater()}
+            >
+              {savingForLater ? 'Saving photo...' : '♡ Save photo for later'}
+            </button>
+          </div>
+        )}
 
       {state.step === 'preparation-consent' && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
@@ -693,9 +776,14 @@ export function ScanFlow({
       {(state.step === 'preparing' ||
         state.step === 'detecting' ||
         state.step === 'embedding') && (
-        <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <div className="mx-auto max-w-xl py-10 text-center">
-            <div className="meow-spinner mx-auto" aria-hidden="true" />
+        <section className="scan-processing-panel paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
+          <div className="scan-processing-content mx-auto max-w-xl py-10 text-center">
+            <div className="meow-spinner scan-desktop-loader mx-auto" aria-hidden="true" />
+            <div className="scan-cat-loader mx-auto" aria-hidden="true">
+              <div className="meow-spinner scan-cat-orbit" />
+              <div className="scan-cat-face">ฅ^•ﻌ•^ฅ</div>
+              <div className="scan-cat-sparkle">✦</div>
+            </div>
             <h1 className="mt-6 font-serif text-3xl font-semibold">
               {state.step === 'preparing'
                 ? 'Getting local AI ready'
@@ -708,10 +796,13 @@ export function ScanFlow({
                 ? 'Model work stays on this device once the required files are available.'
                 : 'This photo is being processed locally. Identity is never decided automatically.'}
             </p>
-            <div className="mt-6">
+            <div className="scan-processing-actions mt-6">
               <ActionButton variant="secondary" onClick={goBack}>
                 Back to photo
               </ActionButton>
+              {state.photo && <ActionButton variant="primary" onClick={() => void savePhotoForLater()} disabled={savingForLater}>
+                {savingForLater ? 'Saving photo...' : 'Save photo for later'}
+              </ActionButton>}
             </div>
           </div>
         </section>

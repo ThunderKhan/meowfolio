@@ -8,6 +8,7 @@ import { loadRuntimeCatalog } from './scan/referenceCatalog';
 import { RELEASE_MATCHING_POLICY } from './evaluation/releasePolicy';
 import { MatchingLab } from './evaluation/MatchingLab';
 import { Scrapbook } from './scrapbook/Scrapbook';
+import { PendingPhotos } from './scrapbook/PendingPhotos';
 import { MeowfolioRepository } from './storage/repository';
 
 const WELCOME_KEY = 'meowfolio.welcome-complete';
@@ -61,11 +62,13 @@ export function App() {
 
   const [repository] = useState(() => new MeowfolioRepository());
   const [ai, setAi] = useState<AiGateway | null>(null);
+  const reusableAiRef = useRef<AiGateway | null>(null);
   const [scanCats, setScanCats] = useState<CatReference[]>([]);
   const scanCatUrlsRef = useRef<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [scanning, setScanning] = useState(false);
   const [initialScanPhoto, setInitialScanPhoto] = useState<File | null>(null);
+  const [initialPendingId, setInitialPendingId] = useState<string | null>(null);
   const [welcomeComplete, setWelcomeComplete] = useState(() => {
     if (e2eEnabled && params.get('skipWelcome') === '1') return true;
     try {
@@ -122,6 +125,8 @@ export function App() {
       for (const url of scanCatUrlsRef.current) URL.revokeObjectURL(url);
       scanCatUrlsRef.current = [];
       repository.close();
+      reusableAiRef.current?.dispose();
+      reusableAiRef.current = null;
       delete window.__MEOWFOLIO_E2E_REPOSITORY__;
     };
   }, [e2eEnabled, refreshScanCats, repository]);
@@ -135,14 +140,18 @@ export function App() {
     }
   }
 
-  async function startScan(photo: File | null = null): Promise<void> {
+  async function startScan(photo: File | null = null, pendingId: string | null = null): Promise<void> {
     await refreshScanCats();
 
-    const gateway: AiGateway = mockScenario
-      ? new MockAiClient(mockScenario as MockScenario)
-      : new AiClient();
+    // Retain the worker/models between encounters; do not force each scan to
+    // reinitialize the same large models or re-download existing assets.
+    const gateway: AiGateway =
+      reusableAiRef.current ??
+      (mockScenario ? new MockAiClient(mockScenario as MockScenario) : new AiClient());
+    reusableAiRef.current = gateway;
 
     setInitialScanPhoto(photo);
+    setInitialPendingId(pendingId);
     setAi(gateway);
     setScanning(true);
   }
@@ -150,10 +159,30 @@ export function App() {
   function leaveScan(): void {
     setScanning(false);
     setInitialScanPhoto(null);
-    setAi((current) => {
-      current?.dispose();
-      return null;
-    });
+    setInitialPendingId(null);
+    setAi(null);
+    // The AI worker stays alive for another scan within this page session.
+    // ScanFlow invalidates outstanding requests on unmount.
+  }
+
+  function resetAiAfterTimeout(): void {
+    reusableAiRef.current?.dispose();
+    const gateway = mockScenario
+      ? new MockAiClient(mockScenario as MockScenario)
+      : new AiClient();
+    reusableAiRef.current = gateway;
+    setAi(gateway);
+  }
+
+  function openCameraOrScan(): void {
+    if (window.matchMedia('(max-width: 760px)').matches) {
+      const input = document.getElementById('home-camera') as HTMLInputElement | null;
+      if (input) {
+        input.click();
+        return;
+      }
+    }
+    void startScan();
   }
 
   function onQuickCameraPhoto(event: ChangeEvent<HTMLInputElement>): void {
@@ -165,8 +194,22 @@ export function App() {
   }
 
   async function afterSave(): Promise<void> {
+    // The encounter has already been committed. A failed inbox cleanup must
+    // never turn an actually successful save into a false "save failed" UI.
+    if (initialPendingId) {
+      try {
+        await repository.deletePendingPhoto(initialPendingId);
+      } catch {
+        // Leave the pending photo recoverable rather than misreport success.
+      }
+    }
     setRefreshKey((value) => value + 1);
-    await refreshScanCats();
+    await refreshScanCats().catch(() => {});
+  }
+
+  async function afterSavedForLater(): Promise<void> {
+    setRefreshKey((value) => value + 1);
+    leaveScan();
   }
 
   if (matchingLabEnabled) {
@@ -246,11 +289,14 @@ export function App() {
     return (
       <ScanFlow
         initialPhoto={initialScanPhoto}
+        initialPendingId={initialPendingId}
         ai={ai}
         repository={repository}
         cats={catalogMode ? fixtureCats : scanCats}
         matchingPolicy={matchingPolicy}
         onSaved={afterSave}
+        onSavedForLater={afterSavedForLater}
+        onResetAi={resetAiAfterTimeout}
         onExit={leaveScan}
       />
     );
@@ -287,18 +333,32 @@ export function App() {
               className="sr-only"
               onChange={onQuickCameraPhoto}
             />
-            <button type="button" className="pixel-secondary" onClick={() => void startScan()}>
+            <button type="button" className="pixel-secondary home-desktop-spot" onClick={() => void startScan()}>
               <span className="home-action-desktop">Spot a cat</span>
-              <span className="home-action-mobile">Add photo</span>
             </button>
+            <label htmlFor="home-gallery" className="pixel-secondary home-mobile-gallery">
+              <span className="home-action-mobile">Add photo</span>
+            </label>
+            <input
+              id="home-gallery"
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={onQuickCameraPhoto}
+            />
           </div>
         </div>
       </header>
 
+      <PendingPhotos
+        repository={repository}
+        refreshKey={refreshKey}
+        onProcess={(photo, id) => void startScan(photo, id)}
+      />
       <Scrapbook
         repository={repository}
         refreshKey={refreshKey}
-        onSpotCat={() => void startScan()}
+        onSpotCat={openCameraOrScan}
       />
 
       <footer className="mt-9 border-t-2 border-dashed border-[#b7588b] py-5 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#82405f]">

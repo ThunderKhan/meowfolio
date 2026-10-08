@@ -301,3 +301,18 @@ Slice 1 locks the browser-spike package versions in `package.json`, Transformers
 
 ### Relationship to Existing Plans
 `context.md` section 18 names fixed candidate models; the learner now explicitly treats exact models/artifacts as evidence-gated starting candidates and permits replacing an unsuitable detector after review. Approved PRD F7 describes the useful-matching proof; the learner now authorizes a manual-only release if matching is unproven. Carry these explicit refinements into the existing context/architecture/evaluation documents when the technical plan is approved, retaining the caveat that withheld matching has not met that proof. Existing documents' broader features or unsupported thresholds are not silently inherited.
+
+## Superseding field-feedback addendum — 8 October 2026
+
+The original 6/10/20-second mobile hard-fail specification above was revised after live Android Chrome reported repeated timeout failures even on obvious cats. This addendum supersedes **only** the mobile implementation/recovery decisions below; it does not alter consent, privacy, identity-confirmation, or match-release gates.
+
+- 6 seconds remains the performance target; more than 10 seconds remains evidence of poor mobile performance.
+- Show a slow warning at 10 seconds; retain the photo and offer a non-AI **Save photo for later** action. Terminate/reset stuck workers and invalidate responses at the new bounded 90-second deadline, not 20 seconds.
+- A new IndexedDB `pendingPhotos` store (schema v2, preserving existing cats/encounters) holds raw full-resolution photos safely, without fabricating embeddings, a detected crop or a cat identity. Saved-for-later records survive reload and can be resumed from the photo inbox; they are removed only after a separately confirmed encounter has committed.
+- Maintain one lazily initialized worker across successive scans within the same browser page session; do not destroy loaded models after each encounter. Check current loaded state and attempt guarded local-only cache loads before requesting new download consent, without bypassing the network consent boundary.
+- Resize images larger than 960px on the long edge **only for detection** and map boxes back to original dimensions before cropping/storing. Keep the original photo bytes for history.
+- Native camera activation can be requested immediately from a direct user click, but browser/system permission and camera-picker behavior remain platform controlled.
+- Automatic familiar-face suggestions stay disabled until independent real-photo evidence warrants a separate release.
+- Desktop design stays fixed. Narrow-view layouts reorganize capture buttons, empty-state content and loading UI without changing desktop chrome.
+
+Real phone performance, OS-dependent camera behavior and cold-cache persistence are still pending field verification.
