@@ -349,3 +349,21 @@ test('version 1 scrapbook survives a temporarily blocked version 2 storage upgra
   expect(record).toEqual({ marker: true, pendingStore: true });
   await oldTab.close();
 });
+
+
+test('production local profile survives reload without any account or model request', async ({ page }) => {
+  const modelRequests: string[] = [];
+  page.on('request', (request) => {
+    if (/huggingface\\.co|cdn-lfs|xethub/.test(request.url())) modelRequests.push(request.url());
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /Open my scrapbook/ }).click();
+  await page.getByRole('button', { name: /Create my local profile/ }).click();
+  await expect(page.getByText(/No password, email, sign-in or cloud account is created/)).toBeVisible();
+  await page.getByLabel('Your display name').fill('Ayan');
+  await page.getByRole('button', { name: 'Save my profile' }).click();
+  await expect(page.getByRole('button', { name: /Ayan.*edit my space/ })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('button', { name: /Ayan.*edit my space/ })).toBeVisible();
+  expect(modelRequests).toEqual([]);
+});

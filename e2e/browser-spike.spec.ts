@@ -75,6 +75,20 @@ test('real WASM scan reaches a human identity decision in Chromium', async ({ pa
   await expect(identity).toBeVisible({ timeout: 120_000 });
   await expect(identity).toHaveAttribute('data-embedding-dimension', '384');
   await expect(page.getByRole('heading', { name: 'This looks like a new cat.' })).toBeVisible();
+
+  // The same pinned models should be recovered from browser caches even
+  // after a reload creates a completely new worker instance.
+  await page.reload();
+  await startScan(page, photo);
+  const returnToDecision = page.getByTestId('identity-screen')
+    .or(page.getByRole('heading', { name: 'Which cat are you adding?' }));
+  await expect(returnToDecision.or(consent)).toBeVisible({ timeout: 90_000 });
+  if (await consent.isVisible()) {
+    throw new Error('A new worker requested model download consent even though the files were already fetched.');
+  }
+  await continueMultiCatIfNeeded(page);
+  await expect(page.getByTestId('identity-screen')).toBeVisible({ timeout: 90_000 });
+  await expect(consent).toHaveCount(0);
 });
 
 test('controlled multi-cat flow pauses for the person to choose a crop', async ({ page, request }) => {
@@ -670,4 +684,39 @@ test('mobile cat details keep legible form text and adjacent save/change buttons
   await expect(page.getByRole('button', { name: 'Save cat' })).toBeEnabled();
   await page.getByRole('button', { name: 'Save cat' }).click();
   await expect(page.getByRole('heading', { name: 'Pako is in your Meowfolio.' })).toBeVisible();
+});
+
+
+test('local profile personalizes the scrapbook and makes a downloadable story card', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await page.getByRole('button', { name: /create my local profile/i }).click();
+  await page.getByLabel('Your display name').fill('Ayan');
+  await page.getByRole('button', { name: 'Save my profile' }).click();
+  await expect(page.getByRole('button', { name: /Ayan.*edit/i })).toBeVisible();
+
+  await saveFirstCat(page, photo, 'Mochi', 'She waited under the flowers.');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: /Open Mochi, met 1 time/ }).click();
+  await page.getByRole('button', { name: 'Make story card' }).click();
+
+  const preview = page.getByRole('img', { name: /9 by 16 story preview for Mochi/ });
+  await expect(preview).toBeVisible({ timeout: 30_000 });
+  const dimensions = await preview.evaluate((image) => {
+    const img = image as HTMLImageElement;
+    return { width: img.naturalWidth, height: img.naturalHeight };
+  });
+  expect(dimensions).toEqual({ width: 1080, height: 1920 });
+  await expect(page.getByRole('checkbox', { name: /Include my encounter note/ })).not.toBeChecked();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Save story PNG/ }).click();
+  expect((await download).suggestedFilename()).toBe('meowfolio-mochi-story.png');
+
+  await page.getByRole('radio', { name: /Midnight diary/ }).check();
+  await expect(preview).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+  await page.reload();
+  await expect(page.getByRole('button', { name: /Ayan.*edit/i })).toBeVisible();
 });

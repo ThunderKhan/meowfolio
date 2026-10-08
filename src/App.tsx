@@ -9,6 +9,8 @@ import { RELEASE_MATCHING_POLICY } from './evaluation/releasePolicy';
 import { MatchingLab } from './evaluation/MatchingLab';
 import { Scrapbook } from './scrapbook/Scrapbook';
 import { PendingPhotos } from './scrapbook/PendingPhotos';
+import { ProfilePanel } from './profile/ProfilePanel';
+import { readLocalProfile, type LocalProfile } from './profile/localProfile';
 import { MeowfolioRepository } from './storage/repository';
 
 const WELCOME_KEY = 'meowfolio.welcome-complete';
@@ -61,6 +63,8 @@ export function App() {
     params.get('matchingLab') === '1' && (import.meta.env.DEV || e2eEnabled);
 
   const [repository] = useState(() => new MeowfolioRepository());
+  const [profile, setProfile] = useState<LocalProfile | null>(readLocalProfile);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [ai, setAi] = useState<AiGateway | null>(null);
   const reusableAiRef = useRef<AiGateway | null>(null);
   const [scanCats, setScanCats] = useState<CatReference[]>([]);
@@ -313,11 +317,17 @@ export function App() {
           <div className="home-desktop-brand">
             <p className="pixel-kicker">personal neighborhood cat scrapbook</p>
             <p className="pixel-heading mt-1 text-2xl">meowfolio // local save file</p>
+            <button type="button" className="profile-shortcut mt-3" onClick={() => setProfileOpen((value) => !value)}>
+              {profile ? profile.avatar + '  ' + profile.displayName + ' · edit my space' : '♡ Create my local profile'}
+            </button>
           </div>
           <div className="home-mobile-brand">
             <p className="pixel-kicker">✦ your neighborhood cat diary</p>
             <p className="pixel-heading">meowfolio<span className="home-brand-heart"> ♥</span></p>
             <p>tiny encounters, forever remembered.</p>
+            <button type="button" className="profile-shortcut mt-2" onClick={() => setProfileOpen((value) => !value)}>
+              {profile ? profile.avatar + '  ' + profile.displayName + ' · edit' : '♡ Create my space'}
+            </button>
           </div>
           <div className="home-capture-actions">
             <label htmlFor="home-camera" className="pixel-primary welcome-camera-button">
@@ -350,6 +360,9 @@ export function App() {
         </div>
       </header>
 
+      {profileOpen && (
+        <ProfilePanel profile={profile} onSaved={setProfile} onClose={() => setProfileOpen(false)} />
+      )}
       <PendingPhotos
         repository={repository}
         refreshKey={refreshKey}
@@ -359,6 +372,7 @@ export function App() {
         repository={repository}
         refreshKey={refreshKey}
         onSpotCat={openCameraOrScan}
+        ownerName={profile?.displayName ?? null}
       />
 
       <footer className="mt-9 border-t-2 border-dashed border-[#b7588b] py-5 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#82405f]">

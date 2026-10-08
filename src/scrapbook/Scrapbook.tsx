@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MeowfolioRepository } from '../storage/repository';
 import type { CatRecord, CatSummary, EncounterRecord } from '../storage/types';
+import { StoryStudio } from '../story/StoryStudio';
 
 interface ScrapbookProps {
   repository: MeowfolioRepository;
   refreshKey: number;
   onSpotCat: () => void;
+  ownerName: string | null;
 }
 
 interface CatCardView {
@@ -83,7 +85,7 @@ function useCatCards(
   return state;
 }
 
-function EmptyCollection({ onSpotCat }: { onSpotCat: () => void }) {
+function EmptyCollection({ onSpotCat, ownerName }: { onSpotCat: () => void; ownerName: string | null }) {
   return (
     <section className="pixel-window mt-6 empty-scrapbook-panel" aria-labelledby="empty-scrapbook-title">
       <div className="pixel-window-title">
@@ -106,7 +108,7 @@ function EmptyCollection({ onSpotCat }: { onSpotCat: () => void }) {
             cat, then you decide who they are.
           </span>
           <span className="empty-description-mobile">
-            Every cat has a story. Start yours with the camera above. ♡
+            {ownerName ? ownerName + ', your next little memory awaits. ♡' : 'Every cat has a story. Start yours with the camera above. ♡'}
           </span>
         </p>
         <div className="empty-mobile-steps" aria-label="How Meowfolio works">
@@ -128,10 +130,12 @@ function Collection({
   cards,
   onOpen,
   onSpotCat,
+  ownerName,
 }: {
   cards: CatCardView[];
   onOpen: (catId: string) => void;
   onSpotCat: () => void;
+  ownerName: string | null;
 }) {
   return (
     <>
@@ -140,7 +144,7 @@ function Collection({
           <p className="pixel-kicker">★ LOCAL CAT MEMORY ARCHIVE ★</p>
           <h1 className="pixel-heading mt-2 text-4xl sm:text-5xl">my meowfolio</h1>
           <p className="mt-3 text-sm leading-6 text-[#6d3454]">
-            {cards.length} {cards.length === 1 ? 'cat' : 'cats'} saved in this browser · click a
+            {ownerName ? ownerName + '’s collection · ' : ''}{cards.length} {cards.length === 1 ? 'cat' : 'cats'} saved in this browser · click a
             photo to open their memory log.
           </p>
         </div>
@@ -227,17 +231,20 @@ function CatDetail({
   catId,
   onBack,
   onSpotCat,
+  ownerName,
 }: {
   repository: MeowfolioRepository;
   catId: string;
   onBack: () => void;
   onSpotCat: () => void;
+  ownerName: string | null;
 }) {
   const [cat, setCat] = useState<CatRecord | null>(null);
   const [encounters, setEncounters] = useState<EncounterView[]>([]);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [storyOpen, setStoryOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -308,9 +315,14 @@ function CatDetail({
         <button type="button" className="pixel-secondary" onClick={onBack}>
           ← scrapbook
         </button>
-        <button type="button" className="pixel-primary" onClick={onSpotCat}>
-          + spot a cat
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" className="pixel-secondary" onClick={() => setStoryOpen((open) => !open)}>
+            ✦ Make story card
+          </button>
+          <button type="button" className="pixel-primary" onClick={onSpotCat}>
+            + spot a cat
+          </button>
+        </div>
       </div>
 
       <section className="pixel-window mt-5">
@@ -354,6 +366,15 @@ function CatDetail({
           </div>
         </div>
       </section>
+
+      {storyOpen && encounters.length > 0 && (
+        <StoryStudio
+          cat={cat}
+          encounter={encounters[encounters.length - 1].encounter}
+          ownerName={ownerName}
+          onClose={() => setStoryOpen(false)}
+        />
+      )}
 
       <section className="mt-8" aria-labelledby="memory-log-title">
         <div className="flex items-end justify-between gap-4">
@@ -409,7 +430,7 @@ function CatDetail({
   );
 }
 
-export function Scrapbook({ repository, refreshKey, onSpotCat }: ScrapbookProps) {
+export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName }: ScrapbookProps) {
   const { loading, cards, error } = useCatCards(repository, refreshKey);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
 
@@ -429,6 +450,7 @@ export function Scrapbook({ repository, refreshKey, onSpotCat }: ScrapbookProps)
         catId={selectedCatId}
         onBack={() => setSelectedCatId(null)}
         onSpotCat={onSpotCat}
+        ownerName={ownerName}
       />
     );
   }
@@ -456,7 +478,7 @@ export function Scrapbook({ repository, refreshKey, onSpotCat }: ScrapbookProps)
     );
   }
 
-  if (cards.length === 0) return <EmptyCollection onSpotCat={onSpotCat} />;
+  if (cards.length === 0) return <EmptyCollection onSpotCat={onSpotCat} ownerName={ownerName} />;
 
-  return <Collection cards={cards} onOpen={setSelectedCatId} onSpotCat={onSpotCat} />;
+  return <Collection cards={cards} onOpen={setSelectedCatId} onSpotCat={onSpotCat} ownerName={ownerName} />;
 }
