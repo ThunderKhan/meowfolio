@@ -28,6 +28,7 @@ import {
 } from './state';
 
 interface ScanFlowProps {
+  initialPhoto?: File | null;
   ai: AiGateway;
   repository: MeowfolioRepository;
   cats?: CatReference[];
@@ -78,7 +79,7 @@ function ActionButton({
       disabled={disabled}
       onClick={onClick}
       className={
-        'min-h-12 px-5 py-3 font-bold transition disabled:cursor-not-allowed disabled:opacity-45 ' +
+        'min-h-12 px-4 py-3 font-bold transition disabled:cursor-not-allowed disabled:opacity-45 ' +
         classes
       }
     >
@@ -113,6 +114,7 @@ function CatPhoto({
 }
 
 export function ScanFlow({
+  initialPhoto = null,
   ai,
   repository,
   cats = [],
@@ -128,6 +130,8 @@ export function ScanFlow({
   const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'saved' | 'unavailable'>('idle');
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const acceptedInitialPhotoRef = useRef<File | null>(null);
   const stateRef = useRef<ScanState>(state);
   const generationRef = useRef(state.generation);
   const activeRequestRef = useRef<string | null>(null);
@@ -350,12 +354,7 @@ export function ScanFlow({
     }
   }
 
-  async function onPhotoChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-
+  async function setSelectedPhoto(file: File): Promise<void> {
     clearWarmTimers();
     cancelActive();
     generationRef.current = stateRef.current.generation + 1;
@@ -376,6 +375,12 @@ export function ScanFlow({
         'I couldn’t read that image. Choose another photo in a format your browser can open.',
       );
     }
+  }
+
+  async function onPhotoChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (file) await setSelectedPhoto(file);
   }
 
   function goBack(): void {
@@ -511,6 +516,17 @@ export function ScanFlow({
     }
   }
 
+  // A quick-camera capture can arrive from the welcome screen before this scan
+  // mounts. Treat it exactly like a photo picked inside the scan; do not trigger
+  // model preparation or download without the existing explicit action.
+  useEffect(() => {
+    if (!initialPhoto || acceptedInitialPhotoRef.current === initialPhoto) return;
+    acceptedInitialPhotoRef.current = initialPhoto;
+    void setSelectedPhoto(initialPhoto);
+    // Only the incoming file identity may start a new scan.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPhoto]);
+
   useEffect(() => {
     const marker = { meowfolioScan: true };
     window.history.pushState(marker, '', window.location.href);
@@ -543,14 +559,14 @@ export function ScanFlow({
       <img
         src={previewUrl}
         alt="Cat encounter preview"
-        className="max-h-[62vh] w-full object-contain"
+        className="max-h-[42vh] w-full object-contain"
       />
     </div>
   ) : (
     <button
       type="button"
       onClick={() => fileInputRef.current?.click()}
-      className="grid min-h-72 w-full place-items-center rounded-none border border-dashed border-black/20 bg-white px-7 text-center"
+      className="grid min-h-44 w-full place-items-center rounded-none border border-dashed border-black/20 bg-white px-7 text-center"
     >
       <span>
         <span className="block font-serif text-2xl font-semibold">Photograph a cat you met</span>
@@ -568,6 +584,15 @@ export function ScanFlow({
         id="cat-photo"
         type="file"
         accept="image/*"
+        className="sr-only"
+        onChange={(event) => void onPhotoChange(event)}
+      />
+      <input
+        ref={cameraInputRef}
+        id="cat-camera"
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="sr-only"
         onChange={(event) => void onPhotoChange(event)}
       />
@@ -615,19 +640,22 @@ export function ScanFlow({
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
             Spot a cat
           </p>
-          <h1 className="mt-2 font-serif text-4xl font-semibold">Add this meeting to your scrapbook.</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-[#7f4b67]">
+          <h1 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">Add this meeting to your scrapbook.</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#7f4b67]">
             Meowfolio looks for the cat locally on this device. You decide who the cat is.
           </p>
-          <div className="mt-6">{photoPanel}</div>
+          <div className="mt-4">{photoPanel}</div>
           {photoValidationError && (
             <p role="alert" className="mt-3 rounded-none border border-[#ef65ad]/30 bg-[#fff0f7] px-4 py-3 text-sm text-[#9e1b55]">
               {photoValidationError}
             </p>
           )}
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-4 flex flex-wrap gap-3">
+            <ActionButton variant="secondary" onClick={() => cameraInputRef.current?.click()}>
+              📷 Open camera
+            </ActionButton>
             <ActionButton variant="secondary" onClick={() => fileInputRef.current?.click()}>
-              {state.photo ? 'Choose another photo' : 'Take or choose photo'}
+              {state.photo ? 'Choose another photo' : 'Choose from gallery'}
             </ActionButton>
             <ActionButton
               disabled={!state.photo}
