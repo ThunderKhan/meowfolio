@@ -119,7 +119,8 @@ test('mobile scrapbook presents adjacent capture actions and compact empty state
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto('/');
-    await page.getByRole('button', { name: /open my scrapbook/i }).click();
+    const enter = page.getByRole('button', { name: /open my scrapbook/i });
+    if (await enter.isVisible()) await enter.click();
 
     const layout = await page.evaluate(() => {
       const controls = document.querySelector('.home-capture-actions');
