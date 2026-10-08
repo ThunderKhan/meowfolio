@@ -73,6 +73,7 @@ Build mode: fast
   Verify (mechanical): Run the full typecheck/test/build suite; audit production network requests; verify Vercel build output; on the stable production origin perform consent/download, cold reopen, warm scan, new save, repeat save, close/reopen, and a frontend redeploy while confirming IndexedDB cats/encounters/photos remain. Record actual 6/10/20 warm behavior and 30/60 download + 20/30/60 cold-start observations.
   Learner check: Use Meowfolio outside on your Android phone for the complete capture → process → decide → save → reopen loop and report anything confusing, slow, or broken before final review.
   Commit: `chore: prepare verified Meowfolio proof of concept`
+  Progress (not complete): Static Vercel configuration, full README, production artifact audit, distinct production-mode Playwright suite, and Android/production field protocol are implemented. GitHub Actions run `37733767330` passed exact dependency installation, TypeScript, 31 Vitest tests (5 files), production build, artifact audit, **2 production-mode** Playwright tests (no E2E fixtures; mock/lab routes gated; download consent enforced), and 19 existing browser tests including real YOLOS→DINOv2 on head `453c1f0c1d5709f03c5498aa204c699c8500a5fe`. Real Vercel deployment, Android Chrome timings, geolocation/outdoor tests, same-origin frontend redeploy persistence, legal notices, and final demo remain UNVERIFIED. See `docs/ANDROID_FIELD_TEST.md` and `docs/DEPLOYMENT_RELEASE.md`. Do not mark this slice complete based on CI.
 
 ## Hands-on Checkpoints
 
