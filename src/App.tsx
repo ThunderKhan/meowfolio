@@ -61,6 +61,7 @@ export function App() {
 
   const [repository] = useState(() => new MeowfolioRepository());
   const [ai, setAi] = useState<AiGateway | null>(null);
+  const reusableAiRef = useRef<AiGateway | null>(null);
   const [scanCats, setScanCats] = useState<CatReference[]>([]);
   const scanCatUrlsRef = useRef<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -122,6 +123,8 @@ export function App() {
       for (const url of scanCatUrlsRef.current) URL.revokeObjectURL(url);
       scanCatUrlsRef.current = [];
       repository.close();
+      reusableAiRef.current?.dispose();
+      reusableAiRef.current = null;
       delete window.__MEOWFOLIO_E2E_REPOSITORY__;
     };
   }, [e2eEnabled, refreshScanCats, repository]);
@@ -138,9 +141,12 @@ export function App() {
   async function startScan(photo: File | null = null): Promise<void> {
     await refreshScanCats();
 
-    const gateway: AiGateway = mockScenario
-      ? new MockAiClient(mockScenario as MockScenario)
-      : new AiClient();
+    // Retain the worker/models between encounters; do not force each scan to
+    // reinitialize the same large models or re-download existing assets.
+    const gateway: AiGateway =
+      reusableAiRef.current ??
+      (mockScenario ? new MockAiClient(mockScenario as MockScenario) : new AiClient());
+    reusableAiRef.current = gateway;
 
     setInitialScanPhoto(photo);
     setAi(gateway);
@@ -150,10 +156,9 @@ export function App() {
   function leaveScan(): void {
     setScanning(false);
     setInitialScanPhoto(null);
-    setAi((current) => {
-      current?.dispose();
-      return null;
-    });
+    setAi(null);
+    // The AI worker stays alive for another scan within this page session.
+    // ScanFlow invalidates outstanding requests on unmount.
   }
 
   function onQuickCameraPhoto(event: ChangeEvent<HTMLInputElement>): void {
@@ -287,10 +292,19 @@ export function App() {
               className="sr-only"
               onChange={onQuickCameraPhoto}
             />
-            <button type="button" className="pixel-secondary" onClick={() => void startScan()}>
+            <button type="button" className="pixel-secondary home-desktop-spot" onClick={() => void startScan()}>
               <span className="home-action-desktop">Spot a cat</span>
-              <span className="home-action-mobile">Add photo</span>
             </button>
+            <label htmlFor="home-gallery" className="pixel-secondary home-mobile-gallery">
+              <span className="home-action-mobile">Add photo</span>
+            </label>
+            <input
+              id="home-gallery"
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={onQuickCameraPhoto}
+            />
           </div>
         </div>
       </header>
