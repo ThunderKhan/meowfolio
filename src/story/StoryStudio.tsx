@@ -202,7 +202,7 @@ export function StoryStudio({
       <div className="story-studio-body">
         <div className="story-controls">
           <p className="pixel-kicker">one tiny meeting, one beautiful memory</p>
-          <h2 className="pixel-heading mt-2 text-3xl">A story starring {cat.name}</h2>
+          <h1 id="studio-title" tabIndex={-1} className="pixel-heading mt-2 text-3xl">A story starring {cat.name}</h1>
           <p className="mt-3 text-sm leading-6 text-[#683b55]">
             Make a 1080 × 1920 Instagram or WhatsApp Story card.
             Your photo stays in this browser, with no upload or location details.
