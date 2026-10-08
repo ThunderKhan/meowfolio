@@ -92,7 +92,7 @@ function EmptyCollection({ onSpotCat, ownerName }: { onSpotCat: () => void; owne
     <section className="pixel-window mt-6 empty-scrapbook-panel" aria-labelledby="empty-scrapbook-title">
       <div className="pixel-window-title">
         <span>♥ meowfolio.exe</span>
-        <span aria-hidden="true">□ ×</span>
+        <span className="pixel-window-hint">Your collection</span>
       </div>
       <div className="empty-scrapbook-body px-5 py-10 text-center sm:px-8">
         <div className="pixel-sticker empty-scrapbook-sticker mx-auto" aria-hidden="true">
@@ -115,9 +115,9 @@ function EmptyCollection({ onSpotCat, ownerName }: { onSpotCat: () => void; owne
         </p>
         <div className="empty-mobile-steps" aria-label="How Meowfolio works">
           <span><b>01</b> snap</span>
-          <span aria-hidden="true">→</span>
+          <span className="empty-step-separator" aria-hidden="true" />
           <span><b>02</b> name</span>
-          <span aria-hidden="true">→</span>
+          <span className="empty-step-separator" aria-hidden="true" />
           <span><b>03</b> remember</span>
         </div>
         <button type="button" className="pixel-primary empty-scrapbook-cta mt-6" onClick={onSpotCat}>
@@ -161,7 +161,7 @@ function Collection({
 
       <section
         aria-label="Saved cats"
-        className="scrapbook-cards grid grid-cols-1 gap-5 min-[460px]:grid-cols-2 lg:grid-cols-3"
+        className="scrapbook-cards grid grid-cols-1 gap-5 min-[460px]:grid-cols-2 lg:grid-cols-3 min-[1450px]:grid-cols-4"
       >
         {cards.map(({ cat, coverUrl }, index) => (
           <button
@@ -218,7 +218,7 @@ function LocationDisclosure({ encounter }: { encounter: EncounterRecord }) {
 
   return (
     <details className="pixel-location mt-3">
-      <summary>⌖ Location saved</summary>
+      <summary>Location saved</summary>
       <div className="mt-2 grid gap-1 pl-3 text-xs leading-5">
         <span>lat: {latitude.toFixed(5)}°</span>
         <span>long: {longitude.toFixed(5)}°</span>
@@ -332,7 +332,7 @@ function CatDetail({
       <section className="pixel-window mt-5">
         <div className="pixel-window-title">
           <span>♡ CAT_PROFILE.DAT</span>
-          <span aria-hidden="true">_ □ ×</span>
+          <span className="pixel-window-hint">Cat memories</span>
         </div>
         <div className="grid gap-6 p-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:p-7">
           <div className="pixel-photo-frame rotate-[-1deg] self-start cat-profile-photo">
