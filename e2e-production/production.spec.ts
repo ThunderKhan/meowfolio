@@ -109,7 +109,7 @@ test('quick camera capture opens the real scan preview without downloading model
   });
 
   await expect(page.getByRole('heading', { name: /add this meeting to your scrapbook/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Find the cat' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Find cat' })).toBeEnabled();
   await expect(page.getByRole('img', { name: 'Cat encounter preview' })).toBeVisible();
   expect(modelRequests).toEqual([]);
 });
@@ -126,7 +126,7 @@ test('mobile scrapbook presents adjacent capture actions and compact empty state
     const layout = await page.evaluate(() => {
       const controls = document.querySelector('.home-capture-actions');
       const camera = controls?.querySelector('label');
-      const addPhoto = controls?.querySelector('button');
+      const addPhoto = controls?.querySelector('.home-mobile-gallery');
       const empty = document.querySelector('.empty-scrapbook-panel');
       if (!controls || !camera || !addPhoto || !empty) throw new Error('Missing mobile home UI');
       const cam = camera.getBoundingClientRect();
