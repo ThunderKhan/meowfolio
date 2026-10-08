@@ -15,12 +15,10 @@ export function StoryStudio({
   cat,
   encounter,
   ownerName,
-  onClose,
 }: {
   cat: CatRecord;
   encounter: EncounterRecord;
   ownerName: string | null;
-  onClose: () => void;
 }) {
   const [theme, setTheme] = useState<StoryTheme>('candy');
   const [includeNote, setIncludeNote] = useState(false);
@@ -204,14 +202,14 @@ export function StoryStudio({
       <div className="story-studio-body">
         <div className="story-controls">
           <p className="pixel-kicker">one tiny meeting, one beautiful memory</p>
-          <h2 className="pixel-heading mt-2 text-3xl">a story starring {cat.name} ♡</h2>
+          <h2 className="pixel-heading mt-2 text-3xl">A story starring {cat.name}</h2>
           <p className="mt-3 text-sm leading-6 text-[#683b55]">
             Make a 1080 × 1920 Instagram or WhatsApp Story card.
             Your photo stays in this browser, with no upload or location details.
           </p>
 
           <fieldset className="mt-6">
-            <legend className="text-sm font-bold">Pick a vibe</legend>
+            <legend className="text-sm font-bold">Choose a style</legend>
             <div className="story-theme-options mt-3">
               <label className={'story-theme-option story-theme-candy' + (theme === 'candy' ? ' is-selected' : '')}>
                 <input type="radio" name="story-theme" value="candy" checked={theme === 'candy'} onChange={() => setTheme('candy')} />
@@ -229,8 +227,8 @@ export function StoryStudio({
           </fieldset>
 
           <fieldset className="story-framing-fieldset mt-6">
-            <legend className="text-sm font-bold">Frame your cat ♡</legend>
-            <p className="mt-2 text-xs leading-5 text-[#74445f]">The full original is selected by default, so ears and tails aren't cropped away.</p>
+            <legend className="text-sm font-bold">Frame your photo</legend>
+            <p className="mt-2 text-xs leading-5 text-[#74445f]">The whole photo is shown by default, without cutting off ears or tails.</p>
             <div className="story-segmented mt-3" aria-label="Photo source">
               <label className={photo.source === 'original' ? 'is-selected' : ''}>
                 <input type="radio" name="photo-source" checked={photo.source === 'original'} onChange={() => setSource('original')} />
@@ -252,8 +250,7 @@ export function StoryStudio({
               </label>
             </div>
             <p className="mt-3 text-xs leading-5 text-[#74445f]">
-              Pinch with two fingers to zoom, then drag to crop and reposition.
-              The sliders remain available for precise adjustments.
+              Pinch to zoom and drag to reposition your photo. Use the sliders for finer control.
             </p>
             <label className="story-range-label mt-4" htmlFor="story-zoom">
               <span>Zoom</span><output htmlFor="story-zoom">{photo.zoom}%</output>
@@ -298,7 +295,6 @@ export function StoryStudio({
             <button className="pixel-secondary" type="button" onClick={share} disabled={!output || busy || !!error}>
               ↗ Share image
             </button>
-            <button className="pixel-secondary" type="button" onClick={onClose}>Close studio</button>
           </div>
           {shareError && <p role="status" className="mt-3 text-xs text-[#713f5b]">{shareError}</p>}
         </div>
@@ -335,7 +331,7 @@ export function StoryStudio({
             </div>
           )}
           <p className="mt-3 text-center text-xs font-bold text-[#8a3c67]">
-            PREVIEW • 9:16 • PINCH TO ZOOM · DRAG TO CROP
+            9:16 STORY PREVIEW · PINCH TO ZOOM
           </p>
         </div>
       </div>
