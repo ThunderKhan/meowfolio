@@ -38,6 +38,19 @@ env.useBrowserCache = true;
 env.useWasmCache = true;
 env.cacheKey = 'meowfolio-ai-' + MODEL_MANIFEST.version;
 
+// A stable, origin-scoped fallback cache is necessary because a fresh worker
+// cannot rely on ModelRegistry's advisory cache probe or its WASM metadata.
+// Never fetch remote files here: downloads still require explicit consent.
+const ASSET_CACHE = 'meowfolio-pinned-assets-' + MODEL_MANIFEST.version;
+async function openAssetCache(): Promise<Cache | null> {
+  try {
+    return typeof caches === 'undefined' ? null : await caches.open(ASSET_CACHE);
+  } catch {
+    // Private browsing / storage quota may disable Cache Storage entirely.
+    return null;
+  }
+}
+
 function post(message: WorkerResponse): void {
   scope.postMessage(message);
 }
@@ -63,15 +76,28 @@ env.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     ? 'model'
     : classifyAiNetworkRequest(input, currentOrigin());
   const remote = category !== 'same-origin';
+  const cacheable = category === 'model' || category === 'runtime';
+  const cache = cacheable ? await openAssetCache() : null;
+  const cacheKey = effectiveUrl.toString();
+  // An existing cached response needs no further network consent. This works
+  // across page reloads and worker restarts, not just subsequent scans.
+  const cached = await cache?.match(cacheKey).catch(() => undefined);
+  if (cached) {
+    post({
+      type: 'NETWORK_ACTIVITY', requestId: activeRequestId,
+      url: cacheKey, category, allowed: true,
+    });
+    return cached;
+  }
+
   const allowed =
     !remote ||
-    (networkPermitRequestId === activeRequestId &&
-      (category === 'model' || category === 'runtime'));
+    (networkPermitRequestId === activeRequestId && cacheable);
 
   post({
     type: 'NETWORK_ACTIVITY',
     requestId: activeRequestId,
-    url: effectiveUrl.toString(),
+    url: cacheKey,
     category,
     allowed,
   });
@@ -88,7 +114,17 @@ env.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
         ? new Request(pinnedModelUrl, input)
         : pinnedModelUrl;
 
-  return nativeFetch(effectiveInput, init);
+  const response = await nativeFetch(effectiveInput, init);
+  if (cache && response.ok) {
+    try {
+      // Complete the cache write before declaring model initialization ready.
+      // Cache failures never corrupt a successful inference/download.
+      await cache.put(cacheKey, response.clone());
+    } catch {
+      // Quota, unsupported responses, or an evicted cache remain recoverable.
+    }
+  }
+  return response;
 };
 
 function hasWebGpu(): boolean {
