@@ -723,7 +723,7 @@ test('local profile personalizes the scrapbook and makes a downloadable story ca
   // selected cat and render locally without a new browser tab.
   await expect(page).toHaveURL(/studio/);
   await expect(page.getByRole('heading', { name: /Mochi.*story/i })).toBeVisible();
-  await page.getByRole('button', { name: '← Back to scrapbook' }).click();
+  await page.getByRole('button', { name: 'Back to scrapbook' }).click();
   await expect(page.getByRole('button', { name: /Ayan.*edit/i })).toBeVisible();
 });
 
@@ -810,7 +810,7 @@ test('studio is a dedicated same-tab screen and browser Back restores the scrapb
   await expect(page.getByRole('heading', { name: 'my meowfolio' })).toBeVisible();
   await page.getByRole('button', { name: /Open Mochi, met 1 time/ }).click();
   await page.getByRole('button', { name: 'Make story card' }).click();
-  await page.getByRole('button', { name: '← Back to scrapbook' }).click();
+  await page.getByRole('button', { name: 'Back to scrapbook' }).click();
   await expect(page).not.toHaveURL(/studio/);
 });
 
@@ -823,7 +823,7 @@ test('saved cat photos open an on-device pinch viewer and close without mutation
   await page.getByRole('button', { name: 'View full photo' }).first().click();
   await expect(page.getByRole('dialog', { name: /View full photo/ })).toBeVisible();
   await expect(page.getByText(/pinch to zoom/i).first()).toBeVisible();
-  await page.getByRole('button', { name: '← Close photo' }).click();
+  await page.getByRole('button', { name: 'Close photo' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
@@ -859,7 +859,7 @@ test('visual audit captures welcome, collection, profile, cat detail and studio 
   expect(overflow).toBeLessThanOrEqual(2);
   await page.screenshot({ path: 'audit-screenshots/09-studio-small-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: '← Back to scrapbook' }).click();
+  await page.getByRole('button', { name: 'Back to scrapbook' }).click();
   await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
   await expect(page.getByRole('heading', { name: 'Sunshine', exact: true })).toBeVisible();
   await page.screenshot({ path: 'audit-screenshots/08-cat-detail-mobile.png', fullPage: true });
