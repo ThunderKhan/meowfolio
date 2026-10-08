@@ -74,7 +74,7 @@ export function ProfilePanel({
                     checked={avatar === symbol}
                     onChange={() => setAvatar(symbol)}
                   />
-                  <span aria-hidden="true">{symbol}</span><span className="sr-only">{symbol === '🐱' ? 'Cat' : symbol === '🌷' ? 'Flower' : symbol === '⭐' ? 'Star' : 'Ribbon'}</span>
+                  <span aria-hidden="true">{symbol}</span>
                 </label>
               ))}
             </div>
