@@ -624,3 +624,50 @@ test('matching lab does not fetch models before explicit preparation', async ({ 
   await page.waitForTimeout(500);
   expect(modelRequests).toEqual([]);
 });
+
+
+test('mobile cat details keep legible form text and adjacent save/change buttons', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  // The home mobile capture CTA is camera-first; upload into the real hidden
+  // input to exercise the scan without invoking an OS camera in Chromium.
+  await page.locator('#home-gallery').setInputFiles({
+    name: 'cat.png',
+    mimeType: 'image/png',
+    buffer: photo,
+  });
+  await expect(page.getByRole('button', { name: 'Find cat' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Find cat' }).click();
+  await expect(page.getByRole('button', { name: 'Name this cat' })).toBeVisible();
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+  await page.getByLabel('Cat name').fill('Pako');
+
+  const metrics = await page.evaluate(() => {
+    const actions = [...document.querySelectorAll('.scan-details-actions > button')];
+    const boxes = actions.map((button) => button.getBoundingClientRect());
+    const name = document.querySelector('.scan-details-panel input')!;
+    const note = document.querySelector('.scan-details-panel textarea')!;
+    const label = document.querySelector('.scan-details-panel label > span')!;
+    const computed = getComputedStyle(label);
+    return {
+      tops: boxes.map((box) => box.top),
+      leftRight: [boxes[0].right, boxes[1].left],
+      widths: boxes.map((box) => box.width),
+      textColor: computed.color,
+      inputFontPx: parseFloat(getComputedStyle(name).fontSize),
+      placeholderFontPx: parseFloat(getComputedStyle(note).fontSize),
+      hasHorizontalOverflow: document.documentElement.scrollWidth > innerWidth + 2,
+    };
+  });
+  expect(Math.abs(metrics.tops[0] - metrics.tops[1])).toBeLessThan(2);
+  expect(metrics.leftRight[0]).toBeLessThan(metrics.leftRight[1]);
+  expect(metrics.widths.every((width) => width > 100)).toBe(true);
+  expect(metrics.textColor).toBe('rgb(84, 34, 60)');
+  expect(metrics.inputFontPx).toBeGreaterThanOrEqual(16);
+  expect(metrics.placeholderFontPx).toBeGreaterThanOrEqual(16);
+  expect(metrics.hasHorizontalOverflow).toBe(false);
+  await expect(page.getByRole('button', { name: 'Save cat' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Save cat' }).click();
+  await expect(page.getByRole('heading', { name: 'Pako is in your Meowfolio.' })).toBeVisible();
+});
