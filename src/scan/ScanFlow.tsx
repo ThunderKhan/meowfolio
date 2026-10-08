@@ -778,6 +778,7 @@ export function ScanFlow({
         state.step === 'embedding') && (
         <section className="scan-processing-panel paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <div className="scan-processing-content mx-auto max-w-xl py-10 text-center">
+            <div className="meow-spinner scan-desktop-loader mx-auto" aria-hidden="true" />
             <div className="scan-cat-loader mx-auto" aria-hidden="true">
               <div className="meow-spinner scan-cat-orbit" />
               <div className="scan-cat-face">ฅ^•ﻌ•^ฅ</div>
