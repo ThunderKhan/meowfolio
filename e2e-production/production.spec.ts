@@ -359,7 +359,7 @@ test('production local profile survives reload without any account or model requ
   await page.goto('/');
   await page.getByRole('button', { name: /Open my scrapbook/ }).click();
   await page.getByRole('button', { name: /Create my local profile/ }).click();
-  await expect(page.getByText(/No password, email, sign-in or cloud account is created/)).toBeVisible();
+  await expect(page.getByText(/no online account is created/i)).toBeVisible();
   await page.getByLabel('Your display name').fill('Ayan');
   await page.getByRole('button', { name: 'Save my profile' }).click();
   await expect(page.getByRole('button', { name: /Ayan.*edit my space/ })).toBeVisible();

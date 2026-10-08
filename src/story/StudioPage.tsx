@@ -14,6 +14,12 @@ export function StudioPage({
   const [entry, setEntry] = useState<{ cat: CatRecord; encounter: EncounterRecord } | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'Story Studio · Meowfolio';
+    return () => { document.title = previousTitle; };
+  }, []);
+
+  useEffect(() => {
     let active = true;
     setEntry(null);
     setError(null);
@@ -31,12 +37,21 @@ export function StudioPage({
     return () => { active = false; };
   }, [catId, repository]);
 
+  useEffect(() => {
+    if (entry) document.getElementById('studio-title')?.focus();
+  }, [entry]);
+
   return (
     <main className="studio-page min-h-screen px-3 py-4 sm:px-6 sm:py-8">
       <div className="studio-page-shell mx-auto max-w-6xl">
         <header className="studio-page-nav">
           <button type="button" className="pixel-secondary" onClick={onBack}>← Back to scrapbook</button>
-          <span className="pixel-kicker">♡ meowfolio / creative studio</span>
+          <div className="studio-page-identity">
+            <p className="pixel-kicker">Meowfolio / Creative Studio</p>
+            <h1 id="studio-title" tabIndex={-1} className="pixel-heading">
+              {entry ? entry.cat.name + '’s story' : 'Story Studio'}
+            </h1>
+          </div>
         </header>
         {error ? (
           <section className="pixel-window mt-6 p-6" role="alert">
@@ -45,14 +60,13 @@ export function StudioPage({
             <button type="button" className="pixel-secondary mt-5" onClick={onBack}>Back to scrapbook</button>
           </section>
         ) : !entry ? (
-          <section className="pixel-window mt-6 p-8" role="status">Loading your creative studio…</section>
+          <section className="pixel-window mt-6 p-8" role="status">Opening the saved photo…</section>
         ) : (
           <StoryStudio
             key={catId}
             cat={entry.cat}
             encounter={entry.encounter}
             ownerName={ownerName}
-            onClose={onBack}
           />
         )}
       </div>

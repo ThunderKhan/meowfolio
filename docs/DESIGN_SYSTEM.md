@@ -39,10 +39,10 @@ Avoid:
 | `--pink-panel` | `#FFF6FB` | windows/cards |
 | `--pink-soft` | `#FFE8F4` | soft state |
 | `--pink-mid` | `#F7A8D1` | decorative fill |
-| `--pink-strong` | `#D63384` | primary actions |
+| `--pink-strong` | `#A91F68` | accessible primary-action gradient anchor |
 | `--pink-deep` | `#9F1F62` | strong readable accent text |
 | `--ink` | `#4A1834` | primary text |
-| `--muted` | `#7F4B67` | secondary text |
+| `--muted` | `#70415B` | secondary text |
 | `--pixel-border` | `#7B3157` | chunky borders |
 | `--pixel-shadow` | `#B64F86` | hard pixel-offset shadows |
 
@@ -50,13 +50,17 @@ Normal text must still meet WCAG AA contrast on the actual surface used.
 
 ## 3. Typography
 
-Zero-network-font baseline:
+Zero-network-font stacks:
 
 ```css
-font-family: "Courier New", "Lucida Console", Monaco, ui-monospace, monospace;
+/* Body copy: long notes remain easy to scan, even on phones. */
+font-family: "Trebuchet MS", Verdana, system-ui, sans-serif;
+
+/* Nostalgic headings, window chrome, labels and buttons. */
+font-family: "Courier New", "Lucida Console", ui-monospace, monospace;
 ```
 
-Use bold monospace for headings, window chrome, buttons, labels, and metadata. Body text may use the same family for consistency.
+The contrast between human-readable sans body copy and pixel monospace chrome is intentional. The nostalgic texture frames the story; it does not dominate the content.
 
 Rules:
 - body text ≥14px,
@@ -86,8 +90,8 @@ Avoid:
 ## 5. Buttons
 
 Primary:
-- hot-pink gradient/fill,
-- white label,
+- rich-magenta gradient (`#C13577` → `#A91F68`),
+- white label with at least 4.5:1 contrast against **both** gradient ends,
 - 2px dark border,
 - hard offset shadow,
 - minimum 48px mobile height.

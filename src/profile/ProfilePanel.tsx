@@ -46,11 +46,11 @@ export function ProfilePanel({
         <div>
           <p className="pixel-kicker">a scrapbook with your name on it</p>
           <h2 className="pixel-heading mt-2 text-2xl sm:text-3xl">
-            {profile ? 'make it yours, again ♡' : 'create your local profile ♡'}
+            {profile ? 'Your scrapbook, your way' : 'Make this scrapbook yours'}
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-6 text-[#6d3454]">
-            Choose a name and a little icon. This personalizes this browser only.
-            No password, email, sign-in or cloud account is created, and your cats stay private.
+            Choose the name and sticker shown on your scrapbook and story cards.
+            This profile is saved only in this browser; no online account is created.
           </p>
         </div>
         <div className="profile-editor-fields">
@@ -80,13 +80,13 @@ export function ProfilePanel({
           </fieldset>
         </div>
         {error && <p role="alert" className="text-sm font-bold text-[#9e1b55]">{error}</p>}
-        <div className="flex flex-wrap gap-3">
+        <div className="profile-editor-actions">
           <button type="submit" className="pixel-primary">♡ Save my profile</button>
           <button type="button" className="pixel-secondary" onClick={onClose}>Not now</button>
         </div>
         <p className="text-xs leading-5 text-[#7a4965]">
-          Important: this is a device-only profile, not an account. Clearing site data
-          or using another browser will not restore your profile or cat collection.
+          Your saved cats and profile will not sync to other browsers or devices.
+          Clearing this site's storage can erase them.
         </p>
       </form>
     </section>

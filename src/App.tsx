@@ -103,9 +103,15 @@ export function App() {
   }
 
   function closeStudio() {
-    // Same-tab client-side navigation; retains existing scrapbook/photo data.
-    window.history.pushState({ screen: 'scrapbook' }, '', '/' + window.location.search);
-    setStudioCatId(null);
+    // Preserve the browser Back/Forward chain rather than pushing a duplicate
+    // home entry that would immediately reopen Studio on the next Back.
+    if (window.history.state?.screen === 'studio') {
+      window.history.back();
+    } else {
+      // Directly opened or restored Studio URL has no in-app predecessor.
+      window.history.replaceState({ screen: 'scrapbook' }, '', '/' + window.location.search);
+      setStudioCatId(null);
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -321,7 +327,7 @@ export function App() {
               <div className="welcome-art-caption">cute encounters.zip ✿</div>
             </aside>
           </div>
-          <div className="welcome-footer" aria-hidden="true">♥ local-first · made for spontaneous cat sightings ♥</div>
+          <div className="welcome-footer">Photos and memories stay in this browser.</div>
         </section>
       </main>
     );
@@ -415,7 +421,7 @@ export function App() {
       />
 
       <footer className="mt-9 border-t-2 border-dashed border-[#b7588b] py-5 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#82405f]">
-        ♥ local-first · no account · no public map · no hosted photo inference ♥
+        Your cats and memories are saved in this browser. No cloud account required.
       </footer>
     </main>
   );

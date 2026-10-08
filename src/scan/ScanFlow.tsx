@@ -71,10 +71,10 @@ function ActionButton({
     variant === 'primary'
       ? 'pixel-primary'
       : variant === 'danger'
-        ? 'border-2 border-[#6f2149] bg-[#9e1b55] text-white shadow-[3px_3px_0_#7b3157]'
+        ? 'pixel-danger'
         : variant === 'secondary'
           ? 'pixel-secondary'
-          : 'border-2 border-dashed border-[#a91f68] bg-[#fff6fb] text-[#9f1f62]';
+          : 'pixel-quiet';
 
   return (
     <button
@@ -113,7 +113,7 @@ function CatPhoto({
     );
   }
 
-  return <img src={src} alt={alt} className={'rounded-none object-cover ' + className} />;
+  return <img src={src} alt={alt} className={'rounded-none object-contain ' + className} />;
 }
 
 export function ScanFlow({
@@ -661,7 +661,7 @@ export function ScanFlow({
         <button
           type="button"
           onClick={goBack}
-          className="min-h-11 rounded-none px-3 font-semibold text-[#d63384]"
+          className="scan-nav-button min-h-11 px-3 font-semibold text-[#8d2059]"
         >
           ← Back
         </button>
@@ -672,7 +672,7 @@ export function ScanFlow({
           type="button"
           disabled={state.step === 'saving' || state.step === 'success'}
           onClick={() => setDiscardOpen(true)}
-          className="min-h-11 rounded-none px-3 font-semibold text-[#9e1b55] disabled:opacity-40"
+          className="scan-nav-button min-h-11 px-3 font-semibold text-[#8d2059] disabled:opacity-40"
         >
           Cancel
         </button>
@@ -703,7 +703,7 @@ export function ScanFlow({
 
       {state.step === 'preview' && (
         <section className="scan-preview-panel paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             Spot a cat
           </p>
           <h1 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">Add this meeting to your scrapbook.</h1>
@@ -754,15 +754,15 @@ export function ScanFlow({
 
       {state.step === 'preparation-consent' && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#ef65ad]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             First local scan
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Preparing local AI</h1>
           <p className="mt-4 max-w-2xl leading-7 text-[#7f4b67]">
-            The detector and visual model files are not fully cached yet. Downloading them can use
-            noticeable data. Your cat photo is not sent to a hosted inference service.
+            The cat-finding models aren't fully downloaded yet. They may use a noticeable amount
+            of data, but your photo stays on this device for processing.
           </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="scan-action-row mt-6">
             <ActionButton onClick={() => void downloadAndContinue()}>
               Download models &amp; continue
             </ActionButton>
@@ -810,12 +810,12 @@ export function ScanFlow({
 
       {state.step === 'select-cat' && previewUrl && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             More than one cat
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Which cat are you adding?</h1>
           <p className="mt-3 leading-7 text-[#7f4b67]">
-            Choose the cat this encounter is about. Only that crop continues to the visual check.
+            Choose the cat this encounter is about. You'll choose their name or a saved cat next.
           </p>
 
           <div className="relative mt-6 overflow-hidden rounded-none border border-black/10 bg-[#ffd8ed]">
@@ -862,7 +862,7 @@ export function ScanFlow({
 
       {state.step === 'recoverable-error' && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#ef65ad]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             Try another look
           </p>
           <h1 className="mt-2 font-serif text-3xl font-semibold">We can recover from this.</h1>
@@ -874,7 +874,7 @@ export function ScanFlow({
               className="mt-6 max-h-80 w-full rounded-none border border-black/10 object-contain"
             />
           )}
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="scan-action-row scan-action-row-three mt-6">
             <ActionButton onClick={() => void retrySamePhoto()} disabled={!state.photo}>
               Try again
             </ActionButton>
@@ -896,7 +896,7 @@ export function ScanFlow({
         >
           {cats.length === 0 ? (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
                 First page
               </p>
               <h1 className="mt-2 font-serif text-4xl font-semibold">This looks like a new cat.</h1>
@@ -919,7 +919,7 @@ export function ScanFlow({
             </>
           ) : state.suggestion ? (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
                 Possible familiar face
               </p>
               <h1 className="mt-2 font-serif text-4xl font-semibold">
@@ -946,7 +946,7 @@ export function ScanFlow({
                   />
                 </div>
               </div>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="scan-action-row scan-action-row-three mt-6">
                 <ActionButton
                   onClick={() =>
                     dispatch({ type: 'CHOOSE_EXISTING', catId: state.suggestion!.catId })
@@ -967,7 +967,7 @@ export function ScanFlow({
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
                 Your call
               </p>
               <h1 className="mt-2 font-serif text-4xl font-semibold">No familiar cat suggested.</h1>
@@ -982,7 +982,7 @@ export function ScanFlow({
                   className="mt-6 max-h-96 w-full rounded-none border border-black/10 object-contain"
                 />
               )}
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div className="scan-action-row mt-6">
                 <ActionButton onClick={() => dispatch({ type: 'OPEN_EXISTING_PICKER' })}>
                   Choose an existing cat
                 </ActionButton>
@@ -997,7 +997,7 @@ export function ScanFlow({
 
       {state.step === 'existing-picker' && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             Your scrapbook
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">Which cat is this?</h1>
@@ -1027,7 +1027,7 @@ export function ScanFlow({
 
       {state.step === 'details' && (
         <section className="scan-details-panel paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
             Identity confirmed
           </p>
           <h1 className="mt-2 font-serif text-4xl font-semibold">
@@ -1122,7 +1122,7 @@ export function ScanFlow({
             <div className="meow-spinner mx-auto" aria-hidden="true" />
             <h1 className="mt-6 font-serif text-3xl font-semibold">Saving this encounter locally</h1>
             <p className="mt-3 leading-7 text-[#7f4b67]">
-              Success appears only after the cat and encounter transaction has fully committed.
+              Saving this cat's photo and encounter details in your browser.
             </p>
           </div>
         </section>
@@ -1132,7 +1132,7 @@ export function ScanFlow({
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <div className="mx-auto max-w-lg py-10 text-center">
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#ffd4e9] text-3xl">✓</div>
-            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-[#d63384]">
+            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.18em] text-[#a91f68]">
               Saved locally
             </p>
             <h1 className="mt-2 font-serif text-4xl font-semibold">
@@ -1143,7 +1143,7 @@ export function ScanFlow({
                 : 'Encounter saved.'}
             </h1>
             <p className="mt-3 leading-7 text-[#7f4b67]">
-              The photo, embedding, and encounter details are now committed to this browser.
+              Your cat's photo and encounter details are saved in this browser.
             </p>
             <div className="mt-6">
               <ActionButton onClick={onExit}>Back to collection</ActionButton>
@@ -1167,7 +1167,7 @@ export function ScanFlow({
               The photo, identity choice, name, and note in this scan will be cleared. Downloaded
               model files can stay cached.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="scan-action-row mt-6">
               <ActionButton variant="danger" onClick={discard}>
                 Discard scan
               </ActionButton>
