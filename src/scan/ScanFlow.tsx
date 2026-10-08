@@ -419,6 +419,11 @@ export function ScanFlow({
       );
       clearWarmTimers();
       cancelActive();
+      if (['preparing', 'detecting', 'embedding'].includes(stateRef.current.step)) {
+        // WASM kernels cannot be forcibly interrupted mid-inference. Stop the
+        // occupied worker so a future photo is not queued behind old work.
+        onResetAi?.();
+      }
       await onSavedForLater?.();
     } catch (reason) {
       setSaveForLaterError(
@@ -436,9 +441,12 @@ export function ScanFlow({
   }
 
   function goBack(): void {
+    const current = stateRef.current;
     clearWarmTimers();
     cancelActive();
-    const current = stateRef.current;
+    if (['preparing', 'detecting', 'embedding'].includes(current.step)) {
+      onResetAi?.();
+    }
     if (current.step === 'saving' || current.step === 'success') return;
     if (current.step === 'preview') {
       if (current.photo) setDiscardOpen(true);
