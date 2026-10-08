@@ -722,7 +722,7 @@ test('local profile personalizes the scrapbook and makes a downloadable story ca
   // Reload stays on the new dedicated studio route; it must restore the
   // selected cat and render locally without a new browser tab.
   await expect(page).toHaveURL(/studio/);
-  await expect(page.getByRole('heading', { name: /a story starring Mochi/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /a story starring Mochi/i })).toBeVisible();
   await page.getByRole('button', { name: '← Back to scrapbook' }).click();
   await expect(page.getByRole('button', { name: /Ayan.*edit/i })).toBeVisible();
 });
@@ -801,7 +801,7 @@ test('studio is a dedicated same-tab screen and browser Back restores the scrapb
   page.context().on('page', (newPage) => tabs.push(newPage.url()));
   await page.getByRole('button', { name: 'Make story card' }).click();
   await expect(page).toHaveURL(/studio/);
-  await expect(page.getByRole('heading', { name: /a story starring Mochi/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /a story starring Mochi/i })).toBeVisible();
   await expect(page.getByRole('img', { name: /9 by 16 story preview/ })).toBeVisible();
   expect(tabs).toHaveLength(0);
   await page.goBack();
