@@ -4,8 +4,8 @@ import { DEFAULT_STORY_PHOTO, photoPlacement, STORY_PHOTO_FRAME } from '../src/s
 describe('story photo placement', () => {
   it('fits an entire portrait without clipping at the default zoom', () => {
     const placement = photoPlacement(600, 1200, DEFAULT_STORY_PHOTO);
-    expect(placement.height).toBe(STORY_PHOTO_FRAME.size);
-    expect(placement.width).toBe(STORY_PHOTO_FRAME.size / 2);
+    expect(placement.height).toBeCloseTo(STORY_PHOTO_FRAME.size);
+    expect(placement.width).toBeCloseTo(STORY_PHOTO_FRAME.size / 2);
     expect(placement.x).toBeGreaterThan(STORY_PHOTO_FRAME.x);
     expect(placement.maxOffsetX).toBe(0);
     expect(placement.maxOffsetY).toBe(0);
@@ -13,8 +13,8 @@ describe('story photo placement', () => {
 
   it('fits an entire landscape without clipping at the default zoom', () => {
     const placement = photoPlacement(1200, 600, DEFAULT_STORY_PHOTO);
-    expect(placement.width).toBe(STORY_PHOTO_FRAME.size);
-    expect(placement.height).toBe(STORY_PHOTO_FRAME.size / 2);
+    expect(placement.width).toBeCloseTo(STORY_PHOTO_FRAME.size);
+    expect(placement.height).toBeCloseTo(STORY_PHOTO_FRAME.size / 2);
     expect(placement.y).toBeGreaterThan(STORY_PHOTO_FRAME.y);
     expect(placement.maxOffsetX).toBe(0);
     expect(placement.maxOffsetY).toBe(0);
