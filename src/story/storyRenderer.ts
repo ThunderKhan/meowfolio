@@ -1,4 +1,5 @@
 import type { CatRecord, EncounterRecord } from '../storage/types';
+import { photoPlacement, STORY_PHOTO_FRAME, type StoryPhotoSettings } from './storyFraming';
 
 export type StoryTheme = 'candy' | 'midnight' | 'buttercream';
 export const STORY_WIDTH = 1080;
@@ -6,10 +7,11 @@ export const STORY_HEIGHT = 1920;
 
 interface StoryInput {
   cat: Pick<CatRecord, 'name' | 'encounterCount'>;
-  encounter: Pick<EncounterRecord, 'timestamp' | 'crop' | 'note'>;
+  encounter: Pick<EncounterRecord, 'timestamp' | 'crop' | 'photo' | 'note'>;
   ownerName: string | null;
   theme: StoryTheme;
   includeNote: boolean;
+  photoSettings: StoryPhotoSettings;
 }
 
 function containText(value: string, maxLength: number): string {
@@ -22,16 +24,41 @@ function centerText(ctx: CanvasRenderingContext2D, text: string, y: number, maxW
   ctx.fillText(text, STORY_WIDTH / 2, y, maxWidth);
 }
 
-function drawCover(ctx: CanvasRenderingContext2D, bitmap: ImageBitmap, x: number, y: number, size: number) {
-  const scale = Math.max(size / bitmap.width, size / bitmap.height);
-  const w = bitmap.width * scale;
-  const h = bitmap.height * scale;
+function drawFramedPhoto(
+  ctx: CanvasRenderingContext2D,
+  bitmap: ImageBitmap,
+  settings: StoryPhotoSettings,
+  frameColor: string,
+  frameInk: string,
+): void {
+  const { x, y, size } = STORY_PHOTO_FRAME;
+  const placement = photoPlacement(bitmap.width, bitmap.height, settings);
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, size, size);
   ctx.clip();
-  ctx.drawImage(bitmap, x + (size - w) / 2, y + (size - h) / 2, w, h);
+  // A color-matched mat is shown around the *whole* photo in Fit mode,
+  // instead of cropping the cat just to fill a square.
+  ctx.fillStyle = frameColor;
+  ctx.fillRect(x, y, size, size);
+  ctx.fillStyle = frameInk;
+  ctx.globalAlpha = 0.12;
+  for (let line = x - size; line < x + size * 2; line += 28) {
+    ctx.beginPath();
+    ctx.moveTo(line, y);
+    ctx.lineTo(line + size, y + size);
+    ctx.strokeStyle = frameInk;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, placement.x, placement.y, placement.width, placement.height);
   ctx.restore();
+  ctx.strokeStyle = frameInk;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, size, size);
 }
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, lines: number): string[] {
@@ -53,7 +80,8 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, lin
 
 /** All drawing is done in the browser. No photos/notes/coordinates are uploaded. */
 export async function renderStoryCard(input: StoryInput): Promise<Blob> {
-  const bitmap = await createImageBitmap(input.encounter.crop);
+  const image = input.photoSettings.source === 'closeup' ? input.encounter.crop : input.encounter.photo;
+  const bitmap = await createImageBitmap(image);
   try {
     const canvas = document.createElement('canvas');
     canvas.width = STORY_WIDTH;
@@ -96,7 +124,7 @@ export async function renderStoryCard(input: StoryInput): Promise<Blob> {
     ctx.fillStyle = accent;
     ctx.fillRect(130, 333, 805, 5);
 
-    drawCover(ctx, bitmap, 130, 365, 805);
+    drawFramedPhoto(ctx, bitmap, input.photoSettings, night ? '#785b82' : butter ? '#f6dfbd' : '#f6c2dc', accent);
     ctx.fillStyle = accent;
     ctx.font = 'bold 40px monospace';
     ctx.fillText('✦ A LITTLE CAT I MET ✦', 132, 1240);
