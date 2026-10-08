@@ -1456,3 +1456,132 @@ textarea {
   .story-preview-wrap { width: min(76%, 230px); }
   .story-segmented label { font-size: 11px; padding-inline: 6px; gap: 4px; }
 }
+
+
+/* Dedicated in-tab studio, elevated scrapbook chrome, responsive action grids. */
+.studio-page {
+  background: radial-gradient(ellipse at 90% 0%, #ffadd5 0%, transparent 40%),
+    radial-gradient(ellipse at 5% 60%, #ffc7e0 0%, transparent 42%);
+}
+.studio-page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 2px solid #8e3864;
+  background: linear-gradient(130deg, #fff9fe, #ffd5ea);
+  box-shadow: 5px 6px 0 #c7659b, inset 0 3px 0 #fff;
+  padding: 12px;
+}
+.studio-page .story-studio { margin-top: 18px; }
+.studio-page .story-studio-body {
+  background: radial-gradient(ellipse at 95% 12%, rgba(255,192,225,.8), transparent 50%),
+    repeating-linear-gradient(0deg, #fff9fc 0 35px, #ffedf6 36px 38px);
+}
+.studio-page .story-controls,
+.studio-page .story-preview-wrap {
+  border: 2px solid #a95380;
+  background: rgba(255,251,254,.83);
+  box-shadow: 5px 6px 0 #d48eaf, inset 0 2px 0 #fff;
+  padding: 16px;
+}
+.studio-page .story-preview-wrap { width: min(100%, 400px); max-width: 400px; }
+.studio-page .story-studio-body { grid-template-columns: minmax(0,1fr) minmax(0,.85fr); }
+.story-export-actions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.story-export-actions > button { min-width: 0; width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.story-export-actions > button:last-child { grid-column: 1 / -1; }
+.story-theme-options { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.story-theme-option { min-width: 0; }
+.home-capture-actions, .scan-details-actions, .scan-warning-actions, .scan-processing-actions {
+  min-width: 0;
+}
+.pixel-photo-frame img { object-position: center; }
+.pixel-cat-card .pixel-photo-frame,
+.pixel-memory-card .pixel-photo-frame,
+.cat-profile-photo { background: #ffecf6; }
+.photo-expand-button {
+  position: absolute;
+  left: 7px;
+  bottom: 7px;
+  z-index: 5;
+  min-height: 39px;
+  border: 2px solid #7b3157;
+  background: rgba(255,249,253,.96);
+  color: #662040;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 6px 10px;
+  box-shadow: 2px 2px 0 #d787b2;
+}
+.photo-viewer-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: max(10px, env(safe-area-inset-top)) 12px max(10px, env(safe-area-inset-bottom));
+  background: rgba(38,16,36,.96);
+  color: #fff6fa;
+}
+.photo-viewer-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding-bottom: 12px;
+  font-size: 11px;
+  font-weight: 900;
+}
+.photo-viewer-topbar > button { flex: 0 0 auto; }
+.photo-viewer-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  border: 2px solid #ffc5e0;
+  background: radial-gradient(circle, #75506e, #251323);
+  cursor: grab;
+}
+.photo-viewer-stage img {
+  max-height: 100%;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  transform-origin: center;
+}
+.photo-viewer-caption { text-align: center; padding: 10px 0 0; font-size: 11px; }
+.pixel-cat-card,
+.pixel-memory-card,
+.pixel-window {
+  filter: drop-shadow(0 7px 10px rgba(110,31,76,.13));
+}
+@media (max-width: 760px) {
+  .studio-page .story-studio-body { grid-template-columns: minmax(0,1fr); }
+  .studio-page .story-preview-wrap {
+    width: min(66%, 240px);
+    max-width: none;
+    padding: 8px;
+  }
+  .studio-page .story-controls { padding: 12px; }
+  .studio-page-nav .pixel-secondary { min-height: 44px; }
+  .studio-page .story-export-actions { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .story-theme-options { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
+  .story-theme-option { min-height: 95px; padding: 8px; font-size: 11px; overflow-wrap: anywhere; }
+  .story-theme-option b { font-size: 10px; line-height: 1.4; }
+  .story-preview-wrap { order: -1; }
+}
+@media (max-width: 359px) {
+  .studio-page { padding-inline: 8px; }
+  .studio-page .story-preview-wrap { width: min(78%, 230px); }
+  .story-export-actions .pixel-primary, .story-export-actions .pixel-secondary {
+    padding: 8px 4px; font-size: 11px;
+  }
+}

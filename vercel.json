@@ -3,6 +3,7 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "rewrites": [{ "source": "/studio/:catId", "destination": "/" }],
   "headers": [
     {
       "source": "/",

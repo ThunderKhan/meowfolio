@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MeowfolioRepository } from '../storage/repository';
+import { PhotoViewer } from './PhotoViewer';
 import type { CatRecord, CatSummary, EncounterRecord } from '../storage/types';
-import { StoryStudio } from '../story/StoryStudio';
+
 
 interface ScrapbookProps {
   repository: MeowfolioRepository;
   refreshKey: number;
   onSpotCat: () => void;
   ownerName: string | null;
+  onCreateStory: (catId: string) => void;
 }
 
 interface CatCardView {
@@ -179,7 +181,7 @@ function Collection({
               <img
                 src={coverUrl}
                 alt={'Saved photo of ' + cat.name}
-                className="aspect-square w-full object-cover"
+                className="aspect-square w-full object-contain"
               />
               <span className="pixel-photo-label" aria-hidden="true">
                 IMG_{String(index + 1).padStart(3, '0')}.CAT
@@ -232,19 +234,21 @@ function CatDetail({
   onBack,
   onSpotCat,
   ownerName,
+  onCreateStory,
 }: {
   repository: MeowfolioRepository;
   catId: string;
   onBack: () => void;
   onSpotCat: () => void;
   ownerName: string | null;
+  onCreateStory: (catId: string) => void;
 }) {
   const [cat, setCat] = useState<CatRecord | null>(null);
   const [encounters, setEncounters] = useState<EncounterView[]>([]);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [storyOpen, setStoryOpen] = useState(false);
+  const [viewPhoto, setViewPhoto] = useState<{ src: string; alt: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -267,7 +271,7 @@ function CatDetail({
 
         const coverEncounter =
           records.find((encounter) => encounter.id === nextCat.coverEncounterId) ?? records[0];
-        const nextCover = coverEncounter ? URL.createObjectURL(coverEncounter.crop) : null;
+        const nextCover = coverEncounter ? URL.createObjectURL(coverEncounter.photo) : null;
         if (nextCover) urls.push(nextCover);
 
         setCat(nextCat);
@@ -316,7 +320,7 @@ function CatDetail({
           ← scrapbook
         </button>
         <div className="flex flex-wrap gap-3">
-          <button type="button" className="pixel-secondary" onClick={() => setStoryOpen((open) => !open)}>
+          <button type="button" className="pixel-secondary" onClick={() => onCreateStory(catId)}>
             ✦ Make story card
           </button>
           <button type="button" className="pixel-primary" onClick={onSpotCat}>
@@ -331,12 +335,12 @@ function CatDetail({
           <span aria-hidden="true">_ □ ×</span>
         </div>
         <div className="grid gap-6 p-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:p-7">
-          <div className="pixel-photo-frame rotate-[-1deg] self-start">
+          <div className="pixel-photo-frame rotate-[-1deg] self-start cat-profile-photo">
             {coverUrl ? (
               <img
                 src={coverUrl}
                 alt={'Cover photo of ' + cat.name}
-                className="aspect-square w-full object-cover"
+                className="aspect-square w-full object-contain"
               />
             ) : (
               <div className="grid aspect-square place-items-center bg-[#ffd8ed] text-3xl">
@@ -344,6 +348,7 @@ function CatDetail({
               </div>
             )}
             <span className="pixel-photo-label">★ FAVORITE MEMORY ★</span>
+            {coverUrl && <button type="button" className="photo-expand-button" onClick={() => setViewPhoto({ src: coverUrl, alt: 'Full photo of ' + cat.name })}>⤢ View full photo</button>}
           </div>
 
           <div className="self-center">
@@ -367,14 +372,7 @@ function CatDetail({
         </div>
       </section>
 
-      {storyOpen && encounters.length > 0 && (
-        <StoryStudio
-          cat={cat}
-          encounter={encounters[encounters.length - 1].encounter}
-          ownerName={ownerName}
-          onClose={() => setStoryOpen(false)}
-        />
-      )}
+      {viewPhoto && <PhotoViewer src={viewPhoto.src} alt={viewPhoto.alt} onClose={() => setViewPhoto(null)} />}
 
       <section className="mt-8" aria-labelledby="memory-log-title">
         <div className="flex items-end justify-between gap-4">
@@ -398,9 +396,10 @@ function CatDetail({
                   <img
                     src={photoUrl}
                     alt={'Encounter with ' + cat.name + ' on ' + formatDay(encounter.timestamp)}
-                    className="aspect-square w-full object-cover"
+                    className="aspect-square w-full object-contain"
                   />
                   <span className="pixel-photo-label">{formatDay(encounter.timestamp)}</span>
+                  <button type="button" className="photo-expand-button" onClick={() => setViewPhoto({ src: photoUrl, alt: 'Encounter with ' + cat.name })}>⤢ View full photo</button>
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#a91f68]">
@@ -430,7 +429,7 @@ function CatDetail({
   );
 }
 
-export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName }: ScrapbookProps) {
+export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCreateStory }: ScrapbookProps) {
   const { loading, cards, error } = useCatCards(repository, refreshKey);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
 
@@ -451,6 +450,7 @@ export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName }: Scra
         onBack={() => setSelectedCatId(null)}
         onSpotCat={onSpotCat}
         ownerName={ownerName}
+        onCreateStory={onCreateStory}
       />
     );
   }

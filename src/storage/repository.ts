@@ -220,7 +220,7 @@ export class MeowfolioRepository {
     const byId = new Map(encounters.map((encounter) => [encounter.id, encounter]));
     return cats.flatMap((cat) => {
       const cover = byId.get(cat.coverEncounterId);
-      return cover ? [{ cat, coverPhoto: cover.crop ?? cover.photo }] : [];
+      return cover ? [{ cat, coverPhoto: cover.photo ?? cover.crop }] : [];
     });
   }
 

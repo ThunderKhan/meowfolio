@@ -8,6 +8,7 @@ import { loadRuntimeCatalog } from './scan/referenceCatalog';
 import { RELEASE_MATCHING_POLICY } from './evaluation/releasePolicy';
 import { MatchingLab } from './evaluation/MatchingLab';
 import { Scrapbook } from './scrapbook/Scrapbook';
+import { StudioPage } from './story/StudioPage';
 import { PendingPhotos } from './scrapbook/PendingPhotos';
 import { ProfilePanel } from './profile/ProfilePanel';
 import { readLocalProfile, type LocalProfile } from './profile/localProfile';
@@ -65,6 +66,10 @@ export function App() {
   const [repository] = useState(() => new MeowfolioRepository());
   const [profile, setProfile] = useState<LocalProfile | null>(readLocalProfile);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [studioCatId, setStudioCatId] = useState<string | null>(() => {
+    const match = window.location.pathname.match(/^\/studio\/([^/]+)\/?$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  });
   const [ai, setAi] = useState<AiGateway | null>(null);
   const reusableAiRef = useRef<AiGateway | null>(null);
   const [scanCats, setScanCats] = useState<CatReference[]>([]);
@@ -81,6 +86,28 @@ export function App() {
       return false;
     }
   });
+
+  useEffect(() => {
+    const handlePop = () => {
+      const match = window.location.pathname.match(/^\/studio\/([^/]+)\/?$/);
+      setStudioCatId(match ? decodeURIComponent(match[1]) : null);
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []);
+
+  function openStudio(catId: string) {
+    window.history.pushState({ screen: 'studio', catId }, '', '/studio/' + encodeURIComponent(catId) + window.location.search);
+    setStudioCatId(catId);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function closeStudio() {
+    // Same-tab client-side navigation; retains existing scrapbook/photo data.
+    window.history.pushState({ screen: 'scrapbook' }, '', '/' + window.location.search);
+    setStudioCatId(null);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
 
   const fixtureCats = useMemo(() => testCatalog(catalogMode), [catalogMode]);
   const matchingPolicy: MatchingPolicy = useMemo(
@@ -218,6 +245,17 @@ export function App() {
 
   if (matchingLabEnabled) {
     return <MatchingLab onExit={() => window.location.assign(window.location.pathname)} />;
+  }
+
+  if (studioCatId) {
+    return (
+      <StudioPage
+        repository={repository}
+        catId={studioCatId}
+        ownerName={profile?.displayName ?? null}
+        onBack={closeStudio}
+      />
+    );
   }
 
   if (!welcomeComplete) {
@@ -373,6 +411,7 @@ export function App() {
         refreshKey={refreshKey}
         onSpotCat={openCameraOrScan}
         ownerName={profile?.displayName ?? null}
+        onCreateStory={openStudio}
       />
 
       <footer className="mt-9 border-t-2 border-dashed border-[#b7588b] py-5 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#82405f]">
