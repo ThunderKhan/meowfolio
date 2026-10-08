@@ -85,26 +85,31 @@ function useCatCards(
 
 function EmptyCollection({ onSpotCat }: { onSpotCat: () => void }) {
   return (
-    <section className="pixel-window mt-6" aria-labelledby="empty-scrapbook-title">
+    <section className="pixel-window mt-6 empty-scrapbook-panel" aria-labelledby="empty-scrapbook-title">
       <div className="pixel-window-title">
         <span>♥ meowfolio.exe</span>
         <span aria-hidden="true">□ ×</span>
       </div>
-      <div className="px-5 py-10 text-center sm:px-8">
-        <div className="pixel-sticker mx-auto" aria-hidden="true">
+      <div className="empty-scrapbook-body px-5 py-10 text-center sm:px-8">
+        <div className="pixel-sticker empty-scrapbook-sticker mx-auto" aria-hidden="true">
           ฅ^•ﻌ•^ฅ
         </div>
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-[#a91f68]">
+        <p className="empty-scrapbook-count mt-5 text-xs font-bold uppercase tracking-[0.16em] text-[#a91f68]">
           0 cats saved
         </p>
-        <h2 id="empty-scrapbook-title" className="pixel-heading mt-2 text-3xl">
+        <h2 id="empty-scrapbook-title" className="pixel-heading empty-scrapbook-title mt-2 text-3xl">
           Your Meowfolio is empty.
         </h2>
-        <p className="mx-auto mt-4 max-w-lg leading-7 text-[#6d3454]">
-          The next cat you meet can be the first page. Snap a photo, let the local AI find the
-          cat, then you decide who they are.
+        <p className="empty-scrapbook-description mx-auto mt-4 max-w-lg leading-7 text-[#6d3454]">
+          <span className="empty-description-desktop">
+            The next cat you meet can be the first page. Snap a photo, let the local AI find the
+            cat, then you decide who they are.
+          </span>
+          <span className="empty-description-mobile">
+            Every cat has a story. Start yours with the camera above. ♡
+          </span>
         </p>
-        <button type="button" className="pixel-primary mt-6" onClick={onSpotCat}>
+        <button type="button" className="pixel-primary empty-scrapbook-cta mt-6" onClick={onSpotCat}>
           ♥ Spot a cat ♥
         </button>
       </div>
@@ -123,7 +128,7 @@ function Collection({
 }) {
   return (
     <>
-      <section className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <section className="scrapbook-collection-heading mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="pixel-kicker">★ LOCAL CAT MEMORY ARCHIVE ★</p>
           <h1 className="pixel-heading mt-2 text-4xl sm:text-5xl">my meowfolio</h1>
@@ -137,13 +142,13 @@ function Collection({
         </button>
       </section>
 
-      <div className="pixel-divider my-6" aria-hidden="true">
+      <div className="pixel-divider scrapbook-divider my-6" aria-hidden="true">
         ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥
       </div>
 
       <section
         aria-label="Saved cats"
-        className="grid grid-cols-1 gap-5 min-[460px]:grid-cols-2 lg:grid-cols-3"
+        className="scrapbook-cards grid grid-cols-1 gap-5 min-[460px]:grid-cols-2 lg:grid-cols-3"
       >
         {cards.map(({ cat, coverUrl }, index) => (
           <button
@@ -185,7 +190,7 @@ function Collection({
         ))}
       </section>
 
-      <div className="mt-8 text-center">
+      <div className="scrapbook-collection-bottom mt-8 text-center">
         <button type="button" className="pixel-secondary" onClick={onSpotCat}>
           ✦ add another memory ✦
         </button>
