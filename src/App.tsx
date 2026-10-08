@@ -257,20 +257,27 @@ export function App() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 sm:py-9">
-      <header className="pixel-window">
+    <main className="home-page mx-auto min-h-screen max-w-6xl px-4 py-6 sm:px-6 sm:py-9">
+      <header className="pixel-window home-header">
         <div className="pixel-window-title">
           <span>♥ MEOWFOLIO.HTML</span>
           <span aria-hidden="true">_ □ ×</span>
         </div>
-        <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className="home-header-body flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="home-desktop-brand">
             <p className="pixel-kicker">personal neighborhood cat scrapbook</p>
             <p className="pixel-heading mt-1 text-2xl">meowfolio // local save file</p>
           </div>
+          <div className="home-mobile-brand">
+            <p className="pixel-kicker">✦ your neighborhood cat diary</p>
+            <p className="pixel-heading">meowfolio<span className="home-brand-heart"> ♥</span></p>
+            <p>tiny encounters, forever remembered.</p>
+          </div>
           <div className="home-capture-actions">
             <label htmlFor="home-camera" className="pixel-primary welcome-camera-button">
-              <span aria-hidden="true">📷</span> Quick camera
+              <span aria-hidden="true">📷</span>
+              <span className="home-action-desktop">Quick camera</span>
+              <span className="home-action-mobile">Camera</span>
             </label>
             <input
               id="home-camera"
@@ -281,7 +288,8 @@ export function App() {
               onChange={onQuickCameraPhoto}
             />
             <button type="button" className="pixel-secondary" onClick={() => void startScan()}>
-              Spot a cat
+              <span className="home-action-desktop">Spot a cat</span>
+              <span className="home-action-mobile">Add photo</span>
             </button>
           </div>
         </div>
