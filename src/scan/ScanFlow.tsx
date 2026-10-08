@@ -31,6 +31,7 @@ interface ScanFlowProps {
   initialPhoto?: File | null;
   initialPendingId?: string | null;
   onSavedForLater?: () => void | Promise<void>;
+  onResetAi?: () => void;
   ai: AiGateway;
   repository: MeowfolioRepository;
   cats?: CatReference[];
@@ -119,6 +120,7 @@ export function ScanFlow({
   initialPhoto = null,
   initialPendingId = null,
   onSavedForLater,
+  onResetAi,
   ai,
   repository,
   cats = [],
@@ -128,6 +130,7 @@ export function ScanFlow({
 }: ScanFlowProps) {
   const [state, dispatch] = useReducer(scanReducer, undefined, () => createScanState());
   const [modelsReady, setModelsReady] = useState(false);
+  useEffect(() => { setModelsReady(false); }, [ai]);
   const [savingForLater, setSavingForLater] = useState(false);
   const [saveForLaterError, setSaveForLaterError] = useState<string | null>(null);
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -190,6 +193,7 @@ export function ScanFlow({
     const expire = () => {
       if (generationRef.current !== generation) return;
       cancelActive();
+      onResetAi?.();
       generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
