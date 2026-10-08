@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  font-family: "Courier New", "Lucida Console", Monaco, ui-monospace, monospace;
+  font-family: "Trebuchet MS", Verdana, system-ui, sans-serif;
   color: #4a1834;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  --font-display: "Courier New", "Lucida Console", ui-monospace, monospace;
   background: #ffd7ec;
   font-synthesis: none;
   text-rendering: geometricPrecision;
@@ -13,7 +16,9 @@
   --pink-strong: #d63384;
   --pink-deep: #9f1f62;
   --ink: #4a1834;
-  --muted: #7f4b67;
+  --muted: #70415b;
+  --surface-warm: #fffafc;
+  --focus: #762251;
   --cream: #fffaf0;
   --pixel-border: #7b3157;
   --pixel-shadow: #b64f86;
@@ -34,16 +39,16 @@ body {
   min-height: 100vh;
   background-color: var(--pink-canvas);
   background-image:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.45) 25%, transparent 25%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.22) 25%, transparent 25%),
     linear-gradient(-45deg, rgba(255, 255, 255, 0.45) 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.45) 75%),
     linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.45) 75%);
-  background-size: 18px 18px;
+  background-size: 28px 28px;
   background-position:
     0 0,
-    0 9px,
-    9px -9px,
-    -9px 0;
+    0 14px,
+    14px -14px,
+    -14px 0;
 }
 
 body::before {
@@ -79,7 +84,10 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
-summary:focus-visible {
+summary:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+label:has(> input.sr-only:focus-visible) {
   outline: 3px dashed #8a1758;
   outline-offset: 4px;
 }
@@ -132,20 +140,18 @@ summary:focus-visible {
 .pixel-heading {
   font-family: "Courier New", "Lucida Console", Monaco, ui-monospace, monospace;
   font-weight: 900;
-  line-height: 1.02;
+  line-height: 1.12;
   color: #711447;
-  letter-spacing: -0.055em;
-  text-shadow:
-    1px 0 0 #fff,
-    0 1px 0 #fff,
-    2px 2px 0 #ffb7da;
+  letter-spacing: -0.035em;
+  overflow-wrap: break-word;
+  text-shadow: 1px 1px 0 #ffe2f0;
 }
 
 .pixel-kicker {
-  color: #a91f68;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.16em;
+  color: #8f1d59;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
 }
 
@@ -153,10 +159,15 @@ summary:focus-visible {
 .pixel-secondary {
   min-height: 48px;
   border: 2px solid #6f2149;
-  padding: 10px 16px;
+  padding: 10px 14px;
+  font-family: var(--font-display);
+  font-size: 0.94rem;
   font-weight: 900;
-  text-transform: lowercase;
-  letter-spacing: 0.01em;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-transform: none;
+  letter-spacing: 0;
   box-shadow:
     3px 3px 0 #8f3b66,
     inset 2px 2px 0 rgba(255, 255, 255, 0.9),
@@ -273,9 +284,9 @@ button:disabled {
   background: rgba(255, 246, 251, 0.94);
   padding: 2px 5px;
   color: #7e1c4f;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -288,7 +299,7 @@ button:disabled {
   background: #ffd4e9;
   padding: 3px 7px;
   color: #7d174d;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
   box-shadow: 2px 2px 0 #ef95c4;
@@ -302,9 +313,9 @@ button:disabled {
 
 .pixel-info-box dt {
   color: #a91f68;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
 }
 
 .pixel-info-box dd {
@@ -362,11 +373,11 @@ button:disabled {
 }
 
 .pixel-input,
-input,
+input:not([type="radio"]):not([type="checkbox"]):not([type="range"]):not([type="file"]),
 textarea {
-  border: 2px solid #9d3a6d !important;
-  background: #fffafd !important;
-  color: #4a1834 !important;
+  border: 2px solid #9d3a6d;
+  background: #fffafd;
+  color: #4a1834;
   box-shadow: inset 2px 2px 0 #f4bdd9;
 }
 
@@ -557,7 +568,7 @@ textarea {
   border-top: 2px solid #793050;
   background: #ffe1ef;
   color: #8d3862;
-  font-size: 0.63rem;
+  font-size: 0.75rem;
   font-weight: 800;
   text-align: center;
   letter-spacing: 0.045em;
@@ -618,8 +629,8 @@ textarea {
   }
 
   .home-mobile-brand .pixel-kicker {
-    font-size: 10px;
-    letter-spacing: 0.105em;
+    font-size: 12px;
+    letter-spacing: 0.055em;
   }
 
   .home-mobile-brand .pixel-heading {
@@ -634,8 +645,8 @@ textarea {
 
   .home-mobile-brand > p:last-child {
     margin-top: 7px;
-    color: #75435f;
-    font-size: 12px;
+    color: #63334e;
+    font-size: 14px;
     line-height: 1.3;
   }
 
@@ -694,7 +705,7 @@ textarea {
   .empty-scrapbook-description {
     margin-top: 9px;
     max-width: 33ch;
-    font-size: 0.82rem;
+    font-size: 0.95rem;
     line-height: 1.5;
   }
 
@@ -713,7 +724,7 @@ textarea {
 
   .scrapbook-collection-heading p:last-child {
     margin-top: 7px;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     line-height: 1.5;
   }
 
@@ -743,7 +754,7 @@ textarea {
   .home-page > footer {
     margin-top: 20px;
     padding: 12px 2px 8px;
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.6;
   }
 }
@@ -810,16 +821,17 @@ textarea {
 
   .welcome-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
     margin-top: 16px;
   }
 
   .welcome-actions .pixel-primary,
   .welcome-actions .pixel-secondary {
-    min-height: 48px;
-    padding: 11px 12px;
-    font-size: 0.9rem;
+    min-width: 0;
+    min-height: 52px;
+    padding: 10px 6px;
+    font-size: 0.83rem;
   }
 
   .welcome-privacy {
@@ -1121,7 +1133,7 @@ textarea {
     min-width: 0;
     padding: 10px 6px;
     min-height: 52px;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
   }
   .scan-defer-row > button {
     width: 100%;
