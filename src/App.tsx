@@ -268,7 +268,7 @@ export function App() {
             <p className="pixel-kicker">personal neighborhood cat scrapbook</p>
             <p className="pixel-heading mt-1 text-2xl">meowfolio // local save file</p>
           </div>
-          <div className="home-mobile-brand" aria-hidden="true">
+          <div className="home-mobile-brand">
             <p className="pixel-kicker">✦ your neighborhood cat diary</p>
             <p className="pixel-heading">meowfolio<span className="home-brand-heart"> ♥</span></p>
             <p>tiny encounters, forever remembered.</p>
