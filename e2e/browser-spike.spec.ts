@@ -825,3 +825,33 @@ test('saved cat photos open an on-device pinch viewer and close without mutation
   await page.getByRole('button', { name: '← Close photo' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+
+test('visual audit captures welcome, collection, profile, cat detail and studio across viewports', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/?mockAi=single');
+  await page.screenshot({ path: 'audit-screenshots/01-welcome-mobile.png', fullPage: true });
+  await page.getByRole('button', { name: /Open my scrapbook/ }).click();
+  await page.screenshot({ path: 'audit-screenshots/02-empty-mobile.png', fullPage: true });
+  await page.getByRole('button', { name: /Create my space/i }).click();
+  await page.screenshot({ path: 'audit-screenshots/03-profile-mobile.png', fullPage: true });
+  await page.getByLabel('Your display name').fill('Auditor');
+  await page.getByRole('button', { name: 'Save my profile' }).click();
+
+  // Mock-AI is used only for a UI snapshot fixture. No real model downloads.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await saveFirstCat(page, photo, 'Sunshine', 'A beautiful little cat I met today.');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.screenshot({ path: 'audit-screenshots/04-collection-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
+  await page.screenshot({ path: 'audit-screenshots/05-cat-detail-desktop.png', fullPage: true });
+  await page.getByRole('button', { name: 'Make story card' }).click();
+  await expect(page.getByRole('img', { name: /9 by 16 story preview/ })).toBeVisible();
+  await page.screenshot({ path: 'audit-screenshots/06-studio-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: 'audit-screenshots/07-studio-mobile.png', fullPage: true });
+  await page.getByRole('button', { name: '← Back to scrapbook' }).click();
+  await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
+  await page.screenshot({ path: 'audit-screenshots/08-cat-detail-mobile.png', fullPage: true });
+});
