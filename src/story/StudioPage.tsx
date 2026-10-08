@@ -37,6 +37,10 @@ export function StudioPage({
     return () => { active = false; };
   }, [catId, repository]);
 
+  useEffect(() => {
+    if (entry) document.getElementById('studio-title')?.focus();
+  }, [entry]);
+
   return (
     <main className="studio-page min-h-screen px-3 py-4 sm:px-6 sm:py-8">
       <div className="studio-page-shell mx-auto max-w-6xl">
