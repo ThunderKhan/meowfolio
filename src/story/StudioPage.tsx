@@ -14,6 +14,12 @@ export function StudioPage({
   const [entry, setEntry] = useState<{ cat: CatRecord; encounter: EncounterRecord } | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'Story Studio · Meowfolio';
+    return () => { document.title = previousTitle; };
+  }, []);
+
+  useEffect(() => {
     let active = true;
     setEntry(null);
     setError(null);
@@ -36,7 +42,7 @@ export function StudioPage({
       <div className="studio-page-shell mx-auto max-w-6xl">
         <header className="studio-page-nav">
           <button type="button" className="pixel-secondary" onClick={onBack}>← Back to scrapbook</button>
-          <span className="pixel-kicker">♡ meowfolio / creative studio</span>
+          <span className="pixel-kicker">Meowfolio · Story Studio</span>
         </header>
         {error ? (
           <section className="pixel-window mt-6 p-6" role="alert">
@@ -45,14 +51,13 @@ export function StudioPage({
             <button type="button" className="pixel-secondary mt-5" onClick={onBack}>Back to scrapbook</button>
           </section>
         ) : !entry ? (
-          <section className="pixel-window mt-6 p-8" role="status">Loading your creative studio…</section>
+          <section className="pixel-window mt-6 p-8" role="status">Opening the saved photo…</section>
         ) : (
           <StoryStudio
             key={catId}
             cat={entry.cat}
             encounter={entry.encounter}
             ownerName={ownerName}
-            onClose={onBack}
           />
         )}
       </div>
