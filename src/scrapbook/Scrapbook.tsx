@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MeowfolioRepository } from '../storage/repository';
 import type { CatRecord, CatSummary, EncounterRecord } from '../storage/types';
-import { StoryStudio } from '../story/StoryStudio';
+
 
 interface ScrapbookProps {
   repository: MeowfolioRepository;
   refreshKey: number;
   onSpotCat: () => void;
   ownerName: string | null;
+  onCreateStory: (catId: string) => void;
 }
 
 interface CatCardView {
@@ -232,19 +233,21 @@ function CatDetail({
   onBack,
   onSpotCat,
   ownerName,
+  onCreateStory,
 }: {
   repository: MeowfolioRepository;
   catId: string;
   onBack: () => void;
   onSpotCat: () => void;
   ownerName: string | null;
+  onCreateStory: (catId: string) => void;
 }) {
   const [cat, setCat] = useState<CatRecord | null>(null);
   const [encounters, setEncounters] = useState<EncounterView[]>([]);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [storyOpen, setStoryOpen] = useState(false);
+
 
   useEffect(() => {
     let active = true;
@@ -316,7 +319,7 @@ function CatDetail({
           ← scrapbook
         </button>
         <div className="flex flex-wrap gap-3">
-          <button type="button" className="pixel-secondary" onClick={() => setStoryOpen((open) => !open)}>
+          <button type="button" className="pixel-secondary" onClick={() => onCreateStory(catId)}>
             ✦ Make story card
           </button>
           <button type="button" className="pixel-primary" onClick={onSpotCat}>
@@ -366,15 +369,6 @@ function CatDetail({
           </div>
         </div>
       </section>
-
-      {storyOpen && encounters.length > 0 && (
-        <StoryStudio
-          cat={cat}
-          encounter={encounters[encounters.length - 1].encounter}
-          ownerName={ownerName}
-          onClose={() => setStoryOpen(false)}
-        />
-      )}
 
       <section className="mt-8" aria-labelledby="memory-log-title">
         <div className="flex items-end justify-between gap-4">
@@ -430,7 +424,7 @@ function CatDetail({
   );
 }
 
-export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName }: ScrapbookProps) {
+export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCreateStory }: ScrapbookProps) {
   const { loading, cards, error } = useCatCards(repository, refreshKey);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
 
@@ -451,6 +445,7 @@ export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName }: Scra
         onBack={() => setSelectedCatId(null)}
         onSpotCat={onSpotCat}
         ownerName={ownerName}
+        onCreateStory={onCreateStory}
       />
     );
   }
