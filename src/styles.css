@@ -1185,9 +1185,6 @@ textarea {
     color: #785068;
     opacity: 1;
   }
-  .scan-details-panel .text-\\[\\#d63384\\] {
-    color: #9e1857;
-  }
   .scan-details-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
