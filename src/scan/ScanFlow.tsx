@@ -695,7 +695,7 @@ export function ScanFlow({
         state.step === 'embedding') && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <div className="mx-auto max-w-xl py-10 text-center">
-            <div className="mx-auto h-12 w-12 animate-pulse rounded-full border-4 border-[#d63384]/20 border-t-[#d63384]" />
+            <div className="meow-spinner mx-auto" aria-hidden="true" />
             <h1 className="mt-6 font-serif text-3xl font-semibold">
               {state.step === 'preparing'
                 ? 'Getting local AI ready'
@@ -1026,7 +1026,7 @@ export function ScanFlow({
       {state.step === 'saving' && (
         <section className="paper-shadow rounded-none border border-black/10 bg-[#fff6fb] p-5 sm:p-7">
           <div className="mx-auto max-w-lg py-12 text-center">
-            <div className="mx-auto h-12 w-12 animate-pulse rounded-full border-4 border-[#d63384]/20 border-t-[#d63384]" />
+            <div className="meow-spinner mx-auto" aria-hidden="true" />
             <h1 className="mt-6 font-serif text-3xl font-semibold">Saving this encounter locally</h1>
             <p className="mt-3 leading-7 text-[#7f4b67]">
               Success appears only after the cat and encounter transaction has fully committed.
