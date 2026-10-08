@@ -71,10 +71,10 @@ function ActionButton({
     variant === 'primary'
       ? 'pixel-primary'
       : variant === 'danger'
-        ? 'border-2 border-[#6f2149] bg-[#9e1b55] text-white shadow-[3px_3px_0_#7b3157]'
+        ? 'pixel-danger'
         : variant === 'secondary'
           ? 'pixel-secondary'
-          : 'border-2 border-dashed border-[#a91f68] bg-[#fff6fb] text-[#9f1f62]';
+          : 'pixel-quiet';
 
   return (
     <button
@@ -113,7 +113,7 @@ function CatPhoto({
     );
   }
 
-  return <img src={src} alt={alt} className={'rounded-none object-cover ' + className} />;
+  return <img src={src} alt={alt} className={'rounded-none object-contain ' + className} />;
 }
 
 export function ScanFlow({
@@ -661,7 +661,7 @@ export function ScanFlow({
         <button
           type="button"
           onClick={goBack}
-          className="min-h-11 rounded-none px-3 font-semibold text-[#d63384]"
+          className="scan-nav-button min-h-11 px-3 font-semibold text-[#8d2059]"
         >
           ← Back
         </button>
@@ -672,7 +672,7 @@ export function ScanFlow({
           type="button"
           disabled={state.step === 'saving' || state.step === 'success'}
           onClick={() => setDiscardOpen(true)}
-          className="min-h-11 rounded-none px-3 font-semibold text-[#9e1b55] disabled:opacity-40"
+          className="scan-nav-button min-h-11 px-3 font-semibold text-[#8d2059] disabled:opacity-40"
         >
           Cancel
         </button>
@@ -762,7 +762,7 @@ export function ScanFlow({
             The detector and visual model files are not fully cached yet. Downloading them can use
             noticeable data. Your cat photo is not sent to a hosted inference service.
           </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="scan-action-row mt-6">
             <ActionButton onClick={() => void downloadAndContinue()}>
               Download models &amp; continue
             </ActionButton>
@@ -874,7 +874,7 @@ export function ScanFlow({
               className="mt-6 max-h-80 w-full rounded-none border border-black/10 object-contain"
             />
           )}
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="scan-action-row scan-action-row-three mt-6">
             <ActionButton onClick={() => void retrySamePhoto()} disabled={!state.photo}>
               Try again
             </ActionButton>
@@ -946,7 +946,7 @@ export function ScanFlow({
                   />
                 </div>
               </div>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="scan-action-row scan-action-row-three mt-6">
                 <ActionButton
                   onClick={() =>
                     dispatch({ type: 'CHOOSE_EXISTING', catId: state.suggestion!.catId })
@@ -982,7 +982,7 @@ export function ScanFlow({
                   className="mt-6 max-h-96 w-full rounded-none border border-black/10 object-contain"
                 />
               )}
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div className="scan-action-row mt-6">
                 <ActionButton onClick={() => dispatch({ type: 'OPEN_EXISTING_PICKER' })}>
                   Choose an existing cat
                 </ActionButton>
@@ -1167,7 +1167,7 @@ export function ScanFlow({
               The photo, identity choice, name, and note in this scan will be cleared. Downloaded
               model files can stay cached.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="scan-action-row mt-6">
               <ActionButton variant="danger" onClick={discard}>
                 Discard scan
               </ActionButton>
