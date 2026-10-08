@@ -103,7 +103,7 @@ export class MeowfolioRepository {
     return this.dbPromise;
   }
 
-  async savePendingPhoto(photo: Blob, id = crypto.randomUUID(), filename = 'cat-photo.jpg'): Promise<PendingPhoto> {
+  async savePendingPhoto(photo: Blob, id: string = crypto.randomUUID(), filename = 'cat-photo.jpg'): Promise<PendingPhoto> {
     const db = await this.open();
     const tx = db.transaction(PENDING_PHOTOS, 'readwrite');
     const done = transactionDone(tx);
