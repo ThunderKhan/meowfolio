@@ -1130,7 +1130,9 @@ textarea {
 }
 @media (max-width: 350px) {
   .scan-capture-actions > button {
-    font-size: 0.83rem;
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
     padding-inline: 1px;
   }
   .empty-mobile-steps span:not([aria-hidden]) {
