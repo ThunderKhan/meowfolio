@@ -1,6 +1,6 @@
 import type { CatRecord, EncounterRecord } from '../storage/types';
 
-export type StoryTheme = 'candy' | 'midnight';
+export type StoryTheme = 'candy' | 'midnight' | 'buttercream';
 export const STORY_WIDTH = 1080;
 export const STORY_HEIGHT = 1920;
 
@@ -62,19 +62,20 @@ export async function renderStoryCard(input: StoryInput): Promise<Blob> {
     if (!ctx) throw new Error('Your browser cannot generate a story card.');
 
     const night = input.theme === 'midnight';
-    const bg = night ? '#322248' : '#ffe4ef';
-    const paper = night ? '#4b365e' : '#fff8fb';
-    const ink = night ? '#fff5fc' : '#642343';
-    const accent = night ? '#ffb7de' : '#b52873';
+    const butter = input.theme === 'buttercream';
+    const bg = night ? '#322248' : butter ? '#f9dfaf' : '#ffe4ef';
+    const paper = night ? '#4b365e' : butter ? '#fff8e5' : '#fff8fb';
+    const ink = night ? '#fff5fc' : butter ? '#694132' : '#642343';
+    const accent = night ? '#ffb7de' : butter ? '#b76940' : '#b52873';
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
     const glow = ctx.createRadialGradient(200, 270, 30, 500, 850, 1150);
-    glow.addColorStop(0, night ? '#7c4679' : '#ffd1e5');
+    glow.addColorStop(0, night ? '#7c4679' : butter ? '#fff2cc' : '#ffd1e5');
     glow.addColorStop(1, bg);
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, STORY_WIDTH, STORY_HEIGHT);
     // Dotted paper texture makes the exported image feel tactile.
-    ctx.fillStyle = night ? 'rgba(255,215,241,0.12)' : 'rgba(157,58,109,0.12)';
+    ctx.fillStyle = night ? 'rgba(255,215,241,0.12)' : butter ? 'rgba(121,78,50,0.14)' : 'rgba(157,58,109,0.12)';
     for (let y = 35; y < STORY_HEIGHT; y += 40) {
       for (let x = 32; x < STORY_WIDTH; x += 40) ctx.fillRect(x, y, 3, 3);
     }
@@ -83,7 +84,7 @@ export async function renderStoryCard(input: StoryInput): Promise<Blob> {
     ctx.translate(540, 975);
     ctx.rotate(night ? 0.022 : -0.022);
     ctx.translate(-540, -975);
-    ctx.fillStyle = night ? '#20172e' : '#be6c96';
+    ctx.fillStyle = night ? '#20172e' : butter ? '#b78864' : '#be6c96';
     ctx.fillRect(106, 258, 888, 1290);
     ctx.fillStyle = paper;
     ctx.fillRect(88, 240, 888, 1290);
