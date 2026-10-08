@@ -1,14 +1,38 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent } from 'react';
 
 /** Non-destructive viewer: full saved photo remains unchanged in IndexedDB. */
 export function PhotoViewer({ src, alt, onClose }: {
   src: string; alt: string; onClose: () => void;
 }) {
   const [zoom, setZoom] = useState(1);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const points = useRef(new Map<number, { x: number; y: number }>());
   const last = useRef<{ x: number; y: number } | null>(null);
   const pinch = useRef<{ distance: number; zoom: number } | null>(null);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      previousFocus?.focus();
+    };
+  }, []);
+
+  function trapFocus(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Tab') return;
+    const buttons = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not([disabled])') ?? []);
+    if (!buttons.length) return;
+    const current = document.activeElement;
+    const first = buttons[0];
+    const last = buttons[buttons.length - 1];
+    if (event.shiftKey && current === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && current === last) { event.preventDefault(); first.focus(); }
+  }
 
   useEffect(() => {
     function escape(event: KeyboardEvent) {
@@ -53,12 +77,21 @@ export function PhotoViewer({ src, alt, onClose }: {
     }
   }
   function reset() { setZoom(1); setOffset({ x: 0, y: 0 }); }
+  function changeZoom(amount: number) {
+    setZoom(value => Math.max(1, Math.min(5, value + amount)));
+    if (amount < 0 && zoom + amount <= 1) setOffset({ x: 0, y: 0 });
+  }
   return (
-    <div className="photo-viewer-backdrop" role="dialog" aria-modal="true" aria-label={'View full photo: ' + alt}>
+    <div ref={dialogRef} onKeyDown={trapFocus} className="photo-viewer-backdrop" role="dialog" aria-modal="true" aria-label={'View full photo: ' + alt}>
       <div className="photo-viewer-topbar">
-        <button type="button" className="pixel-secondary" onClick={onClose}>← Close photo</button>
-        <span>♡ original photo · pinch to zoom</span>
-        <button type="button" className="pixel-secondary" onClick={reset}>↺ Reset</button>
+        <button ref={closeRef} type="button" className="pixel-secondary" onClick={onClose}>← Close photo</button>
+        <span className="photo-viewer-topbar-label">Original photo · private to this browser</span>
+        <div className="photo-viewer-actions">
+          <button type="button" className="pixel-secondary" aria-label="Zoom out" disabled={zoom <= 1} onClick={() => changeZoom(-0.5)}>−</button>
+          <span aria-live="polite">{Math.round(zoom * 100)}%</span>
+          <button type="button" className="pixel-secondary" aria-label="Zoom in" disabled={zoom >= 5} onClick={() => changeZoom(0.5)}>+</button>
+          <button type="button" className="pixel-secondary" onClick={reset}>↺ Reset</button>
+        </div>
       </div>
       <div
         className="photo-viewer-stage"
@@ -68,7 +101,7 @@ export function PhotoViewer({ src, alt, onClose }: {
         <img src={src} alt={alt} draggable={false}
           style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }} />
       </div>
-      <p className="photo-viewer-caption">Pinch to zoom • drag when zoomed • double tap or Reset to fit</p>
+      <p className="photo-viewer-caption">Pinch to zoom or use the buttons · drag to explore · Reset to fit</p>
     </div>
   );
 }
