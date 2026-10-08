@@ -864,3 +864,47 @@ test('visual audit captures welcome, collection, profile, cat detail and studio 
   await expect(page.getByRole('heading', { name: 'Sunshine', exact: true })).toBeVisible();
   await page.screenshot({ path: 'audit-screenshots/08-cat-detail-mobile.png', fullPage: true });
 });
+
+
+test('option cards hide native radio circles while preserving selection and keyboard access', async ({ page, request }) => {
+  await page.setViewportSize({ width: 1728, height: 960 });
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await page.getByRole('button', { name: /create my local profile/i }).click();
+  const star = page.getByRole('radio', { name: 'Star sticker' });
+  await expect(star).toHaveCSS('opacity', '0');
+  await star.check();
+  await expect(star).toBeChecked();
+  await expect(star.locator('xpath=..')).toHaveClass(/is-selected/);
+  await page.getByLabel('Your display name').fill('Ayan');
+  await page.screenshot({ path: 'audit-screenshots/10-profile-wide.png', fullPage: true });
+  const measure = await page.locator('.home-page').boundingBox();
+  if (!measure) throw new Error('Missing main scrapbook layout.');
+  expect(measure.width).toBeGreaterThan(1400);
+  await page.getByRole('button', { name: 'Save my profile' }).click();
+
+  const photo = await catPhoto(request);
+  await saveFirstCat(page, photo, 'Sunshine');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await expect(page.getByRole('button', { name: /Open Sunshine, met 1 time/ })).toBeVisible();
+  await page.screenshot({ path: 'audit-screenshots/11-collection-wide.png', fullPage: true });
+  await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
+  await page.getByRole('button', { name: 'Make story card' }).click();
+  await expect(page.getByRole('img', { name: /9 by 16 story preview/ })).toBeVisible();
+
+  const midnight = page.getByRole('radio', { name: 'Midnight diary' });
+  await expect(midnight).toHaveCSS('opacity', '0');
+  await midnight.check();
+  await expect(midnight).toBeChecked();
+  await expect(midnight.locator('xpath=..')).toHaveClass(/is-selected/);
+  const closeup = page.getByRole('radio', { name: 'Cat close-up' });
+  await expect(closeup).toHaveCSS('opacity', '0');
+  await closeup.check();
+  await expect(closeup).toBeChecked();
+  await page.screenshot({ path: 'audit-screenshots/12-studio-wide.png', fullPage: true });
+  expect(await page.getByText('_ □ ×').count()).toBe(0);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+  await page.screenshot({ path: 'audit-screenshots/13-studio-option-cards-mobile.png', fullPage: true });
+});
