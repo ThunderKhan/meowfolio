@@ -783,7 +783,7 @@ test('story photo framing defaults to whole original and exports repositioned PN
   expect((await download).suggestedFilename()).toBe('meowfolio-sunshine-story.png');
   expect(await preview.getAttribute('src')).toBe(adjustedUrl);
 
-  await page.getByRole('button', { name: /Reset photo framing/ }).click();
+  await page.getByRole('button', { name: /Reset framing/ }).click();
   await expect(page.getByRole('radio', { name: 'Fit whole photo' })).toBeChecked();
   await expect(page.getByRole('radio', { name: 'Original photo' })).toBeChecked();
   await expect(zoom).toHaveValue('100');
