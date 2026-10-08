@@ -1,10 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-const ONE_PIXEL_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/2ioAAAAASUVORK5CYII=',
-  'base64',
-);
-
 test('production ignores development-only query flags and renders the real pixel scrapbook', async ({ page }) => {
   const requests: string[] = [];
   page.on('request', (request) => {
@@ -37,10 +32,22 @@ test('ordinary production scan requires consent before model download', async ({
   await page.goto('/');
   await page.getByRole('button', { name: /start my meowfolio/i }).click();
   await page.getByRole('button', { name: /spot a cat/i }).first().click();
+  // Generate the fixture in Chromium itself so the image is definitely
+  // decodable by the same createImageBitmap path that the app uses.
+  const pngBase64 = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas unavailable in production smoke.');
+    context.fillStyle = '#ffbadc';
+    context.fillRect(0, 0, 64, 64);
+    return canvas.toDataURL('image/png').split(',')[1];
+  });
   await page.locator('#cat-photo').setInputFiles({
-    name: 'tiny.png',
+    name: 'generated.png',
     mimeType: 'image/png',
-    buffer: ONE_PIXEL_PNG,
+    buffer: Buffer.from(pngBase64, 'base64'),
   });
   await expect(page.getByRole('button', { name: 'Find the cat' })).toBeEnabled();
   await page.getByRole('button', { name: 'Find the cat' }).click();
