@@ -43,9 +43,9 @@ export function StudioPage({
 
   return (
     <main className="studio-page min-h-screen px-3 py-4 sm:px-6 sm:py-8">
-      <div className="studio-page-shell mx-auto max-w-6xl">
+      <div className="studio-page-shell mx-auto max-w-[96rem]">
         <header className="studio-page-nav">
-          <button type="button" className="pixel-secondary" onClick={onBack}>← Back to scrapbook</button>
+          <button type="button" className="pixel-secondary" onClick={onBack}>Back to scrapbook</button>
           <div className="studio-page-identity">
             <p className="pixel-kicker">Meowfolio / Creative Studio</p>
             <h1 id="studio-title" tabIndex={-1} className="pixel-heading">
