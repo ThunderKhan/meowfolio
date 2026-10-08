@@ -756,6 +756,10 @@ test('story photo framing defaults to whole original and exports repositioned PN
   await expect(vertical).toBeEnabled();
   const startY = await vertical.inputValue();
   const target = page.getByRole('button', { name: /Drag photo to reposition/ });
+  // Zoom focus scrolls the editor controls into view; bring the photo back
+  // into the viewport before sending mouse coordinates to the drag target.
+  await target.scrollIntoViewIfNeeded();
+  await expect(target).toBeInViewport();
   const box = await target.boundingBox();
   if (!box) throw new Error('Story crop drag target was not visible.');
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
