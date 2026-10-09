@@ -2357,7 +2357,7 @@ details > summary::marker {
   color: #922159;
   font-variant-numeric: tabular-nums;
 }
-.meow-collection-anchor { min-width: 0; scroll-margin-top: 12px; }
+#cat-collection { min-width: 0; scroll-margin-top: 12px; }
 .meow-footer-credit {
   display: inline-block;
   margin-left: 12px;
