@@ -2235,3 +2235,22 @@ details > summary::marker {
     scroll-behavior: auto !important;
   }
 }
+
+
+/* A timeline Polaroid is narrow: place its full-photo action opposite the
+   date sticker instead of stacking both labels across the same bottom edge. */
+.pixel-memory-card .photo-expand-button {
+  top: 9px;
+  right: 9px;
+  bottom: auto;
+  left: auto;
+  max-width: calc(100% - 18px);
+}
+/* On mouse/keyboard selection, distinguish the current image without relying
+   on opacity/color changes alone. */
+.cat-gallery-thumbnail:focus-visible,
+.photo-viewer-nav:focus-visible,
+.photo-expand-button:focus-visible {
+  outline: 3px dashed var(--focus);
+  outline-offset: 3px;
+}
