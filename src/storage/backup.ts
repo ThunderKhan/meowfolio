@@ -98,7 +98,33 @@ function decodeBlob(raw: unknown): Blob {
   return new Blob([bytes], { type: raw.type });
 }
 
+/**
+ * Reject obviously oversized archives before reading camera-sized Blobs into
+ * JS memory. Base64 alone has a known 4/3 expansion; the final JSON size
+ * check below still protects against metadata exceeding the limit.
+ */
+function assertBackupCanFit(contents: BackupContents): void {
+  let base64Bytes = 0;
+  const accountFor = (blob: Blob) => {
+    if (!Number.isSafeInteger(blob.size) || blob.size < 0) {
+      throw new Error('Backup contains a photo with an invalid size.');
+    }
+    base64Bytes += Math.ceil(blob.size / 3) * 4;
+    if (base64Bytes > MAX_BACKUP_FILE_BYTES) {
+      throw new Error(
+        'The backup exceeds the 200 MB mobile import limit. Try exporting on a computer.',
+      );
+    }
+  };
+  for (const record of contents.encounters) {
+    accountFor(record.photo);
+    accountFor(record.crop);
+  }
+  for (const pending of contents.pendingPhotos) accountFor(pending.photo);
+}
+
 export async function createBackupDocument(contents: BackupContents): Promise<string> {
+  assertBackupCanFit(contents);
   const cats: EncodedCat[] = contents.cats.map((cat) => ({
     ...cat,
     referenceEmbeddingSum: Array.from(cat.referenceEmbeddingSum),
