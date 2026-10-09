@@ -380,14 +380,14 @@ export function App() {
         <div className="home-header-body flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="home-desktop-brand">
             <p className="pixel-kicker">personal neighborhood cat scrapbook</p>
-            <p className="pixel-heading mt-1 text-2xl">meowfolio // local save file</p>
+            <h1 className="pixel-heading mt-1 text-2xl">meowfolio // local save file</h1>
             <button type="button" className="profile-shortcut mt-3" onClick={() => setProfileOpen((value) => !value)}>
               {profile ? profile.avatar + '  ' + profile.displayName + ' · edit my space' : '♡ Create my local profile'}
             </button>
           </div>
           <div className="home-mobile-brand">
             <p className="pixel-kicker">✦ your neighborhood cat diary</p>
-            <p className="pixel-heading">meowfolio<span className="home-brand-heart"> ♥</span></p>
+            <h1 className="pixel-heading">meowfolio<span className="home-brand-heart"> ♥</span></h1>
             <p>tiny encounters, forever remembered.</p>
             <button type="button" className="profile-shortcut mt-2" onClick={() => setProfileOpen((value) => !value)}>
               {profile ? profile.avatar + '  ' + profile.displayName + ' · edit' : '♡ Create my space'}
