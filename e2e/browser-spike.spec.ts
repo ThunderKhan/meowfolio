@@ -905,6 +905,109 @@ test('repeat cat encounter photos form a thumbnail carousel and a navigable full
   await expect(page.getByRole('heading', { name: 'encounter log' })).toBeVisible();
 });
 
+
+test('collection reads only cover photos rather than every archived encounter blob', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  const result = await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const before = await repository.getCatSummaries();
+    const original = IDBObjectStore.prototype.getAll;
+    let unauthorizedReads = 0;
+    IDBObjectStore.prototype.getAll = function (...args: Parameters<IDBObjectStore['getAll']>) {
+      if (this.name === 'encounters') {
+        unauthorizedReads++;
+        throw new Error('Fetching every encounter blob is prohibited on collection load.');
+      }
+      return original.apply(this, args);
+    };
+    try {
+      const result = await repository.getCatSummaries();
+      return {
+        originals: before.length,
+        summaries: result.length,
+        sameCover: result[0]?.coverPhoto.size === before[0]?.coverPhoto.size,
+        copiedMetadata: result[0]?.cat !== before[0]?.cat,
+        unauthorizedReads,
+      };
+    } finally {
+      IDBObjectStore.prototype.getAll = original;
+    }
+  });
+  expect(result).toEqual({
+    originals: 1, summaries: 1, sameCover: true,
+    copiedMetadata: true, unauthorizedReads: 0,
+  });
+});
+
+test('saving a replacement during queued-photo processing preserves the original inbox item', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await page.evaluate(async (bytes) => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    await repository.savePendingPhoto(
+      new Blob([new Uint8Array(bytes)], { type: 'image/png' }),
+      'queued-original', 'original-cat.png',
+    );
+  }, Array.from(photo));
+  await page.reload();
+  await page.getByRole('button', { name: 'Process photo' }).click();
+  await expect(page.getByRole('img', { name: 'Cat encounter preview' })).toBeVisible();
+  await page.locator('#cat-photo').setInputFiles({
+    name: 'different-cat.png',
+    mimeType: 'image/png',
+    buffer: photo,
+  });
+  await page.getByRole('button', { name: 'Find cat' }).click();
+  await expect(page.getByTestId('identity-screen')).toBeVisible();
+  await page.getByRole('button', { name: 'Name this cat' }).click();
+  await page.getByLabel('Cat name').fill('Other cat');
+  await page.getByRole('button', { name: 'Save encounter' }).click();
+  await expect(page.getByRole('heading', { name: 'Other cat is in your Meowfolio.' })).toBeVisible();
+  const saved = await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const pending = await repository.listPendingPhotos();
+    const cats = await repository.listCats();
+    return {
+      pendingIds: pending.map((item: any) => item.id),
+      pendingNames: pending.map((item: any) => item.filename),
+      cats: cats.map((cat: any) => cat.name),
+    };
+  });
+  expect(saved).toEqual({
+    pendingIds: ['queued-original'],
+    pendingNames: ['original-cat.png'],
+    cats: ['Other cat'],
+  });
+});
+
+test('save for later after replacing a queued photo creates a separate inbox record', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await page.evaluate(async (bytes) => {
+    await (window as any).__MEOWFOLIO_E2E_REPOSITORY__.savePendingPhoto(
+      new Blob([new Uint8Array(bytes)], { type: 'image/png' }),
+      'queued-original', 'original-cat.png',
+    );
+  }, Array.from(photo));
+  await page.reload();
+  await page.getByRole('button', { name: 'Process photo' }).click();
+  await page.locator('#cat-photo').setInputFiles({
+    name: 'replacement-cat.png', mimeType: 'image/png', buffer: photo,
+  });
+  await page.getByRole('button', { name: /Save photo for later/i }).click();
+  await expect(page.getByRole('heading', { name: /saved for later/i })).toBeVisible();
+  const records = await page.evaluate(async () =>
+    (await (window as any).__MEOWFOLIO_E2E_REPOSITORY__.listPendingPhotos())
+      .map((item: any) => ({ id: item.id, filename: item.filename })),
+  );
+  expect(records).toHaveLength(2);
+  expect(records).toContainEqual({ id: 'queued-original', filename: 'original-cat.png' });
+  expect(records.some((item: { id: string; filename: string }) =>
+    item.id !== 'queued-original' && item.filename === 'replacement-cat.png')).toBe(true);
+});
+
 test('visual audit captures welcome, collection, profile, cat detail and studio across viewports', async ({ page, request }) => {
   const photo = await catPhoto(request);
   await page.setViewportSize({ width: 390, height: 844 });
