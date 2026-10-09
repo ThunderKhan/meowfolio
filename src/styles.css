@@ -2254,3 +2254,12 @@ details > summary::marker {
   outline: 3px dashed var(--focus);
   outline-offset: 3px;
 }
+
+
+/* The archive grid is naturally left-aligned for a collection. With only
+   one cat, a small card marooned in the first column looks accidental:
+   center one featured memory and give its photo real breathing room. */
+.scrapbook-cards:has(> .pixel-cat-card:only-child) {
+  grid-template-columns: minmax(0, min(100%, 420px));
+  justify-content: center;
+}
