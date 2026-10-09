@@ -133,7 +133,7 @@ export class AiClient implements AiGateway {
 
   async checkAssets(
     provider: 'auto' | ExecutionProvider,
-    requestId = crypto.randomUUID(),
+    requestId: string = crypto.randomUUID(),
   ): Promise<Extract<WorkerResponse, { type: 'ASSET_STATUS' }>> {
     return (await this.request(
       { type: 'CHECK_ASSETS', requestId, provider },
@@ -144,7 +144,7 @@ export class AiClient implements AiGateway {
   async loadModels(
     provider: 'auto' | ExecutionProvider,
     allowDownload: boolean,
-    requestId = crypto.randomUUID(),
+    requestId: string = crypto.randomUUID(),
   ): Promise<Extract<WorkerResponse, { type: 'MODELS_READY' }>> {
     return (await this.request(
       { type: 'LOAD_MODELS', requestId, provider, allowDownload },
@@ -155,7 +155,7 @@ export class AiClient implements AiGateway {
   async detect(
     image: Blob,
     threshold = 0.25,
-    requestId = crypto.randomUUID(),
+    requestId: string = crypto.randomUUID(),
   ): Promise<Extract<WorkerResponse, { type: 'DETECTIONS' }>> {
     return (await this.request(
       { type: 'DETECT_IMAGE', requestId, image, threshold },
@@ -165,7 +165,7 @@ export class AiClient implements AiGateway {
 
   async embed(
     image: Blob,
-    requestId = crypto.randomUUID(),
+    requestId: string = crypto.randomUUID(),
   ): Promise<Extract<WorkerResponse, { type: 'EMBEDDING_RESULT' }>> {
     return (await this.request(
       { type: 'EMBED_CROP', requestId, image },
