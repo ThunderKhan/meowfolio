@@ -1,5 +1,65 @@
 import { expect, test } from '@playwright/test';
 
+test('Open Graph and X cards advertise the real production image in server-delivered HTML', async ({ page, request }) => {
+  const origin = 'https://mymeowfolio.vercel.app';
+  const imageUrl = origin + '/og-image.png';
+  const response = await request.get('/');
+  expect(response.ok()).toBe(true);
+  const html = await response.text();
+
+  // Social crawlers typically do not execute JavaScript: tags must be in
+  // the initial server-delivered HTML, not just rendered by React.
+  expect(html).toContain('property="og:type" content="website"');
+  expect(html).toContain('property="og:site_name" content="Meowfolio"');
+  expect(html).toContain('property="og:image" content="' + imageUrl + '"');
+  expect(html).toContain('name="twitter:card" content="summary_large_image"');
+
+  await page.goto('/');
+  const meta = (selector: string) => page.locator('head ' + selector);
+  await expect(meta('meta[property="og:title"]'))
+    .toHaveAttribute('content', 'Meowfolio — Little cats, big memories');
+  await expect(meta('meta[property="og:description"]'))
+    .toHaveAttribute('content', /private, local-AI scrapbook/);
+  await expect(meta('meta[property="og:url"]'))
+    .toHaveAttribute('content', origin + '/');
+  await expect(meta('meta[property="og:image"]'))
+    .toHaveAttribute('content', imageUrl);
+  await expect(meta('meta[property="og:image:secure_url"]'))
+    .toHaveAttribute('content', imageUrl);
+  await expect(meta('meta[property="og:image:type"]'))
+    .toHaveAttribute('content', 'image/png');
+  await expect(meta('meta[property="og:image:alt"]'))
+    .toHaveAttribute('content', /pink Y2K pixel-art/);
+  await expect(meta('meta[name="twitter:card"]'))
+    .toHaveAttribute('content', 'summary_large_image');
+  await expect(meta('meta[name="twitter:image"]'))
+    .toHaveAttribute('content', imageUrl);
+  await expect(meta('meta[name="twitter:title"]'))
+    .toHaveAttribute('content', 'Meowfolio — Little cats, big memories');
+  await expect(meta('meta[name="twitter:image:alt"]'))
+    .toHaveAttribute('content', /pixel cat/);
+  await expect(meta('link[rel="canonical"]'))
+    .toHaveAttribute('href', origin + '/');
+
+  // Vite must copy the uploaded binary into dist, not serve index.html
+  // at the image URL through the SPA fallback.
+  const image = await request.get('/og-image.png');
+  expect(image.ok()).toBe(true);
+  expect(image.headers()['content-type']).toMatch(/image\/png/i);
+  const bytes = await image.body();
+  expect(bytes.length).toBeGreaterThan(1024);
+  expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+
+  const dimensions = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = '/og-image.png';
+    await img.decode();
+    return { width: img.naturalWidth, height: img.naturalHeight };
+  });
+  expect(dimensions.width).toBeGreaterThanOrEqual(600);
+  expect(dimensions.height).toBeGreaterThanOrEqual(315);
+});
+
 test('serves the custom Meowfolio cat as a real browser favicon and Apple touch icon', async ({ page, request }) => {
   await page.goto('/');
   const icon = page.locator('head link[rel="icon"]');
