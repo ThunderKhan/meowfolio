@@ -971,7 +971,7 @@ test('studio titlebar navigation returns to the saved cat collection', async ({ 
   const photo = await catPhoto(request);
   await page.goto('/?skipWelcome=1&mockAi=single');
   await saveFirstCat(page, photo, 'Mochi');
-  await page.getByRole('button', { name: /create a story card/i }).click();
+  await page.getByRole('button', { name: /make story card/i }).click();
   await expect(page).toHaveURL(/\/studio\//);
   const nav = page.getByRole('navigation', { name: 'Primary navigation' });
   await nav.getByRole('button', { name: 'Cats' }).click();
