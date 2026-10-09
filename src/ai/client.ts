@@ -32,18 +32,27 @@ interface PendingRequest {
 }
 
 export class AiClient implements AiGateway {
-  private readonly worker: Worker;
+  private worker: Worker | null = null;
   private readonly pending = new Map<string, PendingRequest>();
   private readonly onProgress?: AiProgressListener;
+  private disposed = false;
 
   constructor(onProgress?: AiProgressListener) {
     this.onProgress = onProgress;
-    this.worker = new Worker(new URL('./worker.ts', import.meta.url), {
+    this.spawnWorker();
+  }
+
+  private spawnWorker(): Worker {
+    if (this.disposed) throw new Error('AI client is disposed.');
+    const worker = new Worker(new URL('./worker.ts', import.meta.url), {
       type: 'module',
       name: 'meowfolio-ai',
     });
+    this.worker = worker;
 
-    this.worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      // An event from a terminated worker must not settle a newer request.
+      if (this.worker !== worker || this.disposed) return;
       const message = event.data;
       const pending = this.pending.get(message.requestId);
 
@@ -65,11 +74,28 @@ export class AiClient implements AiGateway {
       this.onProgress?.(message);
     };
 
-    this.worker.onerror = (event) => {
-      const error = new Error(event.message || 'AI worker crashed.');
-      for (const pending of this.pending.values()) pending.reject(error);
-      this.pending.clear();
+    worker.onerror = (event) => {
+      this.failWorker(worker, new Error(event.message || 'AI worker crashed.'));
     };
+    worker.onmessageerror = () => {
+      this.failWorker(worker, new Error('AI worker sent an unreadable message.'));
+    };
+    return worker;
+  }
+
+  /**
+   * Reject all work once and discard the broken worker. The next request
+   * starts a clean worker; no stale model-ready state is assumed by ScanFlow.
+   */
+  private failWorker(worker: Worker, error: Error): void {
+    if (this.worker !== worker) return;
+    this.worker = null;
+    worker.onmessage = null;
+    worker.onerror = null;
+    worker.onmessageerror = null;
+    worker.terminate();
+    for (const pending of this.pending.values()) pending.reject(error);
+    this.pending.clear();
   }
 
   private request(
@@ -77,12 +103,31 @@ export class AiClient implements AiGateway {
     finalTypes: WorkerResponse['type'][],
   ): Promise<WorkerResponse> {
     return new Promise((resolve, reject) => {
+      if (this.disposed) {
+        reject(new Error('AI client is disposed.'));
+        return;
+      }
+      if (this.pending.has(request.requestId)) {
+        reject(new Error('Duplicate AI request ID: ' + request.requestId));
+        return;
+      }
+      let worker: Worker;
+      try {
+        worker = this.worker ?? this.spawnWorker();
+      } catch (error) {
+        reject(error);
+        return;
+      }
       this.pending.set(request.requestId, {
         finalTypes: new Set(finalTypes),
         resolve,
         reject,
       });
-      this.worker.postMessage(request);
+      try {
+        worker.postMessage(request);
+      } catch (error) {
+        this.failWorker(worker, error instanceof Error ? error : new Error('AI worker unavailable.'));
+      }
     });
   }
 
@@ -134,14 +179,20 @@ export class AiClient implements AiGateway {
       this.pending.delete(requestId);
       pending.reject(new Error('CANCELLED: This request was cancelled.'));
     }
-    this.worker.postMessage({ type: 'CANCEL_REQUEST', requestId } satisfies WorkerRequest);
+    const worker = this.worker;
+    if (!worker || this.disposed) return;
+    try {
+      worker.postMessage({ type: 'CANCEL_REQUEST', requestId } satisfies WorkerRequest);
+    } catch (error) {
+      this.failWorker(worker, error instanceof Error ? error : new Error('AI worker unavailable.'));
+    }
   }
 
   dispose(): void {
-    const requestId = crypto.randomUUID();
-    this.worker.postMessage({ type: 'DISPOSE', requestId } satisfies WorkerRequest);
-    this.worker.terminate();
-    for (const pending of this.pending.values()) pending.reject(new Error('AI client disposed.'));
-    this.pending.clear();
+    if (this.disposed) return;
+    this.disposed = true;
+    const worker = this.worker;
+    if (worker) this.failWorker(worker, new Error('AI client disposed.'));
+    // A previously crashed worker has already rejected its outstanding work.
   }
 }
