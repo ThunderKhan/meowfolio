@@ -75,6 +75,8 @@ export function App() {
   const reusableAiRef = useRef<AiGateway | null>(null);
   const [scanCats, setScanCats] = useState<CatReference[]>([]);
   const scanCatUrlsRef = useRef<string[]>([]);
+  const catalogRefreshVersionRef = useRef(0);
+  const scanStartVersionRef = useRef(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [scanning, setScanning] = useState(false);
   const [initialScanPhoto, setInitialScanPhoto] = useState<File | null>(null);
@@ -131,24 +133,30 @@ export function App() {
   );
 
   const refreshScanCats = useCallback(async () => {
-    if (catalogMode) {
-      setScanCats(fixtureCats);
+    // Save, import and Scan can refresh simultaneously. Only the last
+    // invocation may publish its catalog; stale loads release their Blob URLs.
+    const version = ++catalogRefreshVersionRef.current;
+    const replaceCatalog = (cats: CatReference[], urls: string[]) => {
+      if (version !== catalogRefreshVersionRef.current) {
+        for (const url of urls) URL.revokeObjectURL(url);
+        return;
+      }
+      setScanCats(cats);
       for (const url of scanCatUrlsRef.current) URL.revokeObjectURL(url);
-      scanCatUrlsRef.current = [];
+      scanCatUrlsRef.current = urls;
+    };
+    if (catalogMode) {
+      replaceCatalog(fixtureCats, []);
       return;
     }
 
     try {
       const catalog = await loadRuntimeCatalog(repository, RELEASE_MATCHING_POLICY);
-      setScanCats(catalog.cats);
-      for (const url of scanCatUrlsRef.current) URL.revokeObjectURL(url);
-      scanCatUrlsRef.current = catalog.objectUrls;
+      replaceCatalog(catalog.cats, catalog.objectUrls);
     } catch {
-      // Scrapbook rendering owns the visible read-error state. A failed reference
-      // refresh simply leaves manual identity with no preloaded saved-cat choices.
-      setScanCats([]);
-      for (const url of scanCatUrlsRef.current) URL.revokeObjectURL(url);
-      scanCatUrlsRef.current = [];
+      // Scrapbook displays the storage error; a failed latest refresh falls
+      // back to manual identity without destroying a newer successful result.
+      replaceCatalog([], []);
     }
   }, [catalogMode, fixtureCats, repository]);
 
@@ -160,6 +168,8 @@ export function App() {
     }
 
     return () => {
+      catalogRefreshVersionRef.current += 1;
+      scanStartVersionRef.current += 1;
       for (const url of scanCatUrlsRef.current) URL.revokeObjectURL(url);
       scanCatUrlsRef.current = [];
       repository.close();
@@ -179,7 +189,10 @@ export function App() {
   }
 
   async function startScan(photo: File | null = null, pendingId: string | null = null): Promise<void> {
+    const version = ++scanStartVersionRef.current;
     await refreshScanCats();
+    // The user may have selected a newer photo while the catalog was loading.
+    if (version !== scanStartVersionRef.current) return;
 
     // Retain the worker/models between encounters; do not force each scan to
     // reinitialize the same large models or re-download existing assets.
@@ -195,6 +208,7 @@ export function App() {
   }
 
   function leaveScan(): void {
+    scanStartVersionRef.current += 1;
     setScanning(false);
     setInitialScanPhoto(null);
     setInitialPendingId(null);
