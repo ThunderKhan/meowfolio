@@ -36,7 +36,7 @@ interface ScanFlowProps {
   repository: MeowfolioRepository;
   cats?: CatReference[];
   matchingPolicy?: MatchingPolicy;
-  onSaved?: () => void | Promise<void>;
+  onSaved?: (processedPendingId: string | null) => void | Promise<void>;
   onExit: () => void;
 }
 
@@ -141,6 +141,7 @@ export function ScanFlow({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const acceptedInitialPhotoRef = useRef<File | null>(null);
+  const photoValidationTokenRef = useRef(0);
   const stateRef = useRef<ScanState>(state);
   const generationRef = useRef(state.generation);
   const activeRequestRef = useRef<string | null>(null);
@@ -382,6 +383,7 @@ export function ScanFlow({
   }
 
   async function setSelectedPhoto(file: File): Promise<void> {
+    const token = ++photoValidationTokenRef.current;
     setSaveForLaterError(null);
     clearWarmTimers();
     cancelActive();
@@ -397,8 +399,10 @@ export function ScanFlow({
       const valid = bitmap.width > 0 && bitmap.height > 0;
       bitmap.close();
       if (!valid) throw new Error('Image has no usable dimensions.');
+      if (token !== photoValidationTokenRef.current) return;
       dispatch({ type: 'SET_PHOTO', photo: file });
     } catch {
+      if (token !== photoValidationTokenRef.current) return;
       setPhotoValidationError(
         'I couldn’t read that image. Choose another photo in a format your browser can open.',
       );
@@ -414,7 +418,9 @@ export function ScanFlow({
       // Store the original, full-resolution photo, not a detection crop.
       await repository.savePendingPhoto(
         photo,
-        initialPendingId ?? stateRef.current.encounterId,
+        // Replacing a queued photo must never overwrite its inbox ID.
+        (initialPendingId && photo === initialPhoto ? initialPendingId : null) ??
+          stateRef.current.encounterId,
         photo.name,
       );
       clearWarmTimers();
@@ -563,7 +569,10 @@ export function ScanFlow({
         identity,
       });
 
-      await onSaved?.();
+      // Only remove an inbox item if the saved bytes belong to that item.
+      await onSaved?.(
+        initialPendingId && current.photo === initialPhoto ? initialPendingId : null,
+      );
       dispatch({ type: 'SAVE_SUCCESS', catName: result.cat.name });
     } catch (error) {
       dispatch({
@@ -603,6 +612,7 @@ export function ScanFlow({
 
     window.addEventListener('popstate', onPopState);
     return () => {
+      photoValidationTokenRef.current += 1;
       window.removeEventListener('popstate', onPopState);
       clearWarmTimers();
       cancelActive();

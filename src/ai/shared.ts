@@ -146,7 +146,7 @@ export function pinModelAssetUrl(
   origin = 'https://meowfolio.invalid',
 ): URL | null {
   const url = asUrl(input, origin);
-  if (url.hostname !== 'huggingface.co') return null;
+  if (url.protocol !== 'https:' || url.hostname !== 'huggingface.co') return null;
 
   for (const model of [MODEL_MANIFEST.detector, MODEL_MANIFEST.embedder]) {
     const base = '/' + model.id + '/resolve/';
@@ -173,6 +173,8 @@ export function classifyAiNetworkRequest(
   const url = asUrl(input, origin);
 
   if (url.origin === origin) return 'same-origin';
+  // Only secure off-origin model/runtime assets may pass this allowlist.
+  if (url.protocol !== 'https:') return 'blocked';
 
   if (url.hostname === 'huggingface.co') {
     const pinned = [MODEL_MANIFEST.detector, MODEL_MANIFEST.embedder].some((model) => {

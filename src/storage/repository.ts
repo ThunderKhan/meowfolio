@@ -212,17 +212,32 @@ export class MeowfolioRepository {
   }
 
   async getCatSummaries(): Promise<CatSummary[]> {
-    const cats = await this.listCats();
     const db = await this.open();
-    const tx = db.transaction(ENCOUNTERS, 'readonly');
-    const encounters = (await request(tx.objectStore(ENCOUNTERS).getAll())) as EncounterRecord[];
-    await transactionDone(tx);
-
-    const byId = new Map(encounters.map((encounter) => [encounter.id, encounter]));
-    return cats.flatMap((cat) => {
-      const cover = byId.get(cat.coverEncounterId);
-      return cover ? [{ cat, coverPhoto: cover.photo ?? cover.crop }] : [];
-    });
+    // Read cat metadata and only the nominated cover encounter for each cat.
+    // Loading every encounter's original photo just to display the collection
+    // makes both startup time and peak memory grow with the entire archive.
+    // One readonly transaction also gives cats and their covers a consistent snapshot.
+    const tx = db.transaction([CATS, ENCOUNTERS], 'readonly');
+    const done = transactionDone(tx);
+    try {
+      const cats = (await request(tx.objectStore(CATS).getAll())) as CatRecord[];
+      const encounters = tx.objectStore(ENCOUNTERS);
+      const covers = await Promise.all(cats.map((cat) =>
+        request(encounters.get(cat.coverEncounterId)) as Promise<EncounterRecord | undefined>,
+      ));
+      await done;
+      return cats
+        .map((cat, index) => ({ cat, cover: covers[index] }))
+        .filter((item) => item.cover?.catId === item.cat.id)
+        .sort((left, right) => right.cat.lastSeenAt - left.cat.lastSeenAt)
+        .map(({ cat, cover }) => ({
+          cat: cloneCat(cat),
+          coverPhoto: (cover as EncounterRecord).photo ?? (cover as EncounterRecord).crop,
+        }));
+    } catch (error) {
+      try { await done; } catch { /* Preserve the original read error. */ }
+      throw error;
+    }
   }
 
   async listEncountersForCat(catId: string): Promise<EncounterRecord[]> {
