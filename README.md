@@ -17,9 +17,10 @@ Photograph a cat, let two locally executed computer-vision models find and descr
 - 👤 **Local profile**: set a scrapbook display name and sticker avatar, and edit them anytime. This is explicitly **not a sign-in account**: no password, server, or cross-device sync.
 - 📱 **Story Studio**: open any saved cat, choose **Make story card**, and export a 1080×1920 PNG for Instagram/WhatsApp Stories. Three original themes (Candy, Midnight, Golden Hour), optional encounter note off by default, no location/EXIF overlay and no image upload. The editor now defaults to the **full original photo (Fit)** rather than the cat detector's close-up crop; you can opt into **Fill** or **Cat close-up**, pinch-free zoom via slider (100–300%), drag the photo in the story preview, use X/Y position sliders or arrow keys, and reset the framing. The downloaded PNG exactly matches the rendered preview.
 - 💿 **Pinned model cache fallback**: on-device Cache Storage keeps approved model/runtime responses across reloads; future scans reuse the same revisions when files remain cached. If files are removed by browser storage eviction, explicit download consent is shown again.
+- 💾 **Private portable backup:** export complete saved cat and encounter records (full photos, embeddings, notes and optional locations) plus pending-photo inbox to a local JSON file. Restore is version-checked, additive and transactional: duplicate IDs reject the whole restore without overwriting an existing memory. Keep the backup file private.
 - 🧪 Local-only Matching Lab in development mode for reproducible real-photo matching evaluations.
 
-**Scope limitations:** This is a hackathon proof of concept, not a validated pet-identification or outdoor tracking service. The benchmark was not a field test. Browsers can evict locally cached models and, depending on storage conditions, local scrapbook records; there is no cloud sync, backup/export or multi-device transfer in the MVP. Clearing site data, changing profiles, or changing the production **origin** can lose access to saved records. Do not use this for precise public animal location sharing.
+**Scope limitations:** This is a hackathon proof of concept, not a validated pet-identification or outdoor tracking service. The benchmark was not a field test. Browsers can evict locally cached models and, depending on storage conditions, local scrapbook records; there is no cloud sync or automatic multi-device transfer. Manual backup/export and restore require an explicit downloaded JSON file (mobile import limit 200 MB). Clearing site data, changing profiles, or changing the production **origin** can lose access to saved records. Do not use this for precise public animal location sharing.
 
 ## Stack and execution
 
@@ -33,6 +34,10 @@ Photograph a cat, let two locally executed computer-vision models find and descr
 - IndexedDB uses atomic transactions and idempotent encounter IDs. Its schema v2 also stores pending photo inbox records without changing existing saved-cat data. Similarity references do not combine embeddings from incompatible model/preprocessing versions.
 
 See [architecture](docs/ARCHITECTURE.md), [AI evaluation](docs/AI_EVALUATION.md), [dependencies and license register](docs/DEPENDENCIES_LICENSES.md), and [release guide](docs/DEPLOYMENT_RELEASE.md).
+
+## Backup and restore
+
+Open **Back up or restore my cats** near the bottom of the scrapbook. **Download backup** exports full cat/encounter records and pending inbox photos to a JSON file without uploading anything. On the target browser/origin, use **Restore backup**. An import either adds all its records or adds none; conflicts with existing IDs are refused rather than overwritten. For a full restore, use an empty scrapbook. The backup includes photos, notes, embeddings and optional precise coordinates, so **do not share the file publicly**. Large camera libraries may exceed the 200 MB mobile-import limit; this feature is not an automatic cloud backup. Export regularly and verify the file is stored safely.
 
 ## Run locally
 
@@ -78,7 +83,7 @@ Meowfolio does **not** upload cat photos to Vercel. The Vercel server only provi
 - Unprocessed **Save photo for later** originals are stored separately in the `pendingPhotos` IndexedDB store until processed, confirmed, and committed (or manually deleted).
 - AI model weights and supporting WASM runtime files use browser-managed caches. They are **not** the same storage as the scrapbook photos.
 - Display name/avatar live in origin-scoped `localStorage` separately from cat photos. Story cards are rendered locally into a temporary canvas/Blob and downloaded or shared only when explicitly requested.
-- Storage is tied to **this device, this browser profile, and the HTTPS origin** `https://mymeowfolio.vercel.app`. It does not sync across phones/computers. Clearing site data, browser storage eviction, or changing the website domain may make these photos unavailable; there is not yet an export/backup feature.
+- Storage is tied to **this device, this browser profile, and the HTTPS origin** `https://mymeowfolio.vercel.app`. It does not sync across phones/computers. Clearing site data, browser storage eviction, or changing the website domain may make these photos unavailable; manual Download backup and Restore backup controls are available in the scrapbook. Backups contain private images and any saved locations, so store them securely.
 - A temporary IndexedDB upgrade block can occur when a previously loaded version of Meowfolio still holds a connection. Current releases wait for the old connection to release, close their own connection on version-change requests, and let failed opens retry. **Never clear site data as a first troubleshooting step.**
 
 ## Privacy and honest evidence

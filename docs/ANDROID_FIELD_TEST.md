@@ -22,6 +22,7 @@ Models: pinned YOLOS-tiny + DINOv2-small; current release scan uses WASM
 - [ ] Model/runtime asset host availability, legal notices and repo license decision reviewed.
 - [ ] A full new-cat and manually confirmed repeat-cat flow passes on a real Android Chrome device.
 - [ ] Existing scrapbook contents survive a **same-origin redeploy**.
+- [ ] Private Download backup JSON is valid; restore on an empty browser profile recovers photos, counts, history and pending inbox. A repeated import must reject with no data overwritten.
 - [ ] Frontend test/dev-only routes are inaccessible in the production build.
 
 ## Hands-on protocol — one Android phone
@@ -99,6 +100,7 @@ Test 320px viewport, large controls, visible focus, reduced motion, a no-cat pho
 | Repeat-cat manual association/reopen | NOT TESTED |
 | Same-origin redeploy persistence | NOT TESTED |
 | Host/network privacy inspection | NOT TESTED |
+| Backup export/import with real saved photos | NOT TESTED |
 
 ## Decision
 
