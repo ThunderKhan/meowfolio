@@ -98,6 +98,45 @@ describe('private Meowfolio portable backup', () => {
     expect(() => parseBackupDocument(JSON.stringify(archive))).toThrow(/without its cat/i);
   });
 
+
+  it('rejects invalid geographic coordinates and inaccurate location types', async () => {
+    const base = JSON.parse(await createBackupDocument(fixture()));
+    base.encounters[0].location.latitude = 91;
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/invalid encounter/i);
+    base.encounters[0].location.latitude = 20;
+    base.encounters[0].location.accuracy = -1;
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/invalid encounter/i);
+    base.encounters[0].location = 'somewhere';
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/invalid encounter/i);
+  });
+
+  it('rejects broken detection geometry, scores and optional notes', async () => {
+    const base = JSON.parse(await createBackupDocument(fixture()));
+    base.encounters[0].detection.box.xmin = 12;
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/invalid encounter/i);
+    base.encounters[0].detection.box.xmin = 0;
+    base.encounters[0].detection.score = 4;
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/invalid encounter/i);
+    base.encounters[0].detection.score = 0.9;
+    base.encounters[0].note = { invalid: true };
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/invalid encounter/i);
+  });
+
+  it('rejects inconsistent cat counters and broken embedding metadata', async () => {
+    const base = JSON.parse(await createBackupDocument(fixture()));
+    base.cats[0].referenceEmbeddingCount = 9;
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/invalid cat/i);
+    base.cats[0].referenceEmbeddingCount = 1;
+    base.cats[0].embeddingSpace.dimension = 2.5;
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/embedding format/i);
+    base.cats[0].embeddingSpace.dimension = 2;
+    base.cats[0].embeddingSpace.pooling = 'unknown';
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/embedding format/i);
+    base.cats[0].embeddingSpace.pooling = 'cls-token';
+    base.cats[0].firstSeenAt = 500;
+    expect(() => parseBackupDocument(JSON.stringify(base))).toThrow(/invalid cat/i);
+  });
+
   it('rejects a history count mismatch', async () => {
     const archive = JSON.parse(await createBackupDocument(fixture()));
     archive.cats[0].encounterCount = 99;
