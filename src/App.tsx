@@ -65,6 +65,9 @@ export function App() {
     params.get('matchingLab') === '1' && (import.meta.env.DEV || e2eEnabled);
 
   const [repository] = useState(() => new MeowfolioRepository());
+  const welcomeCameraRef = useRef<HTMLInputElement>(null);
+  const homeCameraRef = useRef<HTMLInputElement>(null);
+  const homeGalleryRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<LocalProfile | null>(readLocalProfile);
   const [profileOpen, setProfileOpen] = useState(false);
   const [studioCatId, setStudioCatId] = useState<string | null>(() => {
@@ -281,7 +284,7 @@ export function App() {
 
   if (!welcomeComplete) {
     return (
-      <main className="welcome-screen">
+      <main id="main-content" tabIndex={-1} className="welcome-screen">
         <section className="pixel-window welcome-card" aria-labelledby="welcome-title">
           <div className="pixel-window-title">
             <span>♥ MEOWFOLIO.EXE</span>
@@ -306,10 +309,12 @@ export function App() {
               </div>
 
               <div className="welcome-actions">
-                <label htmlFor="welcome-camera" className="pixel-primary welcome-camera-button">
+                <button type="button" className="pixel-primary welcome-camera-button"
+                  onClick={() => welcomeCameraRef.current?.click()}>
                   <span aria-hidden="true">📷</span> Open camera
-                </label>
+                </button>
                 <input
+                  ref={welcomeCameraRef}
                   id="welcome-camera"
                   type="file"
                   accept="image/*"
@@ -366,7 +371,7 @@ export function App() {
   }
 
   return (
-    <main className="home-page mx-auto min-h-screen max-w-[96rem] px-4 py-6 sm:px-6 lg:px-8 sm:py-9">
+    <main id="main-content" tabIndex={-1} className="home-page mx-auto min-h-screen max-w-[96rem] px-4 py-6 sm:px-6 lg:px-8 sm:py-9">
       <header className="pixel-window home-header">
         <div className="pixel-window-title">
           <span>♥ MEOWFOLIO.HTML</span>
@@ -389,12 +394,14 @@ export function App() {
             </button>
           </div>
           <div className="home-capture-actions">
-            <label htmlFor="home-camera" className="pixel-primary welcome-camera-button">
+            <button type="button" className="pixel-primary welcome-camera-button"
+              onClick={() => homeCameraRef.current?.click()}>
               <span aria-hidden="true">📷</span>
               <span className="home-action-desktop">Quick camera</span>
               <span className="home-action-mobile">Camera</span>
-            </label>
+            </button>
             <input
+              ref={homeCameraRef}
               id="home-camera"
               type="file"
               accept="image/*"
@@ -405,10 +412,12 @@ export function App() {
             <button type="button" className="pixel-secondary home-desktop-spot" onClick={() => void startScan()}>
               <span className="home-action-desktop">Spot a cat</span>
             </button>
-            <label htmlFor="home-gallery" className="pixel-secondary home-mobile-gallery">
+            <button type="button" className="pixel-secondary home-mobile-gallery"
+              onClick={() => homeGalleryRef.current?.click()}>
               <span className="home-action-mobile">Add photo</span>
-            </label>
+            </button>
             <input
+              ref={homeGalleryRef}
               id="home-gallery"
               type="file"
               accept="image/*"
