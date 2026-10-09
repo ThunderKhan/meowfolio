@@ -67,7 +67,7 @@ test('pixel scrapbook controls remain usable at 320px and preserve responsive co
         .find((node) => node.getBoundingClientRect().height > 0)!;
       const disclosure = document.querySelector('.backup-panel > summary')!;
       const bar = document.querySelector('.pixel-window-title')!;
-      const barText = bar.querySelector('.pixel-window-hint')!;
+      const barText = bar.querySelector('.pixel-window-hint, .meow-titlebar-id')!;
       return {
         overflow: document.documentElement.scrollWidth - innerWidth,
         profileHeight: profile.getBoundingClientRect().height,
