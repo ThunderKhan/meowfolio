@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import {
   validateDisplayName, writeLocalProfile, type LocalProfile,
 } from './localProfile';
@@ -17,12 +17,14 @@ export function ProfilePanel({
   const [name, setName] = useState(profile?.displayName ?? '');
   const [avatar, setAvatar] = useState<LocalProfile['avatar']>(profile?.avatar ?? '🐱');
   const [error, setError] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const issue = validateDisplayName(name);
     if (issue) {
       setError(issue);
+      nameInputRef.current?.focus();
       return;
     }
     const next = {
@@ -57,7 +59,9 @@ export function ProfilePanel({
           <label className="grid gap-2 text-sm font-bold text-[#6a1e49]" htmlFor="profile-name">
             Your display name
             <input
+              ref={nameInputRef}
               id="profile-name" className="pixel-input min-h-12 px-3" value={name}
+              aria-invalid={Boolean(error)} aria-describedby={error ? 'profile-name-error' : undefined}
               onChange={(event) => { setName(event.target.value); setError(null); }}
               autoComplete="nickname" maxLength={64} placeholder="e.g. a cat's favorite human"
               required
@@ -80,7 +84,7 @@ export function ProfilePanel({
             </div>
           </fieldset>
         </div>
-        {error && <p role="alert" className="text-sm font-bold text-[#9e1b55]">{error}</p>}
+        {error && <p id="profile-name-error" role="alert" className="text-sm font-bold text-[#9e1b55]">{error}</p>}
         <div className="profile-editor-actions">
           <button type="submit" className="pixel-primary">♡ Save my profile</button>
           <button type="button" className="pixel-secondary" onClick={onClose}>Not now</button>
