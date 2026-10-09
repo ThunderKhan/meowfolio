@@ -62,7 +62,8 @@ test('pixel scrapbook controls remain usable at 320px and preserve responsive co
     await page.goto('/');
     await page.getByRole('button', { name: 'Open my scrapbook' }).click();
     const metrics = await page.evaluate(() => {
-      const profile = document.querySelector('.profile-shortcut')!;
+      const profile = Array.from(document.querySelectorAll('.profile-shortcut'))
+        .find((node) => node.getBoundingClientRect().height > 0)!;
       const disclosure = document.querySelector('.backup-panel > summary')!;
       const bar = document.querySelector('.pixel-window-title')!;
       const barText = bar.querySelector('.pixel-window-hint')!;
