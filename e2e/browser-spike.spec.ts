@@ -953,13 +953,16 @@ test('saving a replacement during queued-photo processing preserves the original
   }, Array.from(photo));
   await page.reload();
   await page.getByRole('button', { name: 'Process photo' }).click();
-  await expect(page.getByRole('img', { name: 'Cat encounter preview' })).toBeVisible();
+  const preview = page.getByRole('img', { name: 'Cat encounter preview' });
+  await expect(preview).toBeVisible();
+  const originalPreview = await preview.getAttribute('src');
   await page.locator('#cat-photo').setInputFiles({
     name: 'different-cat.png',
     mimeType: 'image/png',
     buffer: photo,
   });
-  await page.getByRole('button', { name: 'Find cat' }).click();
+  await expect(preview).not.toHaveAttribute('src', originalPreview ?? '');
+  await page.getByRole('button', { name: /Find (the )?cat/i }).click();
   await expect(page.getByTestId('identity-screen')).toBeVisible();
   await page.getByRole('button', { name: 'Name this cat' }).click();
   await page.getByLabel('Cat name').fill('Other cat');
@@ -993,9 +996,13 @@ test('save for later after replacing a queued photo creates a separate inbox rec
   }, Array.from(photo));
   await page.reload();
   await page.getByRole('button', { name: 'Process photo' }).click();
+  const preview = page.getByRole('img', { name: 'Cat encounter preview' });
+  await expect(preview).toBeVisible();
+  const originalPreview = await preview.getAttribute('src');
   await page.locator('#cat-photo').setInputFiles({
     name: 'replacement-cat.png', mimeType: 'image/png', buffer: photo,
   });
+  await expect(preview).not.toHaveAttribute('src', originalPreview ?? '');
   await page.getByRole('button', { name: /Save photo for later/i }).click();
   await expect(page.getByRole('heading', { name: /saved for later/i })).toBeVisible();
   const records = await page.evaluate(async () =>
