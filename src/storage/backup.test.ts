@@ -1,0 +1,89 @@
+import { describe, expect, it } from 'vitest';
+import { createBackupDocument, parseBackupDocument } from './backup';
+import type { CatRecord, EncounterRecord } from './types';
+import type { PendingPhoto } from './repository';
+
+function fixture() {
+  const space = {
+    modelId: 'fixture-model', revision: 'fixed-revision', dtype: 'uint8',
+    preprocessingVersion: 1, dimension: 2, pooling: 'cls-token',
+  } as CatRecord['embeddingSpace'];
+  const cat: CatRecord = {
+    id: 'cat-001', name: 'Mochi', createdAt: 100, updatedAt: 200,
+    firstSeenAt: 100, lastSeenAt: 200, encounterCount: 1,
+    coverEncounterId: 'enc-001', referenceEmbeddingSum: new Float64Array([1, 0]),
+    referenceEmbeddingCount: 1, referenceEmbedding: new Float32Array([1, 0]),
+    embeddingSpace: space,
+  };
+  const encounter: EncounterRecord = {
+    id: 'enc-001', catId: 'cat-001', timestamp: 200, savedAt: 200,
+    photo: new Blob(['original cat bytes'], { type: 'image/jpeg' }),
+    crop: new Blob(['crop bytes'], { type: 'image/png' }),
+    embedding: new Float32Array([1, 0]), embeddingSpace: space,
+    detection: {
+      box: { xmin: 0, ymin: 0, xmax: 10, ymax: 10 },
+      label: 'cat', score: 0.91,
+      sourceWidth: 10, sourceHeight: 10,
+      detectorModelId: 'fixture-detector', detectorRevision: 'rev',
+      detectorDtype: 'uint8',
+    },
+    note: 'At the garden', saveFingerprint: 'test-fingerprint',
+    location: { latitude: 20, longitude: 80, accuracy: 5, timestamp: 200 },
+  };
+  const pendingPhoto: PendingPhoto = {
+    id: 'pending-001', photo: new Blob(['waiting image'], { type: 'image/png' }),
+    filename: 'waiting.png', savedAt: 300,
+  };
+  return { cats: [cat], encounters: [encounter], pendingPhotos: [pendingPhoto] };
+}
+
+describe('private Meowfolio portable backup', () => {
+  it('round-trips original photos, crops, vectors, locations and pending inbox', async () => {
+    const source = fixture();
+    const archive = await createBackupDocument(source);
+    expect(archive).toContain('"format":"meowfolio-backup"');
+    const restored = parseBackupDocument(archive);
+    expect(restored.cats[0].name).toBe('Mochi');
+    expect(restored.cats[0].referenceEmbeddingSum).toBeInstanceOf(Float64Array);
+    expect(Array.from(restored.cats[0].referenceEmbedding)).toEqual([1, 0]);
+    expect(restored.encounters[0].embedding).toBeInstanceOf(Float32Array);
+    expect(await restored.encounters[0].photo.text()).toBe('original cat bytes');
+    expect(await restored.encounters[0].crop.text()).toBe('crop bytes');
+    expect(restored.encounters[0].photo.type).toBe('image/jpeg');
+    expect(restored.encounters[0].location?.latitude).toBe(20);
+    expect(await restored.pendingPhotos[0].photo.text()).toBe('waiting image');
+  });
+
+  it('can create an empty archive without inventing cat records', async () => {
+    const archive = await createBackupDocument({ cats: [], encounters: [], pendingPhotos: [] });
+    const parsed = parseBackupDocument(archive);
+    expect(parsed).toEqual({ cats: [], encounters: [], pendingPhotos: [] });
+  });
+
+  it('rejects unrecognized formats and invalid JSON', () => {
+    expect(() => parseBackupDocument('not json')).toThrow(/valid Meowfolio backup/i);
+    expect(() => parseBackupDocument('{"format":"meowfolio-backup","version":2,"cats":[],"encounters":[],"pendingPhotos":[]}'))
+      .toThrow(/unsupported/i);
+  });
+
+  it('rejects a damaged photo before any database import', async () => {
+    const archive = JSON.parse(await createBackupDocument(fixture()));
+    archive.encounters[0].photo.base64 = '_bad_';
+    expect(() => parseBackupDocument(JSON.stringify(archive))).toThrow(/photo/i);
+  });
+
+  it('rejects duplicate cat IDs and orphan encounters', async () => {
+    const archive = JSON.parse(await createBackupDocument(fixture()));
+    archive.cats.push({ ...archive.cats[0] });
+    expect(() => parseBackupDocument(JSON.stringify(archive))).toThrow(/duplicate/i);
+    archive.cats.pop();
+    archive.encounters[0].catId = 'not-a-cat';
+    expect(() => parseBackupDocument(JSON.stringify(archive))).toThrow(/without its cat/i);
+  });
+
+  it('rejects a history count mismatch', async () => {
+    const archive = JSON.parse(await createBackupDocument(fixture()));
+    archive.cats[0].encounterCount = 99;
+    expect(() => parseBackupDocument(JSON.stringify(archive))).toThrow(/inconsistent/i);
+  });
+});
