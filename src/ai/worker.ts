@@ -2,6 +2,7 @@
 
 import { env, ModelRegistry, pipeline, RawImage } from '@huggingface/transformers';
 import { normalizeEmbedding } from '../domain/embeddings';
+import { WorkerRequestTracker } from './workerRequestTracker';
 import {
   chooseProvider,
   classifyAiNetworkRequest,
@@ -28,7 +29,7 @@ let activeRequestId = 'worker-startup';
 let loadedProvider: ExecutionProvider | null = null;
 let detector: CallablePipeline | null = null;
 let embedder: CallablePipeline | null = null;
-const cancelled = new Set<string>();
+const requests = new WorkerRequestTracker();
 const blockedNetworkRequests = new Set<string>();
 let queue = Promise.resolve();
 
@@ -138,7 +139,7 @@ function hasWebGpu(): boolean {
 }
 
 function assertNotCancelled(requestId: string): void {
-  if (cancelled.has(requestId)) throw new Error('MEOWFOLIO_CANCELLED');
+  if (requests.isCancelled(requestId)) throw new Error('MEOWFOLIO_CANCELLED');
 }
 
 async function disposePipeline(value: CallablePipeline | null): Promise<void> {
@@ -269,20 +270,14 @@ function errorFor(
 async function handle(request: WorkerRequest): Promise<void> {
   activeRequestId = request.requestId;
 
-  if (request.type === 'CANCEL_REQUEST') {
-    cancelled.add(request.requestId);
-    if (networkPermitRequestId === request.requestId) networkPermitRequestId = null;
-    return;
-  }
-
   if (request.type === 'DISPOSE') {
     await disposeModels();
-    cancelled.clear();
+    requests.clear();
     blockedNetworkRequests.clear();
     return;
   }
 
-  if (cancelled.has(request.requestId)) return;
+  if (requests.isCancelled(request.requestId)) return;
 
   if (request.type === 'CHECK_ASSETS') {
     blockedNetworkRequests.delete(request.requestId);
@@ -495,13 +490,25 @@ scope.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const request = event.data;
 
   if (request.type === 'CANCEL_REQUEST') {
-    cancelled.add(request.requestId);
-    if (networkPermitRequestId === request.requestId) networkPermitRequestId = null;
+    if (requests.cancel(request.requestId) &&
+        networkPermitRequestId === request.requestId) {
+      networkPermitRequestId = null;
+    }
     return;
   }
 
+  requests.enqueue(request.requestId);
   queue = queue
-    .then(() => handle(request))
+    .then(async () => {
+      requests.start(request.requestId);
+      try {
+        await handle(request);
+      } finally {
+        // Drop cancellation state for completed/cancelled work. Old requests
+        // must never cause an unbounded Set leak in a long-lived worker.
+        requests.finish(request.requestId);
+      }
+    })
     .catch((error) => {
       post({
         type: 'ERROR',

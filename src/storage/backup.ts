@@ -58,6 +58,27 @@ function finite(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+function validDetection(value: unknown): boolean {
+  if (!isRecord(value) || !isRecord(value.box) ||
+      !finite(value.score) || value.score < 0 || value.score > 1 ||
+      !nonempty(value.label) || !nonempty(value.detectorModelId) ||
+      !nonempty(value.detectorRevision) || !nonempty(value.detectorDtype) ||
+      !finite(value.sourceWidth) || value.sourceWidth <= 0 ||
+      !finite(value.sourceHeight) || value.sourceHeight <= 0) return false;
+  const box = value.box;
+  return finite(box.xmin) && finite(box.xmax) &&
+    finite(box.ymin) && finite(box.ymax) &&
+    box.xmin < box.xmax && box.ymin < box.ymax;
+}
+
+function validLocation(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return finite(value.latitude) && value.latitude >= -90 && value.latitude <= 90 &&
+    finite(value.longitude) && value.longitude >= -180 && value.longitude <= 180 &&
+    finite(value.accuracy) && value.accuracy >= 0 &&
+    finite(value.timestamp);
+}
+
 function arrayOfNumbers(value: unknown, expected: number): number[] {
   if (!Array.isArray(value) || value.length !== expected ||
       !value.every((entry: unknown) => finite(entry))) {
@@ -71,11 +92,12 @@ function dimensionFor(space: unknown): number {
       !nonempty(space.modelId) ||
       !nonempty(space.revision) ||
       !nonempty(space.dtype) ||
-      !finite(space.preprocessingVersion) ||
+      !Number.isInteger(space.preprocessingVersion) ||
+      (space.preprocessingVersion as number) < 0 ||
       !Number.isInteger(space.dimension) ||
       (space.dimension as number) < 1 ||
       (space.dimension as number) > 4096 ||
-      !nonempty(space.pooling)) {
+      space.pooling !== 'cls-token') {
     throw new Error('Backup contains an invalid embedding format.');
   }
   return space.dimension as number;
@@ -188,7 +210,10 @@ export function parseBackupDocument(text: string): BackupContents {
         !finite(item.updatedAt) || !Number.isInteger(item.encounterCount) ||
         (item.encounterCount as number) < 1 ||
         !Number.isInteger(item.referenceEmbeddingCount) ||
-        (item.referenceEmbeddingCount as number) < 1) {
+        (item.referenceEmbeddingCount as number) < 1 ||
+        (item.referenceEmbeddingCount as number) > (item.encounterCount as number) ||
+        (item.firstSeenAt as number) > (item.lastSeenAt as number) ||
+        (item.createdAt as number) > (item.updatedAt as number)) {
       throw new Error('Backup contains an invalid cat record.');
     }
     const length = dimensionFor(item.embeddingSpace);
@@ -204,7 +229,9 @@ export function parseBackupDocument(text: string): BackupContents {
   const encounters = raw.encounters.map((item: unknown) => {
     if (!isRecord(item) || !nonempty(item.id) || !nonempty(item.catId) ||
         !nonempty(item.saveFingerprint) || !finite(item.timestamp) ||
-        !finite(item.savedAt) || !isRecord(item.detection)) {
+        !finite(item.savedAt) || !validDetection(item.detection) ||
+        (item.note !== undefined && typeof item.note !== 'string') ||
+        (item.location !== undefined && !validLocation(item.location))) {
       throw new Error('Backup contains an invalid encounter.');
     }
     const length = dimensionFor(item.embeddingSpace);
