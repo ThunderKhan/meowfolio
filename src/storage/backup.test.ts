@@ -54,6 +54,23 @@ describe('private Meowfolio portable backup', () => {
     expect(await restored.pendingPhotos[0].photo.text()).toBe('waiting image');
   });
 
+  it('rejects an oversized photo before attempting to allocate or read its bytes', async () => {
+    const contents = fixture();
+    let readAttempts = 0;
+    // Simulate a very large camera Blob without allocating a giant test file.
+    const oversized = {
+      size: 200 * 1024 * 1024,
+      type: 'image/jpeg',
+      arrayBuffer: async () => {
+        readAttempts += 1;
+        throw new Error('Must not read the oversized photo');
+      },
+    } as Blob;
+    contents.encounters[0].photo = oversized;
+    await expect(createBackupDocument(contents)).rejects.toThrow(/exceeds the 200 MB/);
+    expect(readAttempts).toBe(0);
+  });
+
   it('can create an empty archive without inventing cat records', async () => {
     const archive = await createBackupDocument({ cats: [], encounters: [], pendingPhotos: [] });
     const parsed = parseBackupDocument(archive);
