@@ -655,7 +655,7 @@ export function ScanFlow({
   );
 
   return (
-    <main className="scan-page mx-auto min-h-screen max-w-4xl px-4 py-5 sm:px-6 sm:py-8">
+    <main id="main-content" tabIndex={-1} className="scan-page mx-auto min-h-screen max-w-4xl px-4 py-5 sm:px-6 sm:py-8">
       <input
         ref={fileInputRef}
         id="cat-photo"
