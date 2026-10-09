@@ -480,7 +480,7 @@ export function App() {
       />
 
       <footer className="mt-9 border-t-2 border-dashed border-[#b7588b] py-5 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#82405f]">
-        <span>Your cats and memories are saved in this browser. No cloud account required.</span>
+        <span className="meow-footer-copy">Your cats and memories are saved in this browser. No cloud account required.</span>
         <span className="meow-footer-credit">
           Made with ♡ by <a href={CREATOR_GITHUB_URL} target="_blank" rel="noopener noreferrer">@ThunderKhan ↗</a>
         </span>
