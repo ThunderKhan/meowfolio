@@ -25,6 +25,7 @@ Preserve the **early-2000s pink pixel scrapbook** aesthetic (square window borde
 | Medium | Profile shortcut, full-photo controls, reset control, and location/story disclosures were smaller than preferred finger targets. | Provide 44px+ hit heights while respecting the desktop/mobile layout and 320px reflow. |
 | Medium | Backup `<summary>` had native triangles hidden by global CSS but no replacement, making its behavior easy to miss. | Add restrained pixel +/− affordance, native `<details>` semantics, and visible focus. |
 | Medium | The timeline's date badge and 'View full photo' overlay both occupied its bottom corners; narrow Polaroids could visually collide. | Move the photo control to the upper-right for timeline cards, keeping the date in the lower-right. Add collision regression across viewport sizes. |
+| Medium | Saved Playwright screenshots showed a lone cat card in the far-left grid cell on wide viewports, leaving the archive visually unbalanced. | Center one featured card (up to 420px); preserve the existing multi-cat grid and original Y2K scrapbook language. |
 | Medium | Invalid local-profile names surfaced an alert but did not programmatically associate the error or return focus to the field. | `aria-invalid`, `aria-describedby`, inline alert ID and focus on failing field. |
 
 ## Deliberate aesthetic decisions
@@ -38,7 +39,7 @@ Preserve the **early-2000s pink pixel scrapbook** aesthetic (square window borde
 
 - TypeScript, unit tests and Vite production build, plus production asset audit.
 - Production-mode Playwright: first-Tab skip, focused main, file chooser from keyboard, responsive heading hierarchy, tap heights and cross-width overflow (320, 390, 760, 1280), backup +/- open/close, profile error focus.
-- Mock-AI browser E2E: timeline photo overlay must not collide with date label at 320, 390, 1280.
+- Mock-AI browser E2E: timeline photo overlay must not collide with date label at 320, 390, 1280; a lone cat card is centered at 390, 1280, and 1728.
 - Existing real YOLOS and DINOv2 Chromium end-to-end suite must pass.
 - CI visual screenshots can aid future manual comparisons; physical Android screenshot/touch testing and 200%-zoom screen-reader inspection are still outstanding.
 
