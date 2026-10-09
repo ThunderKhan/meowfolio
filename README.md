@@ -1,49 +1,130 @@
-# ♡ Meowfolio
+<div align="center">
 
-**A private, browser-local, pink pixel scrapbook for cats you meet outdoors.**
+<img src="public/og-image.png" alt="Meowfolio — pink Y2K pixel-window scrapbook with cat photos and pixel-cat mascot" width="100%" />
 
-Photograph a cat, let two locally executed computer-vision models find and describe its appearance, decide which cat it is yourself, and save the encounter in a personal browser scrapbook. Each cat has an image-first profile and a chronological history of sightings.
+<br />
 
-> **Current release policy (8 October 2026):** Automatic “possible familiar face” suggestions are **disabled**. A 50-photo individual-cat test found a false match when the true cat was absent from the gallery. Manual “choose a saved cat” and “name a new cat” remain available. See [the documented evaluation](docs/evaluation-results/2026-10-08-cat-individuals.md).
+[![Verify Meowfolio](https://github.com/ThunderKhan/meowfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/ThunderKhan/meowfolio/actions/workflows/ci.yml)
+![License: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-ff77b7)
+![AI](https://img.shields.io/badge/AI-open--weight%20%2B%20local-6c4cba)
+![Privacy](https://img.shields.io/badge/cat%20photos-browser%20local-d34b91)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript&logoColor=white)
 
-## What works
+**Little cats, big memories.**
 
-- 🐾 Mobile one-tap native camera or photo picker → preview → local cat detection → choose a crop if there is more than one.
-- 💾 **Save photo for later:** original unprocessed photos are stored in a private IndexedDB inbox and can be reopened for AI detection after a reload, even if the phone's model is too slow. No fabricated identity is created.
-- 👤 **Human-controlled identity**: add a new named cat, or manually attach a repeat sighting to a saved cat.
-- 📓 Persistent local collection and per-cat history, with dates, encounter photos, optional notes and a collapsed, optional precise-location disclosure.
-- 🔐 Photos, embeddings, names, notes and coordinates live in **IndexedDB** in your current browser profile/origin. No account or backend is required.
-- 🎀 Pink, square-edged Y2K/pixel scrapbook presentation, mobile touch targets and reduced-motion support.
-- 👤 **Local profile**: set a scrapbook display name and sticker avatar, and edit them anytime. This is explicitly **not a sign-in account**: no password, server, or cross-device sync.
-- 📱 **Story Studio**: open any saved cat, choose **Make story card**, and export a 1080×1920 PNG for Instagram/WhatsApp Stories. Three original themes (Candy, Midnight, Golden Hour), optional encounter note off by default, no location/EXIF overlay and no image upload. The editor now defaults to the **full original photo (Fit)** rather than the cat detector's close-up crop; you can opt into **Fill** or **Cat close-up**, pinch-free zoom via slider (100–300%), drag the photo in the story preview, use X/Y position sliders or arrow keys, and reset the framing. The downloaded PNG exactly matches the rendered preview.
-- 💿 **Pinned model cache fallback**: on-device Cache Storage keeps approved model/runtime responses across reloads; future scans reuse the same revisions when files remain cached. If files are removed by browser storage eviction, explicit download consent is shown again.
-- 💾 **Private portable backup:** export complete saved cat and encounter records (full photos, embeddings, notes and optional locations) plus pending-photo inbox to a local JSON file. Restore is version-checked, additive and transactional: duplicate IDs reject the whole restore without overwriting an existing memory. Keep the backup file private.
-- 🧪 Local-only Matching Lab in development mode for reproducible real-photo matching evaluations.
+A private, pixel-pink scrapbook for the cats you meet outside. Powered by real open-weight computer vision that runs **in your browser**, not on a photo-upload server.
 
-**Scope limitations:** This is a hackathon proof of concept, not a validated pet-identification or outdoor tracking service. The benchmark was not a field test. Browsers can evict locally cached models and, depending on storage conditions, local scrapbook records; there is no cloud sync or automatic multi-device transfer. Manual backup/export and restore require an explicit downloaded JSON file (mobile import limit 200 MB). Clearing site data, changing profiles, or changing the production **origin** can lose access to saved records. Do not use this for precise public animal location sharing.
+[**Try Meowfolio ↗**](https://mymeowfolio.vercel.app) · [How it works](#how-it-works) · [Try it yourself](#try-it-yourself) · [Architecture](#under-the-hood) · [Testing](#testing) · [Touch Grass challenge](docs/TOUCH_GRASS_SUBMISSION.md)
 
-## Stack and execution
+</div>
 
-- React 19, TypeScript, Vite 8, Tailwind CSS 4.
-- Transformers.js 4.3 and two **pinned** Hugging Face models:
-  - Cat detection: `Xenova/yolos-tiny` (`e2f9c7673f0fa61849efe2b56a0d7774779ebb9d`).
-  - Image embedding: `Xenova/dinov2-small` (`a5406bdfce9ac07eb3dc08dd05cbea034f4648d8`), 384-dimensional normalized CLS-token embedding.
-- Both models run in a Web Worker. The current user-facing scan deliberately requests the **WASM** provider to keep the evaluation embedding space consistent; WebGPU remains an unverified optimization.
-- Approved model/runtime assets are stored in a versioned origin-scoped browser Cache Storage as a fallback to Transformers.js/ONNX-managed caches. Cache reads work in fresh workers after reload. The browser can still evict assets or reject cache writes because of storage quota, so this is not a promise of permanent offline availability.
-- Model/runtime files can be downloaded from **Hugging Face and supporting runtime CDNs**, but cat images are not uploaded for inference. First-time downloads require an explicit button click. Cached availability is rechecked rather than assumed permanent. An initialized worker is now reused across scans on the same page. A crashed worker is discarded and recreated on the next request; retry checks whether models need loading again instead of assuming they remain in memory. A subsequent browser reload may still need initialization or, if storage was evicted, another authorized download.
-- IndexedDB uses atomic transactions and idempotent encounter IDs. Its schema v2 also stores pending photo inbox records without changing existing saved-cat data. Similarity references do not combine embeddings from incompatible model/preprocessing versions.
+---
 
-See [architecture](docs/ARCHITECTURE.md), [AI evaluation](docs/AI_EVALUATION.md), [dependencies and license register](docs/DEPENDENCIES_LICENSES.md), [release guide](docs/DEPLOYMENT_RELEASE.md), and the [deep reliability audit](docs/DEEP_RELIABILITY_AUDIT_2026-10-09.md) for fixed defects and remaining constraints.
+## The street is full of recurring characters
 
-The [Y2K navigation design note](docs/NAVIGATION_Y2K_2026-10-09.md) explains the Home/Cats/Add Cat controls, GitHub creator link, and optional star counter. The navbar fetches only **public GitHub repository metadata** on the scrapbook/Studio pages, caches the count for 15 minutes per browser tab, and falls back to an unnumbered star if offline or rate-limited. No cat photos or saved memories are sent.
+There's a cat you see near the corner shop. Another that always sleeps under the same tree. You photograph them, forget which one was which, and keep walking.
 
-## Backup and restore
+**Meowfolio gives those tiny encounters a place to live.** Take a photo on your walk, let local AI find the cat, name it, and build a personal history one sighting at a time.
 
-Open **Back up or restore my cats** near the bottom of the scrapbook. **Download backup** exports full cat/encounter records and pending inbox photos to a JSON file without uploading anything. On the target browser/origin, use **Restore backup**. An import either adds all its records or adds none; conflicts with existing IDs are refused rather than overwritten. For a full restore, use an empty scrapbook. The backup includes photos, notes, embeddings and optional precise coordinates, so **do not share the file publicly**. Large camera libraries may exceed the 200 MB mobile-import limit; this feature is not an automatic cloud backup. Export regularly and verify the file is stored safely.
+> **Collect sightings, not screen time.**
+
+Meowfolio was built for the **[Hacktoberfest Open-Source AI Challenge · Week 1: Touch Grass](https://dev.to/challenges/hacktoberfest-week1-2026-10-05)**. The idea is to make looking up from your phone more rewarding—not to create yet another feed that keeps you indoors.
+
+## How it works
+
+```text
+Go outside
+    ↓
+Spot a cat → snap or choose a photo
+    ↓
+YOLOS-tiny detects cats (inside your browser)
+    ↓
+Choose a cat if there are several
+    ↓
+DINOv2-small extracts a visual embedding
+    ↓
+YOU choose: new cat or previously saved cat
+    ↓
+Save photo + sighting to local IndexedDB
+    ↓
+Walk on. Revisit the scrapbook later. ♡
+```
+
+**The AI finds the cat; you decide who it is.** Meowfolio intentionally does **not** automatically declare two cats to be the same animal. Its held-out matching evaluation found a false positive, so automatic familiar-face suggestions remain disabled. Manual selection of a saved cat continues to work. [Read the evidence.](docs/evaluation-results/2026-10-08-cat-individuals.md)
+
+## What's inside the scrapbook?
+
+| Feature | What it means in practice |
+| --- | --- |
+| 📷 **Spot a cat** | Use your camera or photo library, preview the image, and let the local detector find one or multiple cats. |
+| 🐾 **Human-controlled identity** | Name a newly found cat, or link a repeat encounter to one already saved. No silent or overconfident identity guesses. |
+| 💿 **Photo inbox** | Save an unprocessed photo for later when you don't want to wait for model initialization; it survives reloads in this browser. |
+| 📓 **Cat memory pages** | Individual profiles, a chronological gallery, original encounter photographs, timestamps and optional notes. |
+| 🗺️ **Optional location** | Ask explicitly before recording a location; private coordinates remain collapsed, and denial never blocks saving. |
+| 🎀 **Story Studio** | Make a 1080×1920 story card in Candy, Midnight or Golden Hour; adjust photo framing and export locally as PNG. |
+| 💾 **Backup and restore** | Download your private collection (including photos, embeddings and pending items) and restore into another empty browser profile. |
+| 💗 **Y2K design** | Pink pixel windows, old-school controls, photo stickers, a pixel-cat favicon and share-card artwork. |
+
+No login. No hosted cat database. No image-inference endpoint.
+
+## Try it yourself
+
+**Live app:** https://mymeowfolio.vercel.app
+
+For the shortest real demo:
+
+1. Open the website in Chrome or another supported modern browser. It also works on Android Chrome, subject to your device's available memory and model initialization speed.
+2. Choose **Camera** or **Add photo**, then select a clear photo containing a cat.
+3. Tap **Find the cat**. On first use, Meowfolio asks permission **before downloading** the open-weight model/runtime assets from external hosts.
+4. Follow the detection result; if several cats appear, choose the one you want. Then **Name this cat** or **Choose a saved cat**.
+5. Save the encounter and open the scrapbook. Reload **the same website origin** to verify the cat is still there.
+6. Open the cat's memory page to see the photo history or make a story card.
+
+**Short on time or using a slow phone?** Choose **Save photo for later**, then process it from your local inbox when convenient.
+
+> **Privacy and storage reality:** Cat photos, names, embeddings, notes and saved locations stay in this browser's IndexedDB; your chosen profile label stays in localStorage. No account or cloud sync exists. First-time model downloads require internet access, and cached models can be evicted by your browser—so “local AI” does **not** mean guaranteed offline access on an uncached device. Changing browsers, clearing site data or changing the site origin can make your scrapbook unavailable. Use **Download backup** and keep the JSON file private.
+
+## Under the hood
+
+Meowfolio runs real machine-learning inference client-side, not a simulated or remote recognition API.
+
+| Layer | Implementation |
+| --- | --- |
+| UI | React 19 · TypeScript 5.9 · Vite 8 · Tailwind CSS 4 |
+| Cat detection | [YOLOS-tiny](https://huggingface.co/Xenova/yolos-tiny), pinned ONNX conversion |
+| Image embedding | [DINOv2-small](https://huggingface.co/Xenova/dinov2-small), 384-dimensional normalized embedding |
+| Model runtime | [Transformers.js](https://github.com/huggingface/transformers.js), Web Worker and WebAssembly |
+| Persistence | Browser IndexedDB; atomic transactions and duplicate-save protection |
+| Hosting | Static Vercel deployment and CDN. **No backend API or remote database.** |
+
+```text
+camera / photo picker
+         │
+         ▼
+React scan flow ──────────────┐
+         │                    │
+         ▼                    ▼
+AI Web Worker             local IndexedDB
+  ├── pinned model assets    ├── cats + embeddings
+  ├── YOLOS → detection      ├── encounters + photos
+  └── DINOv2 → embedding     └── pending photo inbox
+         │                    │
+         └── human decision ──┘
+                   │
+             cat scrapbook
+                   │
+           1080×1920 story card
+```
+
+**Why open-weight/local AI?** With a browser-run detector and embedder, the application can inspect and control how inference happens, cache approved model revisions, avoid uploading private cat images, and run the scrapbook without a paid inference API. Initial model/runtime assets are downloaded from Hugging Face and supporting runtime CDNs only with permission. GitHub's public API is contacted separately for the optional repository star count; no photo data is attached to that request.
+
+### What the models do *not* prove
+
+A visual embedding is **not a verified animal identity**. An evaluation of 50 cat photos found a false familiar-cat suggestion under the frozen candidate policy. The automatic matching release gate therefore failed and remains turned off. This project is a **hackathon proof of concept**, not a validated pet recognition or animal-location tracking service. [Evaluation methodology and results →](docs/evaluation-results/2026-10-08-cat-individuals.md)
 
 ## Run locally
 
-Requirements: Node.js 22.12+ and npm.
+Requires **Node.js 22.12+**, npm and a modern browser.
 
 ```bash
 git clone https://github.com/ThunderKhan/meowfolio.git
@@ -52,51 +133,71 @@ npm ci
 npm run dev
 ```
 
-Visit the local URL shown by Vite (usually `http://localhost:5173`). This localhost origin is separate from any eventual HTTPS production origin and has separate IndexedDB storage.
+Vite prints a development URL (usually `http://localhost:5173`). Localhost has **different browser storage** from the production HTTPS origin, so cats saved on one do not automatically appear on the other.
+
+### Testing
 
 ```bash
 npm run typecheck
 npm test
 npm run build
 npm run audit:production
-npm run test:e2e
+npx playwright install chromium
 npm run test:e2e:production
+npm run test:e2e
 ```
 
-The main browser suite includes a genuine YOLOS → DINOv2 Chromium/WASM check, and can download model files. The production-smoke suite verifies **production-mode** behavior without downloading models. Playwright Chromium can be installed via `npx playwright install chromium`.
+The production browser suite checks the real release build, asset safety, storage, navigation and consent boundary. The broader E2E suite tests the scan and storage flows, including genuine YOLOS → DINOv2 execution in Chromium/WASM. The separate [Lighthouse workflow](.github/workflows/lighthouse.yml) produces mobile and desktop **lab** reports; its scores are not Android field measurements.
 
-For the local-only evaluation tool, run `npm run dev` and visit `/?matchingLab=1`, then provide a real-photo manifest and photos. The lab is not exposed in an ordinary production build. `evaluation-data/` is Git-ignored.
+**Manual Android field validation belongs to the project author.** The [Android test protocol](docs/ANDROID_FIELD_TEST.md) covers first-use consent, warm inference, save/reopen, manually linked repeats, location denial and stable-origin redeploy persistence. Don't present these as completed unless physically tested.
 
-## Deploy with Vercel
+For a reviewer-focused walkthrough, see [PROJECT_TESTING.md](docs/PROJECT_TESTING.md).
 
-This repository contains a `vercel.json` for a **static** Vite deployment. In Vercel, import `ThunderKhan/meowfolio`, select the `main` branch as production, install with `npm ci`, build with `npm run build`, and deploy `dist`. Do **not** add a server, Vercel Functions, API keys, tracking scripts, or a database.
+## Repository map
 
-Headers protect the HTML from stale caching and allow immutable hashed assets. No restrictive cross-origin isolation/CSP header is applied without real model runtime testing: the pinned Hugging Face and WASM runtime asset paths must remain functional.
+```text
+src/
+├── ai/               model manifest, worker, inference client
+├── scan/             camera, detection, identity decisions
+├── scrapbook/        collection, history, backup/restore
+├── storage/          IndexedDB and portable backup
+├── story/            editor, themes and PNG export
+├── navigation/       pixel navbar and GitHub stars
+└── evaluation/       development-only matching evaluation
 
-**Do not switch the public production domain after collecting cats**: browser persistence is origin-scoped. After the first release, redeploy the **same origin** and check that saved cats/photos/history remain.
+docs/
+├── planning/         archived scope, PRD, spec and build evidence
+├── ANDROID_FIELD_TEST.md
+├── PROJECT_TESTING.md
+├── TOUCH_GRASS_SUBMISSION.md
+└── evaluation-results/
 
-Deployment is prepared in code, **not claimed live** until an HTTPS Vercel URL has been confirmed and an Android real-device check has passed. Follow [the release checklist](docs/DEPLOYMENT_RELEASE.md).
+public/               favicon and Open Graph artwork
+e2e/                  browser and real-model tests
+e2e-production/       production-mode browser tests
+```
 
-## Where photos actually live
+### Project history
 
-Meowfolio does **not** upload cat photos to Vercel. The Vercel server only provides the website files; browser-local inference runs in a dedicated worker.
+The original [scope, PRD, technical spec and build checklist](docs/planning/) are preserved in `docs/planning/` with their review snapshots. They document how the idea evolved; they are **not** Devpost requirements. The current source and this README describe the shipped product.
 
-- Saved cat photos and their selected crops are stored as **Blob** values inside this browser profile's **IndexedDB**, in the `meowfolio` database, `encounters` store. Names, embeddings, dates, optional notes, and any voluntarily saved coordinates are in the associated `cats` and `encounters` records.
-- Unprocessed **Save photo for later** originals are stored separately in the `pendingPhotos` IndexedDB store until processed, confirmed, and committed (or manually deleted).
-- AI model weights and supporting WASM runtime files use browser-managed caches. They are **not** the same storage as the scrapbook photos.
-- Display name/avatar live in origin-scoped `localStorage` separately from cat photos. Story cards are rendered locally into a temporary canvas/Blob and downloaded or shared only when explicitly requested.
-- Storage is tied to **this device, this browser profile, and the HTTPS origin** `https://mymeowfolio.vercel.app`. It does not sync across phones/computers. Clearing site data, browser storage eviction, or changing the website domain may make these photos unavailable; manual Download backup and Restore backup controls are available in the scrapbook. Backups contain private images and any saved locations, so store them securely.
-- A temporary IndexedDB upgrade block can occur when a previously loaded version of Meowfolio still holds a connection. Current releases wait for the old connection to release, close their own connection on version-change requests, and let failed opens retry. **Never clear site data as a first troubleshooting step.**
+## Privacy, attribution, and license
 
-## Privacy and honest evidence
+- Original Meowfolio source: **[Mozilla Public License 2.0](LICENSE)**, copyright © 2026 ThunderKhan. MPL-2.0 is open source with **file-level copyleft**: you can reuse and distribute the code, but distribution of modified covered files carries MPL obligations.
+- [Third-party notices](THIRD_PARTY_NOTICES.md) credit the model creators, ONNX conversions and main runtime dependencies. Their licenses remain their own; Meowfolio does not relicense those assets.
+- Your own photographs and exported private scrapbook data are **not** included in the project's open-source license.
+- Meowfolio is independent of the referenced model providers and is not affiliated with Hacktoberfest organizers beyond challenge participation.
 
-- No account, hosted photo inference, public location map, or app-side analytics.
-- Optional geolocation is only requested when you press Add location; failures/timeouts do not block saving.
-- The public matching report contains anonymized labels and metrics, not images or coordinates. The benchmark itself is not proof of outdoor Android quality.
-- Currently, automatic matching is explicitly disabled in `src/evaluation/releasePolicy.ts`; it must not be toggled based on the held-out results after the fact.
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-**License:** A project-wide license has not yet been selected. Do not assume the source is OSI-licensed merely because the repository is public. Third-party libraries and model licenses/attribution are tracked in [the license register](docs/DEPENDENCIES_LICENSES.md).
+---
 
-## Status
+<div align="center">
 
-Slices 1–5 are implemented; Slice 5's matching evaluation **failed the optional auto-suggestion release gate**. Slice 6 production/Android proof is in progress. Follow the [Devpost build checklist](devpost/checklist.md) for the evidence/status distinction.
+**Go find a cat. Give it a name. Remember the little things.** 🐈
+
+[**Open Meowfolio ↗**](https://mymeowfolio.vercel.app) · [Repository](https://github.com/ThunderKhan/meowfolio) · [Touch Grass notes](docs/TOUCH_GRASS_SUBMISSION.md)
+
+Made with ♡ by [@ThunderKhan](https://github.com/ThunderKhan).
+
+</div>

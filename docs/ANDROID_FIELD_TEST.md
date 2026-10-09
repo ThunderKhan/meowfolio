@@ -1,6 +1,6 @@
 # Slice 6 — Android / Production Field Verification
 
-Status: **Pending real-device execution; not satisfied by desktop CI**  
+Status: **Production deployment and CI verified; real Android end-to-end verification remains pending author testing**  
 Host: one stable Vercel HTTPS production origin, imported from `main`  
 Client: Android Chrome (record actual version/device before testing)  
 Models: pinned YOLOS-tiny + DINOv2-small; current release scan uses WASM
@@ -12,12 +12,12 @@ Models: pinned YOLOS-tiny + DINOv2-small; current release scan uses WASM
 - Kaggle images in Slice 5 are not outdoor performance measurements.
 - Desktop CI and production-mode browser smoke prove mechanics, not Android latency, installation or deployed-host behavior.
 - The first successful HTTPS origin is the storage identity. Moving to a different domain does **not** migrate existing cats.
-- Browser storage can be cleared/evicted; there is currently no backup/export facility.
+- Browser storage can be cleared/evicted; manual Download backup / Restore backup exists, but there is no automatic cloud sync and saved JSON backups contain private photographs and optional locations.
 
 ## Release preconditions
 
-- [ ] Static Vercel deployment is confirmed and its final URL is recorded.
-- [ ] GitHub Actions on the **actual deployed commit** is green: typecheck, units, build, production audit, production-mode smoke, ordinary E2E.
+- [x] Static Vercel deployment is confirmed: https://mymeowfolio.vercel.app (commit `03d6359bafee57b607b4248f2a1a7320cb27b447` verified on October 10).
+- [x] GitHub Actions on the **actual deployed commit** is green: typecheck, units, build, production audit, production-mode smoke, real-model E2E. Lighthouse lab evidence is also available. **These are not real Android field results.**
 - [ ] Browser network checks confirm no cat photo, blob, embeddings, name, note or location data goes to a server in app-initiated requests.
 - [ ] Model/runtime asset host availability, legal notices and repo license decision reviewed.
 - [ ] A full new-cat and manually confirmed repeat-cat flow passes on a real Android Chrome device.
@@ -82,8 +82,8 @@ Test 320px viewport, large controls, visible focus, reduced motion, a no-cat pho
 
 | Field | Actual value |
 | --- | --- |
-| Production HTTPS origin | PENDING |
-| Exact deployed commit | PENDING |
+| Production HTTPS origin | https://mymeowfolio.vercel.app |
+| Exact deployed commit | `03d6359bafee57b607b4248f2a1a7320cb27b447` (verified October 10; update before final release if `main` changes) |
 | Android handset + RAM | PENDING |
 | Android / Chrome versions | PENDING |
 | Connection (Wi-Fi/mobile) | PENDING |
