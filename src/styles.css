@@ -2275,3 +2275,147 @@ details > summary::marker {
     padding-bottom: 6px;
   }
 }
+
+
+/* Y2K navigation: real destinations inside the existing pink window
+   titlebar. Borrow brand/destination/CTA hierarchy from Hacktoberfest DDUGU,
+   but keep Meowfolio's own square pixels, tactile shadows and warm palette. */
+.meow-header-titlebar {
+  min-height: 50px;
+  padding: 4px 8px 4px 12px;
+}
+.meow-titlebar-id {
+  min-width: 0;
+  flex: 0 1 auto;
+  white-space: nowrap;
+}
+.meow-titlebar-mini { display: none; }
+.meow-nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-left: auto;
+  font-family: var(--font-display);
+  letter-spacing: 0;
+  text-transform: none;
+  text-shadow: none;
+}
+.meow-nav-link,
+.meow-nav-github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 2px solid transparent;
+  background: transparent;
+  color: #76234f;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: none;
+  transition: background 110ms ease, box-shadow 110ms ease;
+}
+.meow-nav-link:hover,
+.meow-nav-github:hover {
+  border-color: #97416d;
+  background: #ffe8f3;
+  box-shadow: 2px 2px 0 #e298bf;
+}
+.meow-nav-link.is-current {
+  border-color: #8b305e;
+  background: #fff8fc;
+  box-shadow: inset 2px 2px 0 #f3aed0, 2px 2px 0 #c36c9d;
+}
+.meow-nav-add {
+  border-color: #83355c;
+  background: #b62c75;
+  color: #fff8fc;
+  text-shadow: 1px 1px 0 #76234f;
+  box-shadow: 2px 2px 0 #d882af;
+}
+.meow-nav-add:hover {
+  border-color: #83355c;
+  background: #98205e;
+}
+.meow-nav-github {
+  border-color: #83355c;
+  background: #fff7fc;
+  box-shadow: 2px 2px 0 #c96f9e;
+  color: #662047;
+}
+.meow-nav-github svg { flex: none; }
+.meow-nav-stars {
+  display: inline-block;
+  min-width: 12px;
+  color: #922159;
+  font-variant-numeric: tabular-nums;
+}
+.meow-collection-anchor { min-width: 0; scroll-margin-top: 12px; }
+.meow-footer-credit {
+  display: inline-block;
+  margin-left: 12px;
+}
+.meow-footer-credit a {
+  color: #78214f;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.studio-page-nav .meow-nav {
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .meow-header-titlebar {
+    min-height: 49px;
+    gap: 5px;
+    padding: 2px 6px;
+  }
+  .meow-titlebar-full { display: none; }
+  .meow-titlebar-mini {
+    display: inline;
+    font: 900 19px/1 var(--font-display);
+  }
+  .meow-nav {
+    flex: 1;
+    justify-content: flex-end;
+    gap: 2px;
+  }
+  .meow-nav-link,
+  .meow-nav-github {
+    min-height: 44px;
+    gap: 4px;
+    padding: 6px 7px;
+    font-size: 12px;
+  }
+  .meow-nav-add,
+  .meow-nav-github-name { display: none; }
+  .meow-nav-github svg { width: 15px; height: 15px; }
+  .home-header-body {
+    padding-top: 10px;
+    padding-bottom: 12px;
+  }
+  .studio-page-nav .meow-nav {
+    flex: 1 0 100%;
+    justify-content: center;
+    margin: 0;
+    padding-top: 4px;
+    border-top: 1px dashed #cf82ab;
+  }
+  .meow-footer-credit {
+    display: block;
+    margin: 5px 0 0;
+  }
+}
+@media (max-width: 359px) {
+  .meow-header-titlebar { padding-inline: 5px; }
+  .meow-nav-link, .meow-nav-github { padding-inline: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meow-nav-link, .meow-nav-github { transition: none; }
+}
