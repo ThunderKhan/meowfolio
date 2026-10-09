@@ -920,6 +920,33 @@ test('repeat cat encounter photos form a thumbnail carousel and a navigable full
 });
 
 
+
+test('single-cat collection uses a centered featured card across phone and desktop widths', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  for (const width of [390, 1280, 1728]) {
+    await page.setViewportSize({ width, height: 900 });
+    const metrics = await page.locator('.scrapbook-cards').evaluate((grid) => {
+      const card = grid.querySelector('.pixel-cat-card');
+      if (!card) throw new Error('Missing featured cat');
+      const parent = grid.getBoundingClientRect();
+      const child = card.getBoundingClientRect();
+      return {
+        cardCount: grid.children.length,
+        centerDifference: Math.abs((child.left + child.right) / 2 - (parent.left + parent.right) / 2),
+        cardWidth: child.width,
+        documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    });
+    expect(metrics.cardCount).toBe(1);
+    expect(metrics.centerDifference).toBeLessThanOrEqual(2);
+    expect(metrics.cardWidth).toBeGreaterThan(270);
+    expect(metrics.documentOverflow).toBeLessThanOrEqual(2);
+  }
+});
+
 test('collection reads only cover photos rather than every archived encounter blob', async ({ page, request }) => {
   const photo = await catPhoto(request);
   await page.goto('/?skipWelcome=1&mockAi=single');
