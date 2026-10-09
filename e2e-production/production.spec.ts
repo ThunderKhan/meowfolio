@@ -22,6 +22,83 @@ test('production ignores development-only query flags and renders the real pixel
   expect(requests).toEqual([]);
 });
 
+
+test('keyboard navigation exposes main content and supports retro upload controls', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const skip = page.getByRole('link', { name: 'Skip to main content' });
+  await page.keyboard.press('Tab');
+  await expect(skip).toBeFocused();
+  expect(await skip.evaluate((node) => node.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#main-content')).toBeFocused();
+  await expect(page.getByRole('heading', { level: 1, name: /little cats, big memories/i })).toBeVisible();
+
+  const welcome = page.getByRole('button', { name: 'Open camera' });
+  await expect(welcome).toHaveJSProperty('tagName', 'BUTTON');
+  await welcome.focus();
+  const capture = page.waitForEvent('filechooser');
+  await welcome.press('Enter');
+  expect((await capture).isMultiple()).toBe(false);
+
+  await page.getByRole('button', { name: 'Open my scrapbook' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Your Meowfolio is empty.' })).toBeVisible();
+  const camera = page.getByRole('button', { name: /camera/i }).first();
+  const gallery = page.getByRole('button', { name: 'Add photo' });
+  await expect(camera).toBeVisible();
+  await expect(gallery).toBeVisible();
+  expect(await gallery.evaluate((node) => node.tagName)).toBe('BUTTON');
+  await gallery.focus();
+  const chooser = page.waitForEvent('filechooser');
+  await gallery.press('Enter');
+  expect((await chooser).isMultiple()).toBe(false);
+});
+
+test('pixel scrapbook controls remain usable at 320px and preserve responsive contrast cues', async ({ page }) => {
+  for (const width of [320, 390, 760, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Open my scrapbook' }).click();
+    const metrics = await page.evaluate(() => {
+      const profile = document.querySelector('.profile-shortcut')!;
+      const disclosure = document.querySelector('.backup-panel > summary')!;
+      const bar = document.querySelector('.pixel-window-title')!;
+      const barText = bar.querySelector('.pixel-window-hint')!;
+      return {
+        overflow: document.documentElement.scrollWidth - innerWidth,
+        profileHeight: profile.getBoundingClientRect().height,
+        disclosureHeight: disclosure.getBoundingClientRect().height,
+        hintFontSize: parseFloat(getComputedStyle(barText).fontSize),
+        disclosureSymbol: getComputedStyle(disclosure, '::after').content,
+      };
+    });
+    expect(metrics.overflow).toBeLessThanOrEqual(2);
+    expect(metrics.profileHeight).toBeGreaterThanOrEqual(44);
+    expect(metrics.disclosureHeight).toBeGreaterThanOrEqual(44);
+    expect(metrics.hintFontSize).toBeGreaterThanOrEqual(12);
+    expect(metrics.disclosureSymbol).toContain('+');
+    const backup = page.locator('.backup-panel > summary');
+    await backup.click();
+    await expect(page.locator('.backup-panel')).toHaveAttribute('open', '');
+    await backup.click();
+  }
+});
+
+test('invalid local profile names have attached error and return focus to input', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /open my scrapbook/i }).click();
+  await page.getByRole('button', { name: /create my local profile/i }).click();
+  const name = page.getByLabel('Your display name');
+  await name.fill('   ');
+  await page.getByRole('button', { name: /save my profile/i }).click();
+  await expect(name).toBeFocused();
+  await expect(name).toHaveAttribute('aria-invalid', 'true');
+  const error = page.locator('#profile-name-error');
+  await expect(error).toBeVisible();
+  await expect(name).toHaveAttribute('aria-describedby', 'profile-name-error');
+});
+
 test('ordinary production scan requires consent before model download', async ({ page }) => {
   const modelRequests: string[] = [];
   page.on('request', (request) => {
@@ -125,7 +202,7 @@ test('mobile scrapbook presents adjacent capture actions and compact empty state
 
     const layout = await page.evaluate(() => {
       const controls = document.querySelector('.home-capture-actions');
-      const camera = controls?.querySelector('label');
+      const camera = controls?.querySelector('.welcome-camera-button');
       const addPhoto = controls?.querySelector('.home-mobile-gallery');
       const empty = document.querySelector('.empty-scrapbook-panel');
       if (!controls || !camera || !addPhoto || !empty) throw new Error('Missing mobile home UI');
