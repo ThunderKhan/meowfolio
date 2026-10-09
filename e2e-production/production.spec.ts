@@ -1,5 +1,32 @@
 import { expect, test } from '@playwright/test';
 
+test('serves the custom Meowfolio cat as a real browser favicon and Apple touch icon', async ({ page, request }) => {
+  await page.goto('/');
+  const icon = page.locator('head link[rel="icon"]');
+  await expect(icon).toHaveAttribute('type', 'image/png');
+  await expect(icon).toHaveAttribute('href', '/favicon.png');
+  await expect(page.locator('head link[rel="apple-touch-icon"]'))
+    .toHaveAttribute('href', '/favicon.png');
+  await expect(page.locator('head meta[name="apple-mobile-web-app-title"]'))
+    .toHaveAttribute('content', 'Meowfolio');
+
+  const response = await request.get('/favicon.png');
+  expect(response.ok()).toBe(true);
+  expect(response.headers()['content-type']).toMatch(/image\/png/i);
+  const bytes = await response.body();
+  expect(bytes.length).toBeGreaterThan(128);
+  expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+
+  const decoded = await page.evaluate(async () => {
+    const image = new Image();
+    image.src = '/favicon.png';
+    await image.decode();
+    return { width: image.naturalWidth, height: image.naturalHeight };
+  });
+  expect(decoded.width).toBeGreaterThanOrEqual(32);
+  expect(decoded.height).toBeGreaterThanOrEqual(32);
+});
+
 test('production ignores development-only query flags and renders the real pixel scrapbook', async ({ page }) => {
   const requests: string[] = [];
   page.on('request', (request) => {
