@@ -248,7 +248,8 @@ function CatDetail({
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [viewPhoto, setViewPhoto] = useState<{ src: string; alt: string } | null>(null);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [viewPhotoIndex, setViewPhotoIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -275,6 +276,8 @@ function CatDetail({
         if (nextCover) urls.push(nextCover);
 
         setCat(nextCat);
+        setGalleryIndex(Math.max(0, records.findIndex((item) => item.id === nextCat.coverEncounterId)));
+        setViewPhotoIndex(null);
         setEncounters(views);
         setCoverUrl(nextCover);
         setError(null);
@@ -291,6 +294,15 @@ function CatDetail({
       for (const url of urls) URL.revokeObjectURL(url);
     };
   }, [catId, repository]);
+
+  const galleryPhotoUrl = encounters[galleryIndex]?.photoUrl ?? coverUrl;
+  const galleryPhotos = encounters.map(({ encounter, photoUrl }) => ({
+    src: photoUrl,
+    alt: 'Encounter with ' + (cat?.name ?? 'cat') + ' on ' + formatDay(encounter.timestamp),
+  }));
+  const stepGallery = (direction: number) => {
+    setGalleryIndex((index) => (index + direction + encounters.length) % encounters.length);
+  };
 
   if (loading) {
     return (
@@ -335,20 +347,52 @@ function CatDetail({
           <span className="pixel-window-hint">Cat memories</span>
         </div>
         <div className="grid gap-6 p-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:p-7">
-          <div className="pixel-photo-frame rotate-[-1deg] self-start cat-profile-photo">
-            {coverUrl ? (
-              <img
-                src={coverUrl}
-                alt={'Cover photo of ' + cat.name}
-                className="aspect-square w-full object-contain"
-              />
-            ) : (
-              <div className="grid aspect-square place-items-center bg-[#ffd8ed] text-3xl">
-                ฅ^•ﻌ•^ฅ
-              </div>
+          <div className="cat-profile-gallery min-w-0 self-start">
+            <div className="pixel-photo-frame cat-profile-photo">
+              {galleryPhotoUrl ? (
+                <img
+                  src={galleryPhotoUrl}
+                  alt={'Photo of ' + cat.name + ', memory ' + (galleryIndex + 1)}
+                  className="aspect-square w-full object-contain"
+                />
+              ) : (
+                <div className="grid aspect-square place-items-center bg-[#ffd8ed] text-3xl">
+                  ฅ^•ﻌ•^ฅ
+                </div>
+              )}
+              <span className="pixel-photo-label">★ CAT MEMORIES ★</span>
+              {galleryPhotoUrl && (
+                <button type="button" className="photo-expand-button"
+                  onClick={() => setViewPhotoIndex(galleryIndex)}>
+                  ⤢ View full photo
+                </button>
+              )}
+            </div>
+            {encounters.length > 1 && (
+              <>
+                <div className="cat-gallery-controls" aria-label="Cat photo carousel controls">
+                  <button type="button" className="pixel-secondary" aria-label="Previous cat photo"
+                    onClick={() => stepGallery(-1)}>‹</button>
+                  <span role="status">Photo {galleryIndex + 1} of {encounters.length}</span>
+                  <button type="button" className="pixel-secondary" aria-label="Next cat photo"
+                    onClick={() => stepGallery(1)}>›</button>
+                </div>
+                <div className="cat-gallery-thumbnails" role="group" aria-label="Choose an encounter photo">
+                  {encounters.map(({ encounter, photoUrl }, index) => (
+                    <button
+                      type="button"
+                      key={encounter.id}
+                      className={'cat-gallery-thumbnail' + (index === galleryIndex ? ' is-active' : '')}
+                      aria-pressed={index === galleryIndex}
+                      aria-label={'Show photo ' + (index + 1) + ' of ' + encounters.length}
+                      onClick={() => setGalleryIndex(index)}
+                    >
+                      <img src={photoUrl} alt="" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
-            <span className="pixel-photo-label">★ FAVORITE MEMORY ★</span>
-            {coverUrl && <button type="button" className="photo-expand-button" onClick={() => setViewPhoto({ src: coverUrl, alt: 'Full photo of ' + cat.name })}>⤢ View full photo</button>}
           </div>
 
           <div className="self-center">
@@ -372,7 +416,10 @@ function CatDetail({
         </div>
       </section>
 
-      {viewPhoto && <PhotoViewer src={viewPhoto.src} alt={viewPhoto.alt} onClose={() => setViewPhoto(null)} />}
+      {viewPhotoIndex !== null && galleryPhotos.length > 0 && (
+        <PhotoViewer photos={galleryPhotos} initialIndex={viewPhotoIndex}
+          onClose={() => setViewPhotoIndex(null)} />
+      )}
 
       <section className="mt-8" aria-labelledby="memory-log-title">
         <div className="flex items-end justify-between gap-4">
@@ -399,7 +446,7 @@ function CatDetail({
                     className="aspect-square w-full object-contain"
                   />
                   <span className="pixel-photo-label">{formatDay(encounter.timestamp)}</span>
-                  <button type="button" className="photo-expand-button" onClick={() => setViewPhoto({ src: photoUrl, alt: 'Encounter with ' + cat.name })}>⤢ View full photo</button>
+                  <button type="button" className="photo-expand-button" onClick={() => setViewPhotoIndex(index)}>⤢ View full photo</button>
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#a91f68]">

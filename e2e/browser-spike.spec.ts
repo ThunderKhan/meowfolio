@@ -828,6 +828,83 @@ test('saved cat photos open an on-device pinch viewer and close without mutation
 });
 
 
+
+test('fullscreen viewer fits the entire photo and keeps its toolbar inside desktop and phone screens', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.getByRole('button', { name: /Open Mochi, met 1 time/ }).click();
+
+  for (const viewport of [{ width: 1707, height: 896 }, { width: 320, height: 700 }]) {
+    await page.setViewportSize(viewport);
+    await page.getByRole('button', { name: 'View full photo' }).first().click();
+    const viewer = page.getByRole('dialog', { name: /View full photo/ });
+    await expect(viewer).toBeVisible();
+    await expect(viewer.getByRole('img')).toHaveCSS('object-fit', 'contain');
+    await expect(viewer.getByRole('button', { name: 'Zoom out' })).toBeDisabled();
+    await expect(viewer.getByText('100%')).toBeVisible();
+    const layout = await page.evaluate(() => {
+      const stage = document.querySelector('.photo-viewer-stage')!.getBoundingClientRect();
+      const image = document.querySelector('.photo-viewer-image')!.getBoundingClientRect();
+      const buttons = [...document.querySelectorAll('.photo-viewer-topbar button')]
+        .map(node => node.getBoundingClientRect());
+      return {
+        stage: { width: stage.width, height: stage.height },
+        image: { width: image.width, height: image.height },
+        buttonsInside: buttons.every(rect => rect.left >= -1 && rect.right <= innerWidth + 1),
+        horizontalOverflow: document.documentElement.scrollWidth - innerWidth,
+      };
+    });
+    expect(layout.stage.width).toBeGreaterThan(0);
+    expect(layout.stage.height).toBeGreaterThan(0);
+    expect(layout.image.width).toBeLessThanOrEqual(layout.stage.width + 2);
+    expect(layout.image.height).toBeLessThanOrEqual(layout.stage.height + 2);
+    expect(layout.buttonsInside).toBe(true);
+    expect(layout.horizontalOverflow).toBeLessThanOrEqual(2);
+    await viewer.getByRole('button', { name: 'Zoom in' }).click();
+    await expect(viewer.getByText('150%')).toBeVisible();
+    await viewer.getByRole('button', { name: 'Reset' }).click();
+    await expect(viewer.getByText('100%')).toBeVisible();
+    await viewer.getByRole('button', { name: 'Close photo' }).click();
+  }
+});
+
+test('repeat cat encounter photos form a thumbnail carousel and a navigable fullscreen gallery', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.goto('/?skipWelcome=1&mockAi=single-alt');
+  await startScan(page, photo);
+  await page.getByRole('button', { name: 'Choose an existing cat' }).click();
+  await page.getByRole('button', { name: /Mochi/ }).click();
+  await page.getByRole('button', { name: 'Save encounter' }).click();
+  await expect(page.getByRole('heading', { name: 'Another Mochi encounter saved.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.getByRole('button', { name: /Open Mochi, met 2 times/ }).click();
+
+  await expect(page.getByRole('group', { name: 'Choose an encounter photo' }).getByRole('button')).toHaveCount(2);
+  await expect(page.getByText('Photo 1 of 2')).toBeVisible();
+  await page.getByRole('button', { name: 'Next cat photo' }).click();
+  await expect(page.getByText('Photo 2 of 2')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Show photo 2 of 2' })).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByRole('button', { name: 'View full photo' }).first().click();
+  const viewer = page.getByRole('dialog', { name: /View full photo/ });
+  await expect(viewer.getByText('Photo 2 of 2')).toBeVisible();
+  await viewer.getByRole('button', { name: 'Zoom in' }).click();
+  await expect(viewer.getByText('150%')).toBeVisible();
+  await page.keyboard.press('ArrowLeft');
+  await expect(viewer.getByText('Photo 1 of 2')).toBeVisible();
+  await expect(viewer.getByText('100%')).toBeVisible();
+  await viewer.getByRole('button', { name: 'Previous photo' }).click();
+  await expect(viewer.getByText('Photo 2 of 2')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(viewer).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'encounter log' })).toBeVisible();
+});
+
 test('visual audit captures welcome, collection, profile, cat detail and studio across viewports', async ({ page, request }) => {
   const photo = await catPhoto(request);
   await page.setViewportSize({ width: 390, height: 844 });
