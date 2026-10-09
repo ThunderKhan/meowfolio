@@ -55,6 +55,17 @@ describe('AI network allowlist', () => {
     expect(pinModelAssetUrl('https://huggingface.co/someone/other/resolve/main/config.json', origin)).toBeNull();
   });
 
+  it('never authorizes off-origin model or runtime downloads over plain HTTP', () => {
+    const model = 'http://huggingface.co/' + MODEL_MANIFEST.detector.id +
+      '/resolve/' + MODEL_MANIFEST.detector.revision + '/config.json';
+    expect(classifyAiNetworkRequest(model, origin)).toBe('blocked');
+    expect(pinModelAssetUrl(model, origin)).toBeNull();
+    expect(classifyAiNetworkRequest('http://cdn.jsdelivr.net/npm/onnxruntime-web', origin))
+      .toBe('blocked');
+    expect(classifyAiNetworkRequest('https://cdn.jsdelivr.net/npm/onnxruntime-web', origin))
+      .toBe('runtime');
+  });
+
   it('blocks floating or unrelated model URLs', () => {
     const floating =
       'https://huggingface.co/' + MODEL_MANIFEST.detector.id + '/resolve/main/config.json';
