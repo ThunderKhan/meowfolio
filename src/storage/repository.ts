@@ -6,6 +6,7 @@ import {
   updateCompatibleReference,
 } from './reference';
 import { createSaveFingerprint } from './fingerprint';
+import { createBackupDocument, parseBackupDocument } from './backup';
 import type {
   CatRecord,
   CatSummary,
@@ -344,6 +345,61 @@ export class MeowfolioRepository {
         // Preserve the original domain/storage error below.
       }
       throw error;
+    }
+  }
+
+  /**
+   * Snapshot all three stores in one readonly transaction so a backup contains
+   * a consistent cat/history/inbox set. Encoding runs after that transaction.
+   */
+  async exportBackupJson(): Promise<string> {
+    const db = await this.open();
+    const tx = db.transaction([CATS, ENCOUNTERS, PENDING_PHOTOS], 'readonly');
+    const done = transactionDone(tx);
+    const [cats, encounters, pendingPhotos] = await Promise.all([
+      request(tx.objectStore(CATS).getAll()) as Promise<CatRecord[]>,
+      request(tx.objectStore(ENCOUNTERS).getAll()) as Promise<EncounterRecord[]>,
+      request(tx.objectStore(PENDING_PHOTOS).getAll()) as Promise<PendingPhoto[]>,
+    ]);
+    await done;
+    return createBackupDocument({ cats, encounters, pendingPhotos });
+  }
+
+  /**
+   * Additive, all-or-nothing restore. Existing IDs are never replaced, and a
+   * conflicting record aborts the entire transaction including earlier adds.
+   */
+  async importBackupJson(text: string): Promise<{
+    cats: number; encounters: number; pendingPhotos: number;
+  }> {
+    const contents = parseBackupDocument(text);
+    const db = await this.open();
+    const tx = db.transaction([CATS, ENCOUNTERS, PENDING_PHOTOS], 'readwrite');
+    const done = transactionDone(tx);
+    try {
+      for (const cat of contents.cats) await request(tx.objectStore(CATS).add(cat));
+      for (const encounter of contents.encounters) {
+        await request(tx.objectStore(ENCOUNTERS).add(encounter));
+      }
+      for (const item of contents.pendingPhotos) {
+        await request(tx.objectStore(PENDING_PHOTOS).add(item));
+      }
+      await done;
+      return {
+        cats: contents.cats.length,
+        encounters: contents.encounters.length,
+        pendingPhotos: contents.pendingPhotos.length,
+      };
+    } catch (reason) {
+      try { tx.abort(); } catch { /* An add failure may already have aborted it. */ }
+      try { await done; } catch { /* Preserve the original error. */ }
+      if (reason instanceof DOMException && reason.name === 'ConstraintError') {
+        throw new Error(
+          'This backup contains cats or photos already saved here. ' +
+          'Nothing was imported. Use an empty scrapbook for a full restore.',
+        );
+      }
+      throw reason;
     }
   }
 
