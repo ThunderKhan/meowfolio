@@ -101,9 +101,9 @@ function EmptyCollection({ onSpotCat, ownerName }: { onSpotCat: () => void; owne
         <p className="empty-scrapbook-count mt-5 text-xs font-bold uppercase tracking-[0.16em] text-[#a91f68]">
           0 cats saved
         </p>
-        <h1 id="empty-scrapbook-title" className="pixel-heading empty-scrapbook-title mt-2 text-3xl">
+        <h2 id="empty-scrapbook-title" className="pixel-heading empty-scrapbook-title mt-2 text-3xl">
           Your Meowfolio is empty.
-        </h1>
+        </h2>
         <p className="empty-scrapbook-description mx-auto mt-4 max-w-lg leading-7 text-[#6d3454]">
           <span className="empty-description-desktop">
             The next cat you meet can be the first page. Snap a photo, let the local AI find the
@@ -144,7 +144,7 @@ function Collection({
       <section className="scrapbook-collection-heading mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="pixel-kicker">★ LOCAL CAT MEMORY ARCHIVE ★</p>
-          <h1 className="pixel-heading mt-2 text-4xl sm:text-5xl">my meowfolio</h1>
+          <h2 className="pixel-heading mt-2 text-4xl sm:text-5xl">my meowfolio</h2>
           <p className="mt-3 text-sm leading-6 text-[#6d3454]">
             {ownerName ? ownerName + '’s collection · ' : ''}{cards.length} {cards.length === 1 ? 'cat' : 'cats'} saved in this browser · click a
             cat to open their memory log.
