@@ -42,7 +42,7 @@ export function StudioPage({
   }, [entry]);
 
   return (
-    <main className="studio-page min-h-screen px-3 py-4 sm:px-6 sm:py-8">
+    <main id="main-content" tabIndex={-1} className="studio-page min-h-screen px-3 py-4 sm:px-6 sm:py-8">
       <div className="studio-page-shell mx-auto max-w-[96rem]">
         <header className="studio-page-nav">
           <button type="button" className="pixel-secondary" onClick={onBack}>Back to scrapbook</button>
