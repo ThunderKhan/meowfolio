@@ -2407,9 +2407,12 @@ details > summary::marker {
     padding-top: 4px;
     border-top: 1px dashed #cf82ab;
   }
+  /* Keep the first-screen phone composition compact: the existing
+     welcome/privacy copy remains, while the footer shows creator credit. */
+  .meow-footer-copy { display: none; }
   .meow-footer-credit {
-    display: block;
-    margin: 5px 0 0;
+    display: inline;
+    margin: 0;
   }
 }
 @media (max-width: 359px) {
