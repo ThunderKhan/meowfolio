@@ -2106,3 +2106,132 @@ details > summary::marker {
   .photo-viewer-caption { padding-top: 2px; font-size: 11px; }
   .cat-gallery-thumbnail { flex-basis: 62px; width: 62px; height: 62px; }
 }
+
+
+/* Frontend UX audit: keep the nostalgic Windows-2000 scrapbook chrome while
+   giving small metadata, focus, and touch controls modern affordances. */
+.skip-to-main {
+  position: fixed;
+  z-index: 2100;
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
+  transform: translateY(calc(-100% - 24px));
+  border: 3px solid var(--pixel-border);
+  background: var(--pink-panel);
+  box-shadow: 4px 4px 0 var(--pixel-shadow);
+  color: var(--ink);
+  padding: 10px 14px;
+  font: 900 0.95rem/1.35 var(--font-display);
+  text-decoration: underline;
+}
+.skip-to-main:focus,
+.skip-to-main:focus-visible {
+  transform: none;
+}
+#main-content:focus {
+  outline: none;
+}
+
+/* The top bar may contain long translated or user-supplied labels. */
+.pixel-window-title > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pixel-window-hint {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 48%;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 1;
+  white-space: normal;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.pixel-kicker,
+.pixel-info-box dt,
+.pixel-badge,
+.pixel-photo-label,
+.pixel-memory-index {
+  font-size: 12px;
+}
+.profile-shortcut {
+  min-height: 44px;
+  font-size: 13px;
+}
+.photo-expand-button {
+  min-height: 44px;
+  font-size: 12px;
+}
+.pixel-location > summary,
+.story-advanced > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 2px;
+  font-size: 13px;
+}
+.story-reset-button {
+  min-height: 44px;
+  font-size: 13px;
+}
+.story-preview-status {
+  font-size: 13px;
+}
+
+/* The backup details section previously suppressed its native marker without
+   providing a replacement. A plus/minus is familiar to Y2K window chrome. */
+.backup-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 48px;
+  color: var(--pink-deep);
+}
+.backup-panel > summary::after {
+  content: "+";
+  display: grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 2px solid var(--pixel-border);
+  background: #fffafc;
+  box-shadow: 2px 2px 0 #d98aaf;
+  color: var(--pink-deep);
+  font: 900 21px/1 var(--font-display);
+}
+.backup-panel[open] > summary::after {
+  content: "−";
+}
+/* Clearly show where keyboard focus is even around controls whose focus is
+   visually represented by a wrapping label or a retro window outline. */
+.backup-panel > summary:focus-visible,
+.pixel-location > summary:focus-visible,
+.story-advanced > summary:focus-visible {
+  outline: 3px dashed var(--focus);
+  outline-offset: 4px;
+}
+@media (max-width: 760px) {
+  .pixel-window-hint { font-size: 12px; }
+  .profile-shortcut { min-height: 44px; }
+  .empty-scrapbook-count { font-size: 12px; }
+  .home-page > footer { font-size: 12px; }
+  .photo-viewer-caption { font-size: 12px; }
+  .photo-expand-button { min-height: 44px; }
+}
+@media (max-width: 359px) {
+  .pixel-window-hint { max-width: 41%; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skip-to-main,
+  .pixel-primary,
+  .pixel-secondary,
+  .pixel-cat-card,
+  .cat-gallery-thumbnail,
+  .cat-gallery-thumbnails {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
