@@ -12,6 +12,7 @@ import { StudioPage } from './story/StudioPage';
 import { PendingPhotos } from './scrapbook/PendingPhotos';
 import { BackupPanel } from './scrapbook/BackupPanel';
 import { ProfilePanel } from './profile/ProfilePanel';
+import { SiteNav, CREATOR_GITHUB_URL } from './navigation/SiteNav';
 import { readLocalProfile, type LocalProfile } from './profile/localProfile';
 import { MeowfolioRepository } from './storage/repository';
 
@@ -70,6 +71,9 @@ export function App() {
   const homeGalleryRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<LocalProfile | null>(readLocalProfile);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [navigation, setNavigation] = useState<{ target: 'home' | 'cats'; serial: number }>({
+    target: 'home', serial: 0,
+  });
   const [studioCatId, setStudioCatId] = useState<string | null>(() => {
     const match = window.location.pathname.match(/^\/studio\/([^/]+)\/?$/);
     return match ? decodeURIComponent(match[1]) : null;
@@ -182,6 +186,22 @@ export function App() {
     };
   }, [e2eEnabled, refreshScanCats, repository]);
 
+  function navigateHome(): void {
+    setProfileOpen(false);
+    setNavigation((current) => ({ target: 'home', serial: current.serial + 1 }));
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function navigateCats(): void {
+    setProfileOpen(false);
+    setNavigation((current) => ({ target: 'cats', serial: current.serial + 1 }));
+  }
+
+  function navigateFromStudio(target: 'home' | 'cats'): void {
+    setNavigation((current) => ({ target, serial: current.serial + 1 }));
+    closeStudio();
+  }
+
   function completeWelcome(): void {
     setWelcomeComplete(true);
     try {
@@ -278,6 +298,8 @@ export function App() {
         catId={studioCatId}
         ownerName={profile?.displayName ?? null}
         onBack={closeStudio}
+        onHome={() => navigateFromStudio('home')}
+        onCats={() => navigateFromStudio('cats')}
       />
     );
   }
@@ -373,9 +395,13 @@ export function App() {
   return (
     <main id="main-content" tabIndex={-1} className="home-page mx-auto min-h-screen max-w-[96rem] px-4 py-6 sm:px-6 lg:px-8 sm:py-9">
       <header className="pixel-window home-header">
-        <div className="pixel-window-title">
-          <span>♥ MEOWFOLIO.HTML</span>
-          <span className="pixel-window-hint">Meowfolio</span>
+        <div className="pixel-window-title meow-header-titlebar">
+          <span className="meow-titlebar-id">
+            <span className="meow-titlebar-full">♥ MEOWFOLIO.HTML</span>
+            <span className="meow-titlebar-mini" aria-hidden="true">♥</span>
+          </span>
+          <SiteNav onHome={navigateHome} onCats={navigateCats}
+            onAddCat={() => void startScan()} current={navigation.target} />
         </div>
         <div className="home-header-body flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="home-desktop-brand">
@@ -436,13 +462,16 @@ export function App() {
         refreshKey={refreshKey}
         onProcess={(photo, id) => void startScan(photo, id)}
       />
-      <Scrapbook
-        repository={repository}
-        refreshKey={refreshKey}
-        onSpotCat={openCameraOrScan}
-        ownerName={profile?.displayName ?? null}
-        onCreateStory={openStudio}
-      />
+      <div id="cat-collection" className="meow-collection-anchor">
+        <Scrapbook
+          repository={repository}
+          refreshKey={refreshKey}
+          onSpotCat={openCameraOrScan}
+          ownerName={profile?.displayName ?? null}
+          onCreateStory={openStudio}
+          navigation={navigation}
+        />
+      </div>
 
       <BackupPanel
         repository={repository}
@@ -453,7 +482,10 @@ export function App() {
       />
 
       <footer className="mt-9 border-t-2 border-dashed border-[#b7588b] py-5 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#82405f]">
-        Your cats and memories are saved in this browser. No cloud account required.
+        <span>Your cats and memories are saved in this browser. No cloud account required.</span>
+        <span className="meow-footer-credit">
+          Made with ♡ by <a href={CREATOR_GITHUB_URL} target="_blank" rel="noopener noreferrer">@ThunderKhan ↗</a>
+        </span>
       </footer>
     </main>
   );
