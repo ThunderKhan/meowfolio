@@ -890,6 +890,20 @@ test('repeat cat encounter photos form a thumbnail carousel and a navigable full
   await expect(page.getByText('Photo 2 of 2')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Show photo 2 of 2' })).toHaveAttribute('aria-pressed', 'true');
 
+  // Two competing stickers formerly occupied the bottom of narrow Polaroids.
+  // The fullscreen action must not cover the date at desktop or phone sizes.
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    const overlaps = await page.locator('.pixel-memory-card').first().evaluate((card) => {
+      const date = card.querySelector('.pixel-photo-label')?.getBoundingClientRect();
+      const action = card.querySelector('.photo-expand-button')?.getBoundingClientRect();
+      if (!date || !action) throw new Error('Missing memory photo controls');
+      return Math.max(date.left, action.left) < Math.min(date.right, action.right) &&
+        Math.max(date.top, action.top) < Math.min(date.bottom, action.bottom);
+    });
+    expect(overlaps).toBe(false);
+  }
+
   await page.getByRole('button', { name: 'View full photo' }).first().click();
   const viewer = page.getByRole('dialog', { name: /View full photo/ });
   await expect(viewer.getByText('Photo 2 of 2')).toBeVisible();
