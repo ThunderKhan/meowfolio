@@ -652,7 +652,7 @@ test('mobile cat details keep legible form text and adjacent save/change buttons
     buffer: photo,
   });
   await expect(page.getByRole('button', { name: 'Find cat' })).toBeEnabled();
-  await page.getByRole('button', { name: 'Find cat' }).click();
+  await page.getByRole('button', { name: /Find (the )?cat/i }).click();
   await expect(page.getByRole('button', { name: 'Name this cat' })).toBeVisible();
   await page.getByRole('button', { name: 'Name this cat' }).click();
   await page.getByLabel('Cat name').fill('Pako');
