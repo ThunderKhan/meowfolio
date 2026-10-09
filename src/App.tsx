@@ -231,12 +231,12 @@ export function App() {
     void startScan(photo);
   }
 
-  async function afterSave(): Promise<void> {
+  async function afterSave(processedPendingId: string | null): Promise<void> {
     // The encounter has already been committed. A failed inbox cleanup must
     // never turn an actually successful save into a false "save failed" UI.
-    if (initialPendingId) {
+    if (processedPendingId) {
       try {
-        await repository.deletePendingPhoto(initialPendingId);
+        await repository.deletePendingPhoto(processedPendingId);
       } catch {
         // Leave the pending photo recoverable rather than misreport success.
       }
