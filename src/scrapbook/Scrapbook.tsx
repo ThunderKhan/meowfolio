@@ -10,6 +10,7 @@ interface ScrapbookProps {
   onSpotCat: () => void;
   ownerName: string | null;
   onCreateStory: (catId: string) => void;
+  navigation: { target: 'home' | 'cats'; serial: number };
 }
 
 interface CatCardView {
@@ -476,9 +477,24 @@ function CatDetail({
   );
 }
 
-export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCreateStory }: ScrapbookProps) {
+export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCreateStory, navigation }: ScrapbookProps) {
   const { loading, cards, error } = useCatCards(repository, refreshKey);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+
+  // A navbar destination is an explicit request to leave any open cat detail.
+  useEffect(() => {
+    if (navigation.serial > 0) setSelectedCatId(null);
+  }, [navigation.serial]);
+
+  useEffect(() => {
+    if (selectedCatId || navigation.target !== 'cats' || navigation.serial === 0) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById('cat-collection')?.scrollIntoView({
+        block: 'start', behavior: 'instant',
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [navigation.serial, navigation.target, selectedCatId]);
 
   const selectedExists = useMemo(
     () => !selectedCatId || cards.some(({ cat }) => cat.id === selectedCatId),
