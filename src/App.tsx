@@ -10,6 +10,7 @@ import { MatchingLab } from './evaluation/MatchingLab';
 import { Scrapbook } from './scrapbook/Scrapbook';
 import { StudioPage } from './story/StudioPage';
 import { PendingPhotos } from './scrapbook/PendingPhotos';
+import { BackupPanel } from './scrapbook/BackupPanel';
 import { ProfilePanel } from './profile/ProfilePanel';
 import { readLocalProfile, type LocalProfile } from './profile/localProfile';
 import { MeowfolioRepository } from './storage/repository';
@@ -418,6 +419,14 @@ export function App() {
         onSpotCat={openCameraOrScan}
         ownerName={profile?.displayName ?? null}
         onCreateStory={openStudio}
+      />
+
+      <BackupPanel
+        repository={repository}
+        onImported={() => {
+          setRefreshKey((value) => value + 1);
+          void refreshScanCats();
+        }}
       />
 
       <footer className="mt-9 border-t-2 border-dashed border-[#b7588b] py-5 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#82405f]">
