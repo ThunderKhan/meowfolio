@@ -15,43 +15,51 @@ export async function loadRuntimeCatalog(
   const objectUrls: string[] = [];
   const cats: CatReference[] = [];
 
-  for (const { cat, coverPhoto } of summaries) {
-    const coverUrl = URL.createObjectURL(coverPhoto);
-    objectUrls.push(coverUrl);
-
-    let referenceEmbedding: number[] | undefined;
-    let embeddingSpace = cat.embeddingSpace;
-
-    if (policy.enabled) {
-      if (policy.strategy === 'centroid') {
-        if (
-          !policy.embeddingSpaceKey ||
-          embeddingSpaceKey(cat.embeddingSpace) === policy.embeddingSpaceKey
-        ) {
-          referenceEmbedding = Array.from(cat.referenceEmbedding);
-        }
-      } else {
-        const encounters = await repository.listEncountersForCat(cat.id);
-        const firstCompatible = encounters.find(
-          (encounter) =>
+  try {
+    for (const { cat, coverPhoto } of summaries) {
+      const coverUrl = URL.createObjectURL(coverPhoto);
+      objectUrls.push(coverUrl);
+  
+      let referenceEmbedding: number[] | undefined;
+      let embeddingSpace = cat.embeddingSpace;
+  
+      if (policy.enabled) {
+        if (policy.strategy === 'centroid') {
+          if (
             !policy.embeddingSpaceKey ||
-            embeddingSpaceKey(encounter.embeddingSpace) === policy.embeddingSpaceKey,
-        );
-
-        if (firstCompatible) {
-          referenceEmbedding = Array.from(firstCompatible.embedding);
-          embeddingSpace = firstCompatible.embeddingSpace;
+            embeddingSpaceKey(cat.embeddingSpace) === policy.embeddingSpaceKey
+          ) {
+            referenceEmbedding = Array.from(cat.referenceEmbedding);
+          }
+        } else {
+          const encounters = await repository.listEncountersForCat(cat.id);
+          const firstCompatible = encounters.find(
+            (encounter) =>
+              !policy.embeddingSpaceKey ||
+              embeddingSpaceKey(encounter.embeddingSpace) === policy.embeddingSpaceKey,
+          );
+  
+          if (firstCompatible) {
+            referenceEmbedding = Array.from(firstCompatible.embedding);
+            embeddingSpace = firstCompatible.embeddingSpace;
+          }
         }
       }
+  
+      cats.push({
+        id: cat.id,
+        name: cat.name,
+        encounterCount: cat.encounterCount,
+        coverUrl,
+        ...(referenceEmbedding ? { referenceEmbedding, embeddingSpace } : {}),
+      });
     }
-
-    cats.push({
-      id: cat.id,
-      name: cat.name,
-      encounterCount: cat.encounterCount,
-      coverUrl,
-      ...(referenceEmbedding ? { referenceEmbedding, embeddingSpace } : {}),
-    });
+  
+  } catch (error) {
+    // A read error partway through matching-catalog creation must not leak
+    // Blob URLs for previously processed cat covers.
+    for (const url of objectUrls) URL.revokeObjectURL(url);
+    throw error;
   }
 
   return { cats, objectUrls };
