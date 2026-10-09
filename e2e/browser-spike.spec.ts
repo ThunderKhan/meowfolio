@@ -983,6 +983,57 @@ test('studio titlebar navigation returns to the saved cat collection', async ({ 
   await expect(page.getByRole('button', { name: /Open Mochi/ })).toBeVisible();
 });
 
+test('large collection fetches 12 covers initially and reveals remaining cats on demand', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+
+  await page.evaluate(async () => {
+    const repository = (window as any).__MEOWFOLIO_E2E_REPOSITORY__;
+    const originalCat = (await repository.listCats())[0];
+    const originalEncounter = (await repository.listEncountersForCat(originalCat.id))[0];
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('meowfolio', 2);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(['cats', 'encounters'], 'readwrite');
+        const cats = tx.objectStore('cats');
+        const encounters = tx.objectStore('encounters');
+        for (let i = 1; i <= 13; i++) {
+          const catId = 'paged-cat-' + i;
+          const encounterId = 'paged-encounter-' + i;
+          cats.put({
+            ...originalCat, id: catId, name: 'Cat ' + i,
+            coverEncounterId: encounterId, lastSeenAt: originalCat.lastSeenAt + i,
+          });
+          encounters.put({ ...originalEncounter, id: encounterId, catId });
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    } finally {
+      db.close();
+    }
+  });
+
+  await page.reload();
+  const collection = page.getByRole('region', { name: 'Saved cats' });
+  await expect(collection.locator('.pixel-cat-card')).toHaveCount(12);
+  await expect(page.getByText('14 cats saved in this browser')).toBeVisible();
+  const more = page.getByRole('button', { name: 'Show more saved cats' });
+  await expect(more).toContainText('12 of 14');
+  await more.click();
+  await expect(collection.locator('.pixel-cat-card')).toHaveCount(14);
+  await expect(more).toHaveCount(0);
+  await page.getByRole('button', { name: /Open Cat 13/ }).click();
+  await expect(page.getByRole('heading', { name: 'Cat 13', exact: true })).toBeVisible();
+});
+
 test('collection reads only cover photos rather than every archived encounter blob', async ({ page, request }) => {
   const photo = await catPhoto(request);
   await page.goto('/?skipWelcome=1&mockAi=single');
