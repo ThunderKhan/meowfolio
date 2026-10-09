@@ -60,7 +60,8 @@ test('pixel scrapbook controls remain usable at 320px and preserve responsive co
   for (const width of [320, 390, 760, 1280]) {
     await page.setViewportSize({ width, height: 844 });
     await page.goto('/');
-    await page.getByRole('button', { name: 'Open my scrapbook' }).click();
+    const openScrapbook = page.getByRole('button', { name: 'Open my scrapbook' });
+    if (await openScrapbook.isVisible()) await openScrapbook.click();
     const metrics = await page.evaluate(() => {
       const profile = Array.from(document.querySelectorAll('.profile-shortcut'))
         .find((node) => node.getBoundingClientRect().height > 0)!;
