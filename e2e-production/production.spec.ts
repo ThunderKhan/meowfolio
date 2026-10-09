@@ -43,7 +43,8 @@ test('keyboard navigation exposes main content and supports retro upload control
   expect((await capture).isMultiple()).toBe(false);
 
   await page.getByRole('button', { name: 'Open my scrapbook' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Your Meowfolio is empty.' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /meowfolio/i })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Your Meowfolio is empty.' })).toBeVisible();
   const camera = page.getByRole('button', { name: /camera/i }).first();
   const gallery = page.getByRole('button', { name: 'Add photo' });
   await expect(camera).toBeVisible();
