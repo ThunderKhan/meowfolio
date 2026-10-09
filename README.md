@@ -35,6 +35,8 @@ Photograph a cat, let two locally executed computer-vision models find and descr
 
 See [architecture](docs/ARCHITECTURE.md), [AI evaluation](docs/AI_EVALUATION.md), [dependencies and license register](docs/DEPENDENCIES_LICENSES.md), [release guide](docs/DEPLOYMENT_RELEASE.md), and the [deep reliability audit](docs/DEEP_RELIABILITY_AUDIT_2026-10-09.md) for fixed defects and remaining constraints.
 
+The [Y2K navigation design note](docs/NAVIGATION_Y2K_2026-10-09.md) explains the Home/Cats/Add Cat controls, GitHub creator link, and optional star counter. The navbar fetches only **public GitHub repository metadata** on the scrapbook/Studio pages, caches the count for 15 minutes per browser tab, and falls back to an unnumbered star if offline or rate-limited. No cat photos or saved memories are sent.
+
 ## Backup and restore
 
 Open **Back up or restore my cats** near the bottom of the scrapbook. **Download backup** exports full cat/encounter records and pending inbox photos to a JSON file without uploading anything. On the target browser/origin, use **Restore backup**. An import either adds all its records or adds none; conflicts with existing IDs are refused rather than overwritten. For a full restore, use an empty scrapbook. The backup includes photos, notes, embeddings and optional precise coordinates, so **do not share the file publicly**. Large camera libraries may exceed the 200 MB mobile-import limit; this feature is not an automatic cloud backup. Export regularly and verify the file is stored safely.
