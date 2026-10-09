@@ -254,6 +254,9 @@ export function ScanFlow({
     } catch (error) {
       clearWarmTimers();
       if (ignoreCancelled(error, generation)) return;
+      // A fatal worker error discards its model pipelines. Before retrying,
+      // re-check cached assets rather than trusting the old ready flag.
+      setModelsReady(false);
       generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
@@ -307,6 +310,9 @@ export function ScanFlow({
     } catch (error) {
       clearWarmTimers();
       if (ignoreCancelled(error, generation)) return;
+      // A fatal worker error discards its model pipelines. Before retrying,
+      // re-check cached assets rather than trusting the old ready flag.
+      setModelsReady(false);
       generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
@@ -372,6 +378,7 @@ export function ScanFlow({
       await runDetection(photo, generation);
     } catch (error) {
       if (ignoreCancelled(error, generation)) return;
+      setModelsReady(false);
       generationRef.current = generation + 1;
       dispatch({
         type: 'ASYNC_ERROR',
