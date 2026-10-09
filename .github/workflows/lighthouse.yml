@@ -1,0 +1,59 @@
+name: Lighthouse performance baseline
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.16.0"
+      - name: Install exact dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Build ordinary production artifact
+        run: npm run build
+      - name: Start local Vite production preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4174 --strictPort > /tmp/meowfolio-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4174/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/meowfolio-preview.log
+          exit 1
+      - name: Install headless Chromium
+        run: |
+          npx playwright install chromium
+          echo "CHROME_PATH=$(node --input-type=module -e "import { chromium } from '@playwright/test'; process.stdout.write(chromium.executablePath())")" >> "$GITHUB_ENV"
+      - name: Lighthouse mobile audit
+        run: |
+          npm exec --yes --package=lighthouse@12.8.2 -- lighthouse http://127.0.0.1:4174/ \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --output=json --output-path=./lighthouse-mobile.json --quiet
+      - name: Lighthouse desktop audit
+        run: |
+          npm exec --yes --package=lighthouse@12.8.2 -- lighthouse http://127.0.0.1:4174/ \
+            --preset=desktop \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --output=json --output-path=./lighthouse-desktop.json --quiet
+      - name: Print score and lab metrics
+        run: node scripts/summarize-lighthouse.mjs lighthouse-mobile.json lighthouse-desktop.json
+      - name: Upload measurable Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meowfolio-lighthouse
+          path: lighthouse-*.json
+          if-no-files-found: warn

@@ -62,11 +62,27 @@ test('Open Graph and X cards advertise the real production image in server-deliv
 
 test('serves the custom Meowfolio cat as a real browser favicon and Apple touch icon', async ({ page, request }) => {
   await page.goto('/');
-  const icon = page.locator('head link[rel="icon"]');
+  const icon = page.locator('head link[rel="icon"][type="image/png"]');
   await expect(icon).toHaveAttribute('type', 'image/png');
   await expect(icon).toHaveAttribute('href', '/favicon.png');
   await expect(page.locator('head link[rel="apple-touch-icon"]'))
     .toHaveAttribute('href', '/favicon.png');
+  const compactIcon = page.locator('head link[rel="icon"][type="image/svg+xml"]');
+  await expect(compactIcon).toHaveAttribute('href', '/favicon-small.svg');
+  const compactResponse = await request.get('/favicon-small.svg');
+  expect(compactResponse.ok()).toBe(true);
+  expect(compactResponse.headers()['content-type']).toMatch(/image\/svg\+xml/);
+  const compact = await compactResponse.body();
+  expect(compact.length).toBeLessThan(10_000);
+  expect(compact.toString('utf8')).toContain('data:image/png;base64,');
+  const compactImage = await page.evaluate(async () => {
+    const img = new Image();
+    img.src = '/favicon-small.svg';
+    await img.decode();
+    return [img.naturalWidth, img.naturalHeight];
+  });
+  expect(compactImage).toEqual([128, 128]);
+
   await expect(page.locator('head meta[name="apple-mobile-web-app-title"]'))
     .toHaveAttribute('content', 'Meowfolio');
 

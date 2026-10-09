@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { AiClient, type AiGateway } from './ai/client';
 import { MockAiClient, type MockScenario } from './ai/mockClient';
 import { MODEL_MANIFEST } from './ai/shared';
-import { ScanFlow } from './scan/ScanFlow';
+
 import type { CatReference, MatchingPolicy } from './scan/matching';
 import { loadRuntimeCatalog } from './scan/referenceCatalog';
 import { RELEASE_MATCHING_POLICY } from './evaluation/releasePolicy';
-import { MatchingLab } from './evaluation/MatchingLab';
-import { Scrapbook } from './scrapbook/Scrapbook';
-import { StudioPage } from './story/StudioPage';
+
+
+
 import { PendingPhotos } from './scrapbook/PendingPhotos';
 import { BackupPanel } from './scrapbook/BackupPanel';
 import { ProfilePanel } from './profile/ProfilePanel';
@@ -17,6 +17,25 @@ import { readLocalProfile, type LocalProfile } from './profile/localProfile';
 import { MeowfolioRepository } from './storage/repository';
 
 const WELCOME_KEY = 'meowfolio.welcome-complete';
+
+// Feature screens stay out of the welcome-page bundle. Vite emits separate
+// hashed chunks; entering a feature triggers its own load without losing data.
+const ScanFlow = lazy(() => import('./scan/ScanFlow').then((m) => ({ default: m.ScanFlow })));
+const StudioPage = lazy(() => import('./story/StudioPage').then((m) => ({ default: m.StudioPage })));
+const MatchingLab = lazy(() => import('./evaluation/MatchingLab').then((m) => ({ default: m.MatchingLab })));
+const Scrapbook = lazy(() => import('./scrapbook/Scrapbook').then((m) => ({ default: m.Scrapbook })));
+
+function LoadingFeature({ title }: { title: string }) {
+  return (
+    <section className="pixel-window meow-feature-skeleton mx-auto mt-6 max-w-4xl p-5"
+      role="status" aria-label={title}>
+      <span className="pixel-kicker">♥ LOADING.EXE</span>
+      <p className="pixel-heading mt-3 text-xl">{title}</p>
+      <div className="meow-skeleton-line mt-5" aria-hidden="true" />
+      <div className="meow-skeleton-line meow-skeleton-short mt-3" aria-hidden="true" />
+    </section>
+  );
+}
 
 declare global {
   interface Window {
@@ -168,8 +187,8 @@ export function App() {
   }, [catalogMode, fixtureCats, repository]);
 
   useEffect(() => {
-    void refreshScanCats();
-
+    // Do not decode/load every saved cover just to render the welcome/home
+    // screen. startScan() refreshes the complete identity catalog on demand.
     if (e2eEnabled) {
       window.__MEOWFOLIO_E2E_REPOSITORY__ = repository;
     }
@@ -279,7 +298,8 @@ export function App() {
       }
     }
     setRefreshKey((value) => value + 1);
-    await refreshScanCats().catch(() => {});
+    // The next startScan() loads fresh reference data; don't read every
+    // saved cover immediately after Save while ScanFlow is still mounted.
   }
 
   async function afterSavedForLater(): Promise<void> {
@@ -288,11 +308,14 @@ export function App() {
   }
 
   if (matchingLabEnabled) {
-    return <MatchingLab onExit={() => window.location.assign(window.location.pathname)} />;
+    return <Suspense fallback={<LoadingFeature title="Opening the matching lab…" />}>
+      <MatchingLab onExit={() => window.location.assign(window.location.pathname)} />
+    </Suspense>;
   }
 
   if (studioCatId) {
     return (
+      <Suspense fallback={<LoadingFeature title="Opening story studio…" />}>
       <StudioPage
         repository={repository}
         catId={studioCatId}
@@ -301,6 +324,7 @@ export function App() {
         onHome={() => navigateFromStudio('home')}
         onCats={() => navigateFromStudio('cats')}
       />
+      </Suspense>
     );
   }
 
@@ -377,6 +401,7 @@ export function App() {
 
   if (scanning && ai) {
     return (
+      <Suspense fallback={<LoadingFeature title="Preparing your cat scan…" />}>
       <ScanFlow
         initialPhoto={initialScanPhoto}
         initialPendingId={initialPendingId}
@@ -389,6 +414,7 @@ export function App() {
         onResetAi={resetAiAfterTimeout}
         onExit={leaveScan}
       />
+      </Suspense>
     );
   }
 
@@ -462,6 +488,7 @@ export function App() {
         refreshKey={refreshKey}
         onProcess={(photo, id) => void startScan(photo, id)}
       />
+      <Suspense fallback={<LoadingFeature title="Opening your scrapbook…" />}>
       <Scrapbook
         repository={repository}
         refreshKey={refreshKey}
@@ -470,6 +497,7 @@ export function App() {
         onCreateStory={openStudio}
         navigation={navigation}
       />
+      </Suspense>
 
       <BackupPanel
         repository={repository}

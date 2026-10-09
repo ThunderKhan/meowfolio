@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MeowfolioRepository } from '../storage/repository';
 import { PhotoViewer } from './PhotoViewer';
-import type { CatRecord, CatSummary, EncounterRecord } from '../storage/types';
+import type { CatRecord, EncounterRecord } from '../storage/types';
 
 
 interface ScrapbookProps {
@@ -23,69 +23,77 @@ interface EncounterView {
   photoUrl: string;
 }
 
-function formatDay(timestamp: number): string {
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(timestamp);
-}
+// Reuse locale formatters across cards and encounters.
+const dayFormatter = new Intl.DateTimeFormat(undefined, {
+  year: 'numeric', month: 'short', day: 'numeric',
+});
+const momentFormatter = new Intl.DateTimeFormat(undefined, {
+  year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+});
+function formatDay(timestamp: number): string { return dayFormatter.format(timestamp); }
+function formatMoment(timestamp: number): string { return momentFormatter.format(timestamp); }
 
-function formatMoment(timestamp: number): string {
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(timestamp);
-}
 
-function useCatCards(
-  repository: MeowfolioRepository,
-  refreshKey: number,
-): {
+const CAT_PAGE_SIZE = 12;
+
+// Only read and decode the covers the user has requested. No change to the
+// original IndexedDB photos or cat embeddings; object URLs remain scoped to
+// the component's active request and are always revoked during cleanup.
+function useCatCards(repository: MeowfolioRepository, refreshKey: number): {
   loading: boolean;
   cards: CatCardView[];
+  total: number;
   error: string | null;
+  hasMore: boolean;
+  loadMore: () => void;
 } {
+  const [visibleCount, setVisibleCount] = useState(CAT_PAGE_SIZE);
   const [state, setState] = useState<{
-    loading: boolean;
-    cards: CatCardView[];
-    error: string | null;
-  }>({ loading: true, cards: [], error: null });
+    loading: boolean; cards: CatCardView[]; total: number; error: string | null;
+  }>({ loading: true, cards: [], total: 0, error: null });
+
+  useEffect(() => {
+    setVisibleCount(CAT_PAGE_SIZE);
+    setState({ loading: true, cards: [], total: 0, error: null });
+  }, [repository, refreshKey]);
 
   useEffect(() => {
     let active = true;
     const urls: string[] = [];
-
-    void repository
-      .getCatSummaries()
-      .then((summaries: CatSummary[]) => {
+    void repository.getCatSummariesPage(visibleCount)
+      .then(({ summaries, total }) => {
         if (!active) return;
-        const cards = summaries.map(({ cat, coverPhoto }) => {
-          const coverUrl = URL.createObjectURL(coverPhoto);
-          urls.push(coverUrl);
-          return { cat, coverUrl };
-        });
-        setState({ loading: false, cards, error: null });
+        try {
+          const cards = summaries.map(({ cat, coverPhoto }) => {
+            const coverUrl = URL.createObjectURL(coverPhoto);
+            urls.push(coverUrl);
+            return { cat, coverUrl };
+          });
+          setState({ loading: false, cards, total, error: null });
+        } catch (error) {
+          for (const url of urls) URL.revokeObjectURL(url);
+          urls.length = 0;
+          throw error;
+        }
       })
       .catch((error: unknown) => {
         if (!active) return;
         setState({
-          loading: false,
-          cards: [],
+          loading: false, cards: [], total: 0,
           error: error instanceof Error ? error.message : 'Could not open the local scrapbook.',
         });
       });
-
     return () => {
       active = false;
       for (const url of urls) URL.revokeObjectURL(url);
     };
-  }, [repository, refreshKey]);
+  }, [repository, refreshKey, visibleCount]);
 
-  return state;
+  return {
+    ...state,
+    hasMore: state.cards.length < state.total,
+    loadMore: () => setVisibleCount((count) => count + CAT_PAGE_SIZE),
+  };
 }
 
 function EmptyCollection({ onSpotCat, ownerName }: { onSpotCat: () => void; ownerName: string | null }) {
@@ -131,11 +139,17 @@ function EmptyCollection({ onSpotCat, ownerName }: { onSpotCat: () => void; owne
 
 function Collection({
   cards,
+  total,
+  hasMore,
+  onLoadMore,
   onOpen,
   onSpotCat,
   ownerName,
 }: {
   cards: CatCardView[];
+  total: number;
+  hasMore: boolean;
+  onLoadMore: () => void;
   onOpen: (catId: string) => void;
   onSpotCat: () => void;
   ownerName: string | null;
@@ -147,7 +161,7 @@ function Collection({
           <p className="pixel-kicker">★ LOCAL CAT MEMORY ARCHIVE ★</p>
           <h2 className="pixel-heading mt-2 text-4xl sm:text-5xl">my meowfolio</h2>
           <p className="mt-3 text-sm leading-6 text-[#6d3454]">
-            {ownerName ? ownerName + '’s collection · ' : ''}{cards.length} {cards.length === 1 ? 'cat' : 'cats'} saved in this browser · click a
+            {ownerName ? ownerName + '’s collection · ' : ''}{total} {total === 1 ? 'cat' : 'cats'} saved in this browser · click a
             cat to open their memory log.
           </p>
         </div>
@@ -183,6 +197,8 @@ function Collection({
                 src={coverUrl}
                 alt={'Saved photo of ' + cat.name}
                 className="aspect-square w-full object-contain"
+                loading={index < 2 ? 'eager' : 'lazy'}
+                decoding="async"
               />
               <span className="pixel-photo-label" aria-hidden="true">
                 IMG_{String(index + 1).padStart(3, '0')}.CAT
@@ -203,6 +219,15 @@ function Collection({
           </button>
         ))}
       </section>
+
+      {hasMore && (
+        <div className="mt-7 text-center">
+          <button type="button" className="pixel-secondary"
+            onClick={onLoadMore} aria-label="Show more saved cats">
+            ♡ Show more cats · {cards.length} of {total}
+          </button>
+        </div>
+      )}
 
       <div className="scrapbook-collection-bottom mt-8 text-center">
         <button type="button" className="pixel-secondary" onClick={onSpotCat}>
@@ -355,6 +380,7 @@ function CatDetail({
                   src={galleryPhotoUrl}
                   alt={'Photo of ' + cat.name + ', memory ' + (galleryIndex + 1)}
                   className="aspect-square w-full object-contain"
+                  decoding="async"
                 />
               ) : (
                 <div className="grid aspect-square place-items-center bg-[#ffd8ed] text-3xl">
@@ -388,7 +414,7 @@ function CatDetail({
                       aria-label={'Show photo ' + (index + 1) + ' of ' + encounters.length}
                       onClick={() => setGalleryIndex(index)}
                     >
-                      <img src={photoUrl} alt="" loading="lazy" />
+                      <img src={photoUrl} alt="" loading="lazy" decoding="async" />
                     </button>
                   ))}
                 </div>
@@ -445,6 +471,7 @@ function CatDetail({
                     src={photoUrl}
                     alt={'Encounter with ' + cat.name + ' on ' + formatDay(encounter.timestamp)}
                     className="aspect-square w-full object-contain"
+                    loading="lazy" decoding="async"
                   />
                   <span className="pixel-photo-label">{formatDay(encounter.timestamp)}</span>
                   <button type="button" className="photo-expand-button" onClick={() => setViewPhotoIndex(index)}>⤢ View full photo</button>
@@ -478,7 +505,7 @@ function CatDetail({
 }
 
 export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCreateStory, navigation }: ScrapbookProps) {
-  const { loading, cards, error } = useCatCards(repository, refreshKey);
+  const { loading, cards, total, error, hasMore, loadMore } = useCatCards(repository, refreshKey);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
 
   // A navbar destination is an explicit request to leave any open cat detail.
@@ -543,5 +570,7 @@ export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCrea
 
   if (cards.length === 0) return <EmptyCollection onSpotCat={onSpotCat} ownerName={ownerName} />;
 
-  return <Collection cards={cards} onOpen={setSelectedCatId} onSpotCat={onSpotCat} ownerName={ownerName} />;
+  return <Collection cards={cards} total={total} hasMore={hasMore}
+    onLoadMore={loadMore} onOpen={setSelectedCatId} onSpotCat={onSpotCat}
+    ownerName={ownerName} />;
 }

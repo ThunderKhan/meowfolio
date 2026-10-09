@@ -15,6 +15,10 @@ assert(assets.some((name) => /\.js$/.test(name)), 'No production JavaScript emit
 assert(assets.some((name) => /\.css$/.test(name)), 'No production CSS emitted.');
 assert(assets.some((name) => /^worker[-.]/i.test(name) && name.endsWith('.js')),
   'AI worker chunk missing from production dist/assets.');
+for (const name of ['ScanFlow', 'StudioPage', 'Scrapbook', 'MatchingLab']) {
+  assert(assets.some((file) => file.startsWith(name + '-') && file.endsWith('.js')),
+    'Lazy-loaded ' + name + ' feature chunk is missing; check Vite imports.');
+}
 
 // Inspect executable resources, not every HTML link. Canonical URLs,
 // favicons, and social-card metadata legitimately reference absolute HTTPS

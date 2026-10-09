@@ -69,7 +69,8 @@ export function PendingPhotos({
         <div className="pending-photo-grid mt-4 grid gap-3">
           {items.map(({ record, url }) => (
             <div key={record.id} className="pixel-cat-card">
-              <img className="aspect-square w-full object-contain" src={url} alt="Cat photo waiting for local AI" />
+              <img className="aspect-square w-full object-contain" src={url}
+                loading="lazy" decoding="async" alt="Cat photo waiting for local AI" />
               <div className="pending-photo-actions grid gap-2 p-3">
                 <button
                   type="button"
