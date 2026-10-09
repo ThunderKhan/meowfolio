@@ -32,7 +32,7 @@ Meowfolio was built for the **[Hacktoberfest Open-Source AI Challenge · Week 1:
 
 ## How it works
 
-\`\`\`text
+```text
 Go outside
     ↓
 Spot a cat → snap or choose a photo
@@ -48,7 +48,7 @@ YOU choose: new cat or previously saved cat
 Save photo + sighting to local IndexedDB
     ↓
 Walk on. Revisit the scrapbook later. ♡
-\`\`\`
+```
 
 **The AI finds the cat; you decide who it is.** Meowfolio intentionally does **not** automatically declare two cats to be the same animal. Its held-out matching evaluation found a false positive, so automatic familiar-face suggestions remain disabled. Manual selection of a saved cat continues to work. [Read the evidence.](docs/evaluation-results/2026-10-08-cat-individuals.md)
 
@@ -97,7 +97,7 @@ Meowfolio runs real machine-learning inference client-side, not a simulated or r
 | Persistence | Browser IndexedDB; atomic transactions and duplicate-save protection |
 | Hosting | Static Vercel deployment and CDN. **No backend API or remote database.** |
 
-\`\`\`text
+```text
 camera / photo picker
          │
          ▼
@@ -114,7 +114,7 @@ AI Web Worker             local IndexedDB
              cat scrapbook
                    │
            1080×1920 story card
-\`\`\`
+```
 
 **Why open-weight/local AI?** With a browser-run detector and embedder, the application can inspect and control how inference happens, cache approved model revisions, avoid uploading private cat images, and run the scrapbook without a paid inference API. Initial model/runtime assets are downloaded from Hugging Face and supporting runtime CDNs only with permission. GitHub's public API is contacted separately for the optional repository star count; no photo data is attached to that request.
 
@@ -126,18 +126,18 @@ A visual embedding is **not a verified animal identity**. An evaluation of 50 ca
 
 Requires **Node.js 22.12+**, npm and a modern browser.
 
-\`\`\`bash
+```bash
 git clone https://github.com/ThunderKhan/meowfolio.git
 cd meowfolio
 npm ci
 npm run dev
-\`\`\`
+```
 
-Vite prints a development URL (usually \`http://localhost:5173\`). Localhost has **different browser storage** from the production HTTPS origin, so cats saved on one do not automatically appear on the other.
+Vite prints a development URL (usually `http://localhost:5173`). Localhost has **different browser storage** from the production HTTPS origin, so cats saved on one do not automatically appear on the other.
 
 ### Testing
 
-\`\`\`bash
+```bash
 npm run typecheck
 npm test
 npm run build
@@ -145,7 +145,7 @@ npm run audit:production
 npx playwright install chromium
 npm run test:e2e:production
 npm run test:e2e
-\`\`\`
+```
 
 The production browser suite checks the real release build, asset safety, storage, navigation and consent boundary. The broader E2E suite tests the scan and storage flows, including genuine YOLOS → DINOv2 execution in Chromium/WASM. The separate [Lighthouse workflow](.github/workflows/lighthouse.yml) produces mobile and desktop **lab** reports; its scores are not Android field measurements.
 
@@ -155,7 +155,7 @@ For a reviewer-focused walkthrough, see [PROJECT_TESTING.md](docs/PROJECT_TESTIN
 
 ## Repository map
 
-\`\`\`text
+```text
 src/
 ├── ai/               model manifest, worker, inference client
 ├── scan/             camera, detection, identity decisions
@@ -175,11 +175,11 @@ docs/
 public/               favicon and Open Graph artwork
 e2e/                  browser and real-model tests
 e2e-production/       production-mode browser tests
-\`\`\`
+```
 
 ### Project history
 
-The original [scope, PRD, technical spec and build checklist](docs/planning/) are preserved in \`docs/planning/\` with their review snapshots. They document how the idea evolved; they are **not** Devpost requirements. The current source and this README describe the shipped product.
+The original [scope, PRD, technical spec and build checklist](docs/planning/) are preserved in `docs/planning/` with their review snapshots. They document how the idea evolved; they are **not** Devpost requirements. The current source and this README describe the shipped product.
 
 ## Privacy, attribution, and license
 
