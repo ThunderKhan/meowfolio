@@ -462,16 +462,14 @@ export function App() {
         refreshKey={refreshKey}
         onProcess={(photo, id) => void startScan(photo, id)}
       />
-      <div id="cat-collection" className="meow-collection-anchor">
-        <Scrapbook
-          repository={repository}
-          refreshKey={refreshKey}
-          onSpotCat={openCameraOrScan}
-          ownerName={profile?.displayName ?? null}
-          onCreateStory={openStudio}
-          navigation={navigation}
-        />
-      </div>
+      <Scrapbook
+        repository={repository}
+        refreshKey={refreshKey}
+        onSpotCat={openCameraOrScan}
+        ownerName={profile?.displayName ?? null}
+        onCreateStory={openStudio}
+        navigation={navigation}
+      />
 
       <BackupPanel
         repository={repository}
