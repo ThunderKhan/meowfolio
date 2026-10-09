@@ -16,8 +16,28 @@ assert(assets.some((name) => /\.css$/.test(name)), 'No production CSS emitted.')
 assert(assets.some((name) => /^worker[-.]/i.test(name) && name.endsWith('.js')),
   'AI worker chunk missing from production dist/assets.');
 
-const links = [...html.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)=["']([^"']+)["']/gi)]
-  .map((match) => match[1]);
+// Inspect executable resources, not every HTML link. Canonical URLs,
+// favicons, and social-card metadata legitimately reference absolute HTTPS
+// URLs and must not be mistaken for external JavaScript or CSS imports.
+// Parse attributes independently, regardless of their order in Vite's HTML.
+function attribute(tag, name) {
+  const pairs = [...tag.matchAll(/\b([a-zA-Z:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)];
+  const value = pairs.find(([, key]) => key.toLowerCase() === name);
+  return value ? (value[2] ?? value[3]) : null;
+}
+
+const links = [...html.matchAll(/<(script|link)\b[^>]*>/gi)].flatMap(([tag, type]) => {
+  if (type.toLowerCase() === 'script') {
+    const url = attribute(tag, 'src');
+    return url ? [url] : [];
+  }
+  const rel = (attribute(tag, 'rel') ?? '').toLowerCase().split(/\s+/);
+  const as = (attribute(tag, 'as') ?? '').toLowerCase();
+  const executable = rel.includes('stylesheet') || rel.includes('modulepreload') ||
+    (rel.includes('preload') && (as === 'script' || as === 'style'));
+  const url = executable ? attribute(tag, 'href') : null;
+  return url ? [url] : [];
+});
 assert(links.length >= 2, 'Expected script and stylesheet assets in HTML.');
 for (const url of links) {
   assert(!/^https?:\/\//i.test(url), 'Unexpected external script/style asset: ' + url);
