@@ -102,6 +102,79 @@ test('invalid local profile names have attached error and return focus to input'
   await expect(name).toHaveAttribute('aria-describedby', 'profile-name-error');
 });
 
+
+test('Y2K titlebar links to the creator and shows the real GitHub repository star count', async ({ page }) => {
+  let requests = 0;
+  await page.route('https://api.github.com/repos/ThunderKhan/meowfolio', async (route) => {
+    requests += 1;
+    await route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ stargazers_count: 27 }),
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: /open my scrapbook/i }).click();
+
+  const nav = page.getByRole('navigation', { name: 'Primary navigation' });
+  await expect(nav.getByRole('button', { name: 'Home' })).toBeVisible();
+  await expect(nav.getByRole('button', { name: 'Cats' })).toBeVisible();
+  const repoLink = nav.getByRole('link', { name: /meowfolio on github, 27 stars/i });
+  await expect(repoLink).toBeVisible();
+  await expect(repoLink).toContainText('★ 27');
+  await expect(repoLink).toHaveAttribute('href', 'https://github.com/ThunderKhan/meowfolio');
+  await expect(repoLink).toHaveAttribute('target', '_blank');
+  await expect(page.getByRole('link', { name: /thunderkhan/i }))
+    .toHaveAttribute('href', 'https://github.com/ThunderKhan');
+  expect(requests).toBe(1);
+
+  // A second page visit in the same browser session reuses the 15-minute
+  // metadata cache instead of rate-limiting GitHub's public API.
+  await page.reload();
+  await expect(nav.getByRole('link', { name: /27 stars/i })).toBeVisible();
+  expect(requests).toBe(1);
+});
+
+test('GitHub rate limit never displays invented zero stars or disables navigation', async ({ page }) => {
+  await page.route('https://api.github.com/repos/ThunderKhan/meowfolio', (route) =>
+    route.fulfill({ status: 403, contentType: 'application/json', body: '{}' }));
+  await page.goto('/');
+  await page.getByRole('button', { name: /open my scrapbook/i }).click();
+  const nav = page.getByRole('navigation', { name: 'Primary navigation' });
+  const repo = nav.getByRole('link', { name: /meowfolio source code on github/i });
+  await expect(repo).toBeVisible();
+  await expect(repo).toContainText('★');
+  await expect(repo).not.toContainText('★ 0');
+});
+
+test('pixel navbar remains tappable and single-row at 320px through desktop', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /open my scrapbook/i }).click();
+  for (const width of [320, 390, 760, 1024, 1728]) {
+    await page.setViewportSize({ width, height: 844 });
+    const result = await page.locator('.meow-header-titlebar').evaluate((titlebar) => {
+      const nav = titlebar.querySelector('.meow-nav')!;
+      const controls = Array.from(nav.querySelectorAll<HTMLElement>('button, a'))
+        .filter((item) => getComputedStyle(item).display !== 'none');
+      const rects = controls.map((node) => node.getBoundingClientRect());
+      return {
+        verticalClipping: titlebar.scrollHeight > titlebar.clientHeight + 2,
+        horizontalOverflow: document.documentElement.scrollWidth - innerWidth,
+        heights: rects.map((rect) => rect.height),
+        sameRow: rects.every((rect) => Math.abs(rect.top - rects[0].top) <= 1),
+        overlaps: rects.some((rect, index) =>
+          index > 0 && rect.left < rects[index - 1].right - 1),
+        links: controls.length,
+      };
+    });
+    expect(result.links).toBe(width <= 760 ? 3 : 4);
+    expect(result.heights.every((height) => height >= 44)).toBe(true);
+    expect(result.horizontalOverflow).toBeLessThanOrEqual(2);
+    expect(result.sameRow).toBe(true);
+    expect(result.overlaps).toBe(false);
+    expect(result.verticalClipping).toBe(false);
+  }
+});
+
 test('ordinary production scan requires consent before model download', async ({ page }) => {
   const modelRequests: string[] = [];
   page.on('request', (request) => {
