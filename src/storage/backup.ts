@@ -126,7 +126,11 @@ export async function createBackupDocument(contents: BackupContents): Promise<st
     encounters,
     pendingPhotos,
   };
-  return JSON.stringify(document);
+  const json = JSON.stringify(document);
+  if (new Blob([json]).size > MAX_BACKUP_FILE_BYTES) {
+    throw new Error('The backup exceeds the 200 MB mobile import limit. Try exporting on a computer.');
+  }
+  return json;
 }
 
 /**
