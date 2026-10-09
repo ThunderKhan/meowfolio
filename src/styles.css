@@ -2422,3 +2422,9 @@ details > summary::marker {
 @media (prefers-reduced-motion: reduce) {
   .meow-nav-link, .meow-nav-github { transition: none; }
 }
+
+
+/* Lightweight accessible loading placeholder for lazily loaded feature chunks. */
+.meow-feature-skeleton { min-height: 130px; contain: layout paint; }
+.meow-skeleton-line { width: 100%; height: 12px; background: #f4b8d9; border: 1px solid #d684ad; }
+.meow-skeleton-short { width: 55%; }
