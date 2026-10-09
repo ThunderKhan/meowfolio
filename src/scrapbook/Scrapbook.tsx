@@ -23,23 +23,16 @@ interface EncounterView {
   photoUrl: string;
 }
 
-function formatDay(timestamp: number): string {
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(timestamp);
-}
+// Reuse locale formatters across cards and encounters.
+const dayFormatter = new Intl.DateTimeFormat(undefined, {
+  year: 'numeric', month: 'short', day: 'numeric',
+});
+const momentFormatter = new Intl.DateTimeFormat(undefined, {
+  year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+});
+function formatDay(timestamp: number): string { return dayFormatter.format(timestamp); }
+function formatMoment(timestamp: number): string { return momentFormatter.format(timestamp); }
 
-function formatMoment(timestamp: number): string {
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(timestamp);
-}
 
 const CAT_PAGE_SIZE = 12;
 
@@ -387,6 +380,7 @@ function CatDetail({
                   src={galleryPhotoUrl}
                   alt={'Photo of ' + cat.name + ', memory ' + (galleryIndex + 1)}
                   className="aspect-square w-full object-contain"
+                  decoding="async"
                 />
               ) : (
                 <div className="grid aspect-square place-items-center bg-[#ffd8ed] text-3xl">
@@ -477,6 +471,7 @@ function CatDetail({
                     src={photoUrl}
                     alt={'Encounter with ' + cat.name + ' on ' + formatDay(encounter.timestamp)}
                     className="aspect-square w-full object-contain"
+                    loading="lazy" decoding="async"
                   />
                   <span className="pixel-photo-label">{formatDay(encounter.timestamp)}</span>
                   <button type="button" className="photo-expand-button" onClick={() => setViewPhotoIndex(index)}>⤢ View full photo</button>
