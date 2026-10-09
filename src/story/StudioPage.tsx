@@ -2,14 +2,17 @@ import { useEffect, useState } from 'react';
 import type { MeowfolioRepository } from '../storage/repository';
 import type { CatRecord, EncounterRecord } from '../storage/types';
 import { StoryStudio } from './StoryStudio';
+import { SiteNav } from '../navigation/SiteNav';
 
 export function StudioPage({
-  repository, catId, ownerName, onBack,
+  repository, catId, ownerName, onBack, onHome, onCats,
 }: {
   repository: MeowfolioRepository;
   catId: string;
   ownerName: string | null;
   onBack: () => void;
+  onHome: () => void;
+  onCats: () => void;
 }) {
   const [entry, setEntry] = useState<{ cat: CatRecord; encounter: EncounterRecord } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +55,7 @@ export function StudioPage({
               {entry ? entry.cat.name + '’s story' : 'Story Studio'}
             </h1>
           </div>
+          <SiteNav onHome={onHome} onCats={onCats} current="studio" />
         </header>
         {error ? (
           <section className="pixel-window mt-6 p-6" role="alert">

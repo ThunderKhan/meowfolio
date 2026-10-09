@@ -10,6 +10,7 @@ interface ScrapbookProps {
   onSpotCat: () => void;
   ownerName: string | null;
   onCreateStory: (catId: string) => void;
+  navigation: { target: 'home' | 'cats'; serial: number };
 }
 
 interface CatCardView {
@@ -89,7 +90,7 @@ function useCatCards(
 
 function EmptyCollection({ onSpotCat, ownerName }: { onSpotCat: () => void; ownerName: string | null }) {
   return (
-    <section className="pixel-window mt-6 empty-scrapbook-panel" aria-labelledby="empty-scrapbook-title">
+    <section id="cat-collection" className="pixel-window mt-6 empty-scrapbook-panel" aria-labelledby="empty-scrapbook-title">
       <div className="pixel-window-title">
         <span>♥ meowfolio.exe</span>
         <span className="pixel-window-hint">Your collection</span>
@@ -141,7 +142,7 @@ function Collection({
 }) {
   return (
     <>
-      <section className="scrapbook-collection-heading mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <section id="cat-collection" className="scrapbook-collection-heading mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="pixel-kicker">★ LOCAL CAT MEMORY ARCHIVE ★</p>
           <h2 className="pixel-heading mt-2 text-4xl sm:text-5xl">my meowfolio</h2>
@@ -476,9 +477,24 @@ function CatDetail({
   );
 }
 
-export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCreateStory }: ScrapbookProps) {
+export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCreateStory, navigation }: ScrapbookProps) {
   const { loading, cards, error } = useCatCards(repository, refreshKey);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+
+  // A navbar destination is an explicit request to leave any open cat detail.
+  useEffect(() => {
+    if (navigation.serial > 0) setSelectedCatId(null);
+  }, [navigation.serial]);
+
+  useEffect(() => {
+    if (selectedCatId || navigation.target !== 'cats' || navigation.serial === 0) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById('cat-collection')?.scrollIntoView({
+        block: 'start', behavior: 'instant',
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [navigation.serial, navigation.target, selectedCatId]);
 
   const selectedExists = useMemo(
     () => !selectedCatId || cards.some(({ cat }) => cat.id === selectedCatId),
