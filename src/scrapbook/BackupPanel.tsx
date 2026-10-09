@@ -61,7 +61,7 @@ export function BackupPanel({ repository, onImported }: {
   }
 
   return (
-    <details className="pixel-window mt-2 sm:mt-7" aria-label="Back up or restore scrapbook">
+    <details className="pixel-window backup-panel mt-2 sm:mt-7" aria-label="Back up or restore scrapbook">
       <summary className="cursor-pointer px-3 py-2 font-bold text-[#711447] sm:p-4">
         ♡ Back up or restore my cats
       </summary>

@@ -144,10 +144,10 @@ function Collection({
       <section className="scrapbook-collection-heading mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="pixel-kicker">★ LOCAL CAT MEMORY ARCHIVE ★</p>
-          <h1 className="pixel-heading mt-2 text-4xl sm:text-5xl">my meowfolio</h1>
+          <h2 className="pixel-heading mt-2 text-4xl sm:text-5xl">my meowfolio</h2>
           <p className="mt-3 text-sm leading-6 text-[#6d3454]">
             {ownerName ? ownerName + '’s collection · ' : ''}{cards.length} {cards.length === 1 ? 'cat' : 'cats'} saved in this browser · click a
-            photo to open their memory log.
+            cat to open their memory log.
           </p>
         </div>
         <button type="button" className="pixel-primary shrink-0" onClick={onSpotCat}>

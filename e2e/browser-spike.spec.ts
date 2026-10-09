@@ -890,6 +890,20 @@ test('repeat cat encounter photos form a thumbnail carousel and a navigable full
   await expect(page.getByText('Photo 2 of 2')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Show photo 2 of 2' })).toHaveAttribute('aria-pressed', 'true');
 
+  // Two competing stickers formerly occupied the bottom of narrow Polaroids.
+  // The fullscreen action must not cover the date at desktop or phone sizes.
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    const overlaps = await page.locator('.pixel-memory-card').first().evaluate((card) => {
+      const date = card.querySelector('.pixel-photo-label')?.getBoundingClientRect();
+      const action = card.querySelector('.photo-expand-button')?.getBoundingClientRect();
+      if (!date || !action) throw new Error('Missing memory photo controls');
+      return Math.max(date.left, action.left) < Math.min(date.right, action.right) &&
+        Math.max(date.top, action.top) < Math.min(date.bottom, action.bottom);
+    });
+    expect(overlaps).toBe(false);
+  }
+
   await page.getByRole('button', { name: 'View full photo' }).first().click();
   const viewer = page.getByRole('dialog', { name: /View full photo/ });
   await expect(viewer.getByText('Photo 2 of 2')).toBeVisible();
@@ -905,6 +919,33 @@ test('repeat cat encounter photos form a thumbnail carousel and a navigable full
   await expect(page.getByRole('heading', { name: 'encounter log' })).toBeVisible();
 });
 
+
+
+test('single-cat collection uses a centered featured card across phone and desktop widths', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  for (const width of [390, 1280, 1728]) {
+    await page.setViewportSize({ width, height: 900 });
+    const metrics = await page.locator('.scrapbook-cards').evaluate((grid) => {
+      const card = grid.querySelector('.pixel-cat-card');
+      if (!card) throw new Error('Missing featured cat');
+      const parent = grid.getBoundingClientRect();
+      const child = card.getBoundingClientRect();
+      return {
+        cardCount: grid.children.length,
+        centerDifference: Math.abs((child.left + child.right) / 2 - (parent.left + parent.right) / 2),
+        cardWidth: child.width,
+        documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    });
+    expect(metrics.cardCount).toBe(1);
+    expect(metrics.centerDifference).toBeLessThanOrEqual(2);
+    expect(metrics.cardWidth).toBeGreaterThan(270);
+    expect(metrics.documentOverflow).toBeLessThanOrEqual(2);
+  }
+});
 
 test('collection reads only cover photos rather than every archived encounter blob', async ({ page, request }) => {
   const photo = await catPhoto(request);
