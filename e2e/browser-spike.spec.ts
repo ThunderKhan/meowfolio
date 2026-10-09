@@ -947,6 +947,38 @@ test('single-cat collection uses a centered featured card across phone and deskt
   }
 });
 
+
+test('navbar Cats closes open memory and Home returns to the scrapbook header', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  const nav = page.getByRole('navigation', { name: 'Primary navigation' });
+  await expect(page.getByRole('heading', { name: 'Mochi', exact: true })).toBeVisible();
+  await nav.getByRole('button', { name: 'Cats' }).click();
+  await expect(page.getByRole('region', { name: 'Saved cats' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Open Mochi/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'encounter log' })).toHaveCount(0);
+  await expect(nav.getByRole('button', { name: 'Cats' })).toHaveAttribute('aria-current', 'page');
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await nav.getByRole('button', { name: 'Home' }).click();
+  await expect(nav.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(2);
+  await expect(page.getByRole('heading', { name: /meowfolio \/\/ local save file/ })).toBeVisible();
+});
+
+test('studio titlebar navigation returns to the saved cat collection', async ({ page, request }) => {
+  const photo = await catPhoto(request);
+  await page.goto('/?skipWelcome=1&mockAi=single');
+  await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: /create a story card/i }).click();
+  await expect(page).toHaveURL(/\/studio\//);
+  const nav = page.getByRole('navigation', { name: 'Primary navigation' });
+  await nav.getByRole('button', { name: 'Cats' }).click();
+  await expect(page).not.toHaveURL(/\/studio\//);
+  await expect(page.getByRole('button', { name: /Open Mochi/ })).toBeVisible();
+});
+
 test('collection reads only cover photos rather than every archived encounter blob', async ({ page, request }) => {
   const photo = await catPhoto(request);
   await page.goto('/?skipWelcome=1&mockAi=single');
