@@ -952,6 +952,8 @@ test('navbar Cats closes open memory and Home returns to the scrapbook header', 
   const photo = await catPhoto(request);
   await page.goto('/?skipWelcome=1&mockAi=single');
   await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.getByRole('button', { name: /Open Mochi/ }).click();
   const nav = page.getByRole('navigation', { name: 'Primary navigation' });
   await expect(page.getByRole('heading', { name: 'Mochi', exact: true })).toBeVisible();
   await nav.getByRole('button', { name: 'Cats' }).click();
@@ -971,6 +973,8 @@ test('studio titlebar navigation returns to the saved cat collection', async ({ 
   const photo = await catPhoto(request);
   await page.goto('/?skipWelcome=1&mockAi=single');
   await saveFirstCat(page, photo, 'Mochi');
+  await page.getByRole('button', { name: 'Back to collection' }).click();
+  await page.getByRole('button', { name: /Open Mochi/ }).click();
   await page.getByRole('button', { name: /make story card/i }).click();
   await expect(page).toHaveURL(/\/studio\//);
   const nav = page.getByRole('navigation', { name: 'Primary navigation' });
