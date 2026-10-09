@@ -20,9 +20,27 @@ Meowfolio is a static Vite/React app served by Vercel's edge CDN. The cat databa
 | Minification | Existing production Vite build minifies JS/CSS. No competing minification pipeline or extra dependency added. |
 | Lighthouse | Added mobile and desktop Lighthouse lab workflow on the actual Vite production build, with downloadable JSON reports and a printed metrics summary. Scores are lab-only and intentionally not fabricated or enforced as a flaky deployment gate. |
 
+## Lighthouse baseline and image finding
+
+The first CI Lighthouse run, **before the compact favicon change**, recorded
+mobile Performance 78, Accessibility 95, Best Practices 100, SEO 92, with
+mobile FCP 1.4 s, LCP 6.2 s, TBT 0 ms and CLS 0. Desktop scored
+Performance 98, Accessibility 95, Best Practices 100 and SEO 92, with
+FCP 0.3 s, LCP 1.1 s, TBT 0 ms, and CLS 0. These are **synthetic**
+GitHub-hosted Chromium measurements, not field results.
+
+That report showed a 953,430-byte pixel-cat favicon fetched on first load.
+The same original RGBA artwork is now downscaled with nearest-neighbor
+pixel-art interpolation to an embedded 128×128 palette PNG inside a
+self-contained ~4.7 KB SVG, preferred for modern browser tabs. The
+full-resolution `/favicon.png` remains unchanged as a PNG fallback and
+Apple home-screen icon. The separate OG image also remains unchanged.
+The new browser smoke test verifies that both original and compact
+icons load and decode. The follow-up Lighthouse run compares their impact.
+
 ## Out-of-scope or inappropriate requests
 
-- **Compress all images:** Existing original cat photographs are private, potentially irreplaceable user data. The app already creates smaller JPEG crops for inference; changing originals, JPEG quality or existing IndexedDB Blobs silently would be a data-loss regression. Native lazy image decoding and paged cover reads reduce memory pressure without recompressing or replacing originals. A future separately-tested thumbnail store could be added with an opt-in migration. The user-provided icon and social artwork are also left unaltered.
+- **Compress all images:** Existing original cat photographs are private, potentially irreplaceable user data. The app already creates smaller JPEG crops for inference; changing originals, JPEG quality or existing IndexedDB Blobs silently would be a data-loss regression. Native lazy image decoding and paged cover reads reduce memory pressure without recompressing or replacing originals. A future separately-tested thumbnail store could be added with an opt-in migration. A new compact favicon is derived from the original without deleting it; the social artwork remains unaltered.
 - **Database connection pooling:** IndexedDB is a same-browser transactional database, not a server database. One reused browser connection and atomic transactions are the appropriate pattern.
 - **Load balancer:** Vercel already operates the static CDN; there are no app servers to balance.
 - **Fix N+1 remote database queries:** No remote database exists. IndexedDB covers use keyed requests in one transaction and fetching is bounded by a UI page.
