@@ -2263,3 +2263,15 @@ details > summary::marker {
   grid-template-columns: minmax(0, min(100%, 420px));
   justify-content: center;
 }
+
+
+/* Keep the readable 44px controls while preserving the phone's compact
+   first-screen scrapbook composition at 320–390px. */
+@media (max-width: 760px) {
+  .empty-scrapbook-panel { margin-top: 12px; }
+  .home-page > footer {
+    margin-top: 9px;
+    padding-top: 8px;
+    padding-bottom: 6px;
+  }
+}
