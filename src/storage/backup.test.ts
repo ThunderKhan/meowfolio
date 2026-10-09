@@ -65,7 +65,7 @@ describe('private Meowfolio portable backup', () => {
         readAttempts += 1;
         throw new Error('Must not read the oversized photo');
       },
-    } as Blob;
+    } as unknown as Blob;
     contents.encounters[0].photo = oversized;
     await expect(createBackupDocument(contents)).rejects.toThrow(/exceeds the 200 MB/);
     expect(readAttempts).toBe(0);
