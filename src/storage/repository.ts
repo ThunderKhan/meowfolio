@@ -240,6 +240,44 @@ export class MeowfolioRepository {
     }
   }
 
+  /**
+   * Read a bounded collection page. Cat records are lightweight metadata; only
+   * the selected page's original cover Blobs are read from IndexedDB.
+   * No schema migration is needed and the existing history indexes remain.
+   * Pages are sorted newest-first to match the collection and manual picker.
+   */
+  async getCatSummariesPage(limit = 12, offset = 0): Promise<{
+    summaries: CatSummary[];
+    total: number;
+  }> {
+    const size = Number.isFinite(limit) ? Math.max(1, Math.min(48, Math.floor(limit))) : 12;
+    const start = Number.isFinite(offset) ? Math.max(0, Math.floor(offset)) : 0;
+    const db = await this.open();
+    const tx = db.transaction([CATS, ENCOUNTERS], 'readonly');
+    const done = transactionDone(tx);
+    try {
+      const all = (await request(tx.objectStore(CATS).getAll())) as CatRecord[];
+      const selected = all.sort((a, b) => b.lastSeenAt - a.lastSeenAt).slice(start, start + size);
+      const records = tx.objectStore(ENCOUNTERS);
+      const covers = await Promise.all(selected.map(
+        (cat) => request(records.get(cat.coverEncounterId)) as Promise<EncounterRecord | undefined>,
+      ));
+      await done;
+      return {
+        total: all.length,
+        summaries: selected.flatMap((cat, index) => {
+          const cover = covers[index];
+          return cover?.catId === cat.id
+            ? [{ cat: cloneCat(cat), coverPhoto: cover.photo ?? cover.crop }]
+            : [];
+        }),
+      };
+    } catch (error) {
+      try { await done; } catch { /* Keep original read failure. */ }
+      throw error;
+    }
+  }
+
   async listEncountersForCat(catId: string): Promise<EncounterRecord[]> {
     const db = await this.open();
     const tx = db.transaction(ENCOUNTERS, 'readonly');
