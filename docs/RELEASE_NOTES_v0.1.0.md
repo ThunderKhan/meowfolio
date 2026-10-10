@@ -2,7 +2,7 @@
 
 The first tagged public release of **Meowfolio**, a playful, privacy-first, Y2K pixel scrapbook for the real cats you meet outdoors. Built for **Hacktoberfest 2026 — Open-Source AI Challenge, Week 1: Touch Grass**.
 
-**[Try the live app](https://mymeowfolio.vercel.app/)** · **[Read the README](README.md)** · **[Touch Grass notes](docs/TOUCH_GRASS_SUBMISSION.md)**
+**[Try the live app](https://mymeowfolio.vercel.app/)** · **[Read the README](https://github.com/ThunderKhan/meowfolio/blob/v0.1.0/README.md)** · **[Touch Grass notes](https://github.com/ThunderKhan/meowfolio/blob/v0.1.0/docs/TOUCH_GRASS_SUBMISSION.md)**
 
 ## What's included
 
@@ -16,7 +16,7 @@ The first tagged public release of **Meowfolio**, a playful, privacy-first, Y2K 
 
 ## A deliberate safety limitation
 
-**Automatic “possible familiar cat” suggestions are disabled.** A frozen-policy evaluation found a false familiar-cat suggestion on a held-out negative. Rather than claiming reliable recognition, the app requires a person to choose the existing cat manually. Read the [evaluation](docs/evaluation-results/2026-10-08-cat-individuals.md).
+**Automatic “possible familiar cat” suggestions are disabled.** A frozen-policy evaluation found a false familiar-cat suggestion on a held-out negative. Rather than claiming reliable recognition, the app requires a person to choose the existing cat manually. Read the [evaluation](https://github.com/ThunderKhan/meowfolio/blob/v0.1.0/docs/evaluation-results/2026-10-08-cat-individuals.md).
 
 ## Try it
 
@@ -26,7 +26,7 @@ Open [mymeowfolio.vercel.app](https://mymeowfolio.vercel.app), select or photogr
 
 ## Open-source license and credits
 
-Meowfolio's original source code is released under the **[Mozilla Public License 2.0](LICENSE)**, which retains file-level copyleft while allowing reuse and commercial applications. Model creators, ONNX conversions and major runtime dependencies are credited in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Your personal cat photographs and private backups are not part of this software license.
+Meowfolio's original source code is released under the **[Mozilla Public License 2.0](https://github.com/ThunderKhan/meowfolio/blob/v0.1.0/LICENSE)**, which retains file-level copyleft while allowing reuse and commercial applications. Model creators, ONNX conversions and major runtime dependencies are credited in [THIRD_PARTY_NOTICES.md](https://github.com/ThunderKhan/meowfolio/blob/v0.1.0/THIRD_PARTY_NOTICES.md). Your personal cat photographs and private backups are not part of this software license.
 
 ## Validation
 
