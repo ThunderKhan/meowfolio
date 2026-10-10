@@ -1,0 +1,59 @@
+name: Publish v0.1.0 Touch Grass Edition
+
+on:
+  workflow_run:
+    workflows:
+      - Verify Meowfolio
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    # Do not publish from PR CI, failed CI, a branch other than main,
+    # or an outdated commit that no longer matches the default branch.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main at the verified commit
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Publish versioned release only for verified latest main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          CHECKED_OUT_SHA="$(git rev-parse HEAD)"
+          if [ "$CHECKED_OUT_SHA" != "$TARGET_SHA" ]; then
+            echo "Skipping stale successful workflow: verified $TARGET_SHA but main is $CHECKED_OUT_SHA"
+            exit 0
+          fi
+
+          if gh release view v0.1.0 --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "v0.1.0 already exists; leaving the immutable release alone."
+            exit 0
+          fi
+
+          gh release create v0.1.0 \
+            --repo "$GH_REPO" \
+            --target "$TARGET_SHA" \
+            --title "v0.1.0 — Touch Grass Edition" \
+            --notes-file docs/RELEASE_NOTES_v0.1.0.md
+
+          gh release view v0.1.0 --repo "$GH_REPO" \
+            --json tagName,name,isDraft,isPrerelease,url,targetCommitish \
+            --jq '{tagName, name, isDraft, isPrerelease, url, targetCommitish}'
