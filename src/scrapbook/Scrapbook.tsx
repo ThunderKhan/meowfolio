@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { MeowfolioRepository } from '../storage/repository';
 import { PhotoViewer } from './PhotoViewer';
 import type { CatRecord, EncounterRecord } from '../storage/types';
@@ -11,6 +11,9 @@ interface ScrapbookProps {
   ownerName: string | null;
   onCreateStory: (catId: string) => void;
   navigation: { target: 'home' | 'cats'; serial: number };
+  selectedCatId: string | null;
+  onOpenCat: (catId: string) => void;
+  onBackCat: () => void;
 }
 
 interface CatCardView {
@@ -504,40 +507,30 @@ function CatDetail({
   );
 }
 
-export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCreateStory, navigation }: ScrapbookProps) {
+export function Scrapbook({
+  repository, refreshKey, onSpotCat, ownerName, onCreateStory, navigation,
+  selectedCatId, onOpenCat, onBackCat,
+}: ScrapbookProps) {
   const { loading, cards, total, error, hasMore, loadMore } = useCatCards(repository, refreshKey);
-  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
 
-  // A navbar destination is an explicit request to leave any open cat detail.
+  // The route, not a private component state, owns the open cat. Browser
+  // Back/Forward and refresh can therefore restore the same detail screen.
   useEffect(() => {
-    if (navigation.serial > 0) setSelectedCatId(null);
-  }, [navigation.serial]);
-
-  useEffect(() => {
-    if (selectedCatId || navigation.target !== 'cats' || navigation.serial === 0) return;
+    if (selectedCatId || navigation.target !== 'cats' || navigation.serial === 0 || loading) return;
     const frame = window.requestAnimationFrame(() => {
       document.getElementById('cat-collection')?.scrollIntoView({
         block: 'start', behavior: 'instant',
       });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [navigation.serial, navigation.target, selectedCatId]);
-
-  const selectedExists = useMemo(
-    () => !selectedCatId || cards.some(({ cat }) => cat.id === selectedCatId),
-    [cards, selectedCatId],
-  );
-
-  useEffect(() => {
-    if (!selectedExists) setSelectedCatId(null);
-  }, [selectedExists]);
+  }, [navigation.serial, navigation.target, selectedCatId, loading]);
 
   if (selectedCatId) {
     return (
       <CatDetail
         repository={repository}
         catId={selectedCatId}
-        onBack={() => setSelectedCatId(null)}
+        onBack={onBackCat}
         onSpotCat={onSpotCat}
         ownerName={ownerName}
         onCreateStory={onCreateStory}
@@ -571,6 +564,6 @@ export function Scrapbook({ repository, refreshKey, onSpotCat, ownerName, onCrea
   if (cards.length === 0) return <EmptyCollection onSpotCat={onSpotCat} ownerName={ownerName} />;
 
   return <Collection cards={cards} total={total} hasMore={hasMore}
-    onLoadMore={loadMore} onOpen={setSelectedCatId} onSpotCat={onSpotCat}
+    onLoadMore={loadMore} onOpen={onOpenCat} onSpotCat={onSpotCat}
     ownerName={ownerName} />;
 }
