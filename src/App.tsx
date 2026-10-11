@@ -135,7 +135,8 @@ export function App() {
       setInitialPendingId(null);
     }
     if (next.screen === 'home' || next.screen === 'cats') {
-      setNavigation((current) => ({ target: next.screen, serial: current.serial + 1 }));
+      const target = next.screen;
+      setNavigation((current) => ({ target, serial: current.serial + 1 }));
     } else if (next.screen === 'cat') {
       setNavigation((current) => ({ target: 'cats', serial: current.serial + 1 }));
     }
@@ -147,8 +148,9 @@ export function App() {
     if (current.screen === next.screen &&
         (!('catId' in current) || !('catId' in next) || current.catId === next.catId)) {
       if (next.screen === 'home' || next.screen === 'cats') {
-        setNavigation((state) => ({ target: next.screen, serial: state.serial + 1 }));
-        if (next.screen === 'home') window.scrollTo({ top: 0, behavior: 'instant' });
+        const target = next.screen;
+        setNavigation((state) => ({ target, serial: state.serial + 1 }));
+        if (target === 'home') window.scrollTo({ top: 0, behavior: 'instant' });
       }
       return;
     }
