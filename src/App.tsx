@@ -13,6 +13,7 @@ import { PendingPhotos } from './scrapbook/PendingPhotos';
 import { BackupPanel } from './scrapbook/BackupPanel';
 import { ProfilePanel } from './profile/ProfilePanel';
 import { SiteNav, CREATOR_GITHUB_URL } from './navigation/SiteNav';
+import { hasInAppBack, markEntry, readRoute, writeRoute, type AppRoute } from './navigation/routes';
 import { readLocalProfile, type LocalProfile } from './profile/localProfile';
 import { MeowfolioRepository } from './storage/repository';
 
@@ -90,13 +91,18 @@ export function App() {
   const homeGalleryRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<LocalProfile | null>(readLocalProfile);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [route, setRoute] = useState<AppRoute>(() => {
+    const initial = readRoute(window.location);
+    // Scan sessions contain ephemeral camera/files and cannot be reconstructed
+    // from a pasted URL; a direct scan link starts safely on Home.
+    return initial.screen === 'scan' ? { screen: 'home' } : initial;
+  });
+  const routeRef = useRef<AppRoute>(route);
   const [navigation, setNavigation] = useState<{ target: 'home' | 'cats'; serial: number }>({
-    target: 'home', serial: 0,
+    target: route.screen === 'cats' || route.screen === 'cat' ? 'cats' : 'home',
+    serial: route.screen === 'cats' ? 1 : 0,
   });
-  const [studioCatId, setStudioCatId] = useState<string | null>(() => {
-    const match = window.location.pathname.match(/^\/studio\/([^/]+)\/?$/);
-    return match ? decodeURIComponent(match[1]) : null;
-  });
+  const studioCatId = route.screen === 'studio' ? route.catId : null;
   const [ai, setAi] = useState<AiGateway | null>(null);
   const reusableAiRef = useRef<AiGateway | null>(null);
   const [scanCats, setScanCats] = useState<CatReference[]>([]);
@@ -116,32 +122,79 @@ export function App() {
     }
   });
 
+  function applyRoute(next: AppRoute): void {
+    routeRef.current = next;
+    setRoute(next);
+    setProfileOpen(false);
+    if (next.screen !== 'scan') {
+      // Invalidate any pending asynchronous catalog load when leaving Scan.
+      scanStartVersionRef.current += 1;
+      setScanning(false);
+      setAi(null);
+      setInitialScanPhoto(null);
+      setInitialPendingId(null);
+    }
+    if (next.screen === 'home' || next.screen === 'cats') {
+      const target = next.screen;
+      setNavigation((current) => ({ target, serial: current.serial + 1 }));
+    } else if (next.screen === 'cat') {
+      setNavigation((current) => ({ target: 'cats', serial: current.serial + 1 }));
+    }
+    if (next.screen !== 'cats') window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function navigateTo(next: AppRoute, mode: 'push' | 'replace' = 'push'): void {
+    const current = routeRef.current;
+    if (current.screen === next.screen &&
+        (!('catId' in current) || !('catId' in next) || current.catId === next.catId)) {
+      if (next.screen === 'home' || next.screen === 'cats') {
+        const target = next.screen;
+        setNavigation((state) => ({ target, serial: state.serial + 1 }));
+        if (target === 'home') window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+      return;
+    }
+    writeRoute(next, mode);
+    applyRoute(next);
+  }
+
+  function navigateBack(fallback: AppRoute): void {
+    // A directly loaded deep link has no known in-app predecessor. Never send
+    // its own Back to scrapbook button to an unrelated external website.
+    if (hasInAppBack()) window.history.back();
+    else navigateTo(fallback, 'replace');
+  }
+
   useEffect(() => {
+    markEntry();
+    if (readRoute(window.location).screen === 'scan') {
+      writeRoute({ screen: 'home' }, 'replace');
+    }
     const handlePop = () => {
-      const match = window.location.pathname.match(/^\/studio\/([^/]+)\/?$/);
-      setStudioCatId(match ? decodeURIComponent(match[1]) : null);
+      const next = readRoute(window.location);
+      const current = routeRef.current;
+      if (next.screen === current.screen &&
+          (!('catId' in next) || !('catId' in current) || next.catId === current.catId)) return;
+      if (next.screen === 'scan') {
+        // Forward into a prior scan returns to a fresh picker, not a stale File.
+        void startScan(null, null, false);
+      } else {
+        applyRoute(next);
+      }
     };
     window.addEventListener('popstate', handlePop);
     return () => window.removeEventListener('popstate', handlePop);
+    // This listener reads routeRef and dispatches state; it does not capture a
+    // rendered route. Re-registering it during a scan could lose pop events.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function openStudio(catId: string) {
-    window.history.pushState({ screen: 'studio', catId }, '', '/studio/' + encodeURIComponent(catId) + window.location.search);
-    setStudioCatId(catId);
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    navigateTo({ screen: 'studio', catId });
   }
 
   function closeStudio() {
-    // Preserve the browser Back/Forward chain rather than pushing a duplicate
-    // home entry that would immediately reopen Studio on the next Back.
-    if (window.history.state?.screen === 'studio') {
-      window.history.back();
-    } else {
-      // Directly opened or restored Studio URL has no in-app predecessor.
-      window.history.replaceState({ screen: 'scrapbook' }, '', '/' + window.location.search);
-      setStudioCatId(null);
-    }
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    navigateBack({ screen: 'cats' });
   }
 
   const fixtureCats = useMemo(() => testCatalog(catalogMode), [catalogMode]);
@@ -206,19 +259,15 @@ export function App() {
   }, [e2eEnabled, refreshScanCats, repository]);
 
   function navigateHome(): void {
-    setProfileOpen(false);
-    setNavigation((current) => ({ target: 'home', serial: current.serial + 1 }));
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    navigateTo({ screen: 'home' });
   }
 
   function navigateCats(): void {
-    setProfileOpen(false);
-    setNavigation((current) => ({ target: 'cats', serial: current.serial + 1 }));
+    navigateTo({ screen: 'cats' });
   }
 
   function navigateFromStudio(target: 'home' | 'cats'): void {
-    setNavigation((current) => ({ target, serial: current.serial + 1 }));
-    closeStudio();
+    navigateTo({ screen: target });
   }
 
   function completeWelcome(): void {
@@ -230,8 +279,12 @@ export function App() {
     }
   }
 
-  async function startScan(photo: File | null = null, pendingId: string | null = null): Promise<void> {
+  async function startScan(
+    photo: File | null = null, pendingId: string | null = null, recordHistory = true,
+  ): Promise<void> {
     const version = ++scanStartVersionRef.current;
+    if (recordHistory) navigateTo({ screen: 'scan' });
+    else applyRoute({ screen: 'scan' });
     await refreshScanCats();
     // The user may have selected a newer photo while the catalog was loading.
     if (version !== scanStartVersionRef.current) return;
@@ -255,8 +308,16 @@ export function App() {
     setInitialScanPhoto(null);
     setInitialPendingId(null);
     setAi(null);
-    // The AI worker stays alive for another scan within this page session.
-    // ScanFlow invalidates outstanding requests on unmount.
+    // ScanFlow adds one temporary history entry for its multi-step Back
+    // interaction. Skip that entry AND the scan route on an explicit exit.
+    if (window.history.state?.meowfolioScan) {
+      window.history.go(-2);
+    } else if (hasInAppBack()) {
+      window.history.back();
+    } else {
+      navigateTo({ screen: 'home' }, 'replace');
+    }
+    // The AI worker stays reusable; ScanFlow cancels outstanding work on unmount.
   }
 
   function resetAiAfterTimeout(): void {
@@ -328,7 +389,7 @@ export function App() {
     );
   }
 
-  if (!welcomeComplete) {
+  if (!welcomeComplete && route.screen === 'home') {
     return (
       <main id="main-content" tabIndex={-1} className="welcome-screen">
         <section className="pixel-window welcome-card" aria-labelledby="welcome-title">
@@ -399,7 +460,7 @@ export function App() {
     );
   }
 
-  if (scanning && ai) {
+  if (route.screen === 'scan' && scanning && ai) {
     return (
       <Suspense fallback={<LoadingFeature title="Preparing your cat scan…" />}>
       <ScanFlow
@@ -417,6 +478,8 @@ export function App() {
       </Suspense>
     );
   }
+
+  if (route.screen === 'scan') return <LoadingFeature title="Preparing your cat scan…" />;
 
   return (
     <main id="main-content" tabIndex={-1} className="home-page mx-auto min-h-screen max-w-[96rem] px-4 py-6 sm:px-6 lg:px-8 sm:py-9">
@@ -496,6 +559,9 @@ export function App() {
         ownerName={profile?.displayName ?? null}
         onCreateStory={openStudio}
         navigation={navigation}
+        selectedCatId={route.screen === 'cat' ? route.catId : null}
+        onOpenCat={(catId) => navigateTo({ screen: 'cat', catId })}
+        onBackCat={() => navigateBack({ screen: 'cats' })}
       />
       </Suspense>
 

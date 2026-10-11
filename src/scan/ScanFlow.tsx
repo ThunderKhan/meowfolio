@@ -138,6 +138,7 @@ export function ScanFlow({
   const [location, setLocation] = useState<EncounterLocation | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'saved' | 'unavailable'>('idle');
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
+  const scanHistoryMarkerCreatedRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const acceptedInitialPhotoRef = useRef<File | null>(null);
@@ -604,17 +605,30 @@ export function ScanFlow({
   }, [initialPhoto]);
 
   useEffect(() => {
-    const marker = { meowfolioScan: true };
-    window.history.pushState(marker, '', window.location.href);
+    // This temporary entry lets Browser Back step through an unfinished scan
+    // without losing its selected photo. The app owns the actual screen route.
+    const marker = { ...window.history.state, meowfolioScan: true };
+    if (scanHistoryMarkerCreatedRef.current) {
+      // React StrictMode re-runs effects in development. Reuse the entry.
+      window.history.replaceState(marker, '', window.location.href);
+    } else if (!window.history.state?.meowfolioScan) {
+      window.history.pushState(marker, '', window.location.href);
+      scanHistoryMarkerCreatedRef.current = true;
+    } else {
+      scanHistoryMarkerCreatedRef.current = true;
+    }
 
     const onPopState = () => {
+      // When an explicit exit skips the scan entries, App handles the route.
+      // Do not push a new scan marker on a different screen.
+      if (new URLSearchParams(window.location.search).get('view') !== 'scan') return;
       const current = stateRef.current;
       if (current.step === 'preview' && !current.photo) {
         onExit();
         return;
       }
       goBack();
-      window.history.pushState(marker, '', window.location.href);
+      window.history.pushState({ ...window.history.state, meowfolioScan: true }, '', window.location.href);
     };
 
     window.addEventListener('popstate', onPopState);
@@ -624,7 +638,8 @@ export function ScanFlow({
       clearWarmTimers();
       cancelActive();
       if (window.history.state?.meowfolioScan) {
-        window.history.replaceState(null, '', window.location.href);
+        const { meowfolioScan: _marker, ...rest } = window.history.state;
+        window.history.replaceState(rest, '', window.location.href);
       }
     };
     // The state ref keeps browser Back behavior current without rebuilding the listener.

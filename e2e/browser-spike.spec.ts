@@ -806,12 +806,14 @@ test('studio is a dedicated same-tab screen and browser Back restores the scrapb
   await expect(page.getByRole('img', { name: /9 by 16 story preview/ })).toBeVisible();
   expect(tabs).toHaveLength(0);
   await page.goBack();
-  await expect(page).not.toHaveURL(/studio/);
-  await expect(page.getByRole('heading', { name: 'my meowfolio' })).toBeVisible();
-  await page.getByRole('button', { name: /Open Mochi, met 1 time/ }).click();
-  await page.getByRole('button', { name: 'Make story card' }).click();
+  await expect(page).toHaveURL(/view=cat/);
+  await expect(page.getByRole('heading', { name: 'Mochi', exact: true })).toBeVisible();
+  await page.goForward();
+  await expect(page).toHaveURL(/studio/);
+  await expect(page.getByRole('heading', { name: /Mochi.*story/i })).toBeVisible();
   await page.getByRole('button', { name: 'Back to scrapbook' }).click();
-  await expect(page).not.toHaveURL(/studio/);
+  await expect(page).toHaveURL(/view=cat/);
+  await expect(page.getByRole('heading', { name: 'Mochi', exact: true })).toBeVisible();
 });
 
 test('saved cat photos open an on-device pinch viewer and close without mutation', async ({ page, request }) => {
@@ -1175,7 +1177,9 @@ test('visual audit captures welcome, collection, profile, cat detail and studio 
   await page.screenshot({ path: 'audit-screenshots/09-studio-small-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Back to scrapbook' }).click();
-  await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
+  // Studio returns to the originating cat profile rather than jumping all
+  // the way to the collection; Browser Back restores the exact prior screen.
+  await expect(page).toHaveURL(/view=cat/);
   await expect(page.getByRole('heading', { name: 'Sunshine', exact: true })).toBeVisible();
   await page.screenshot({ path: 'audit-screenshots/08-cat-detail-mobile.png', fullPage: true });
 });
