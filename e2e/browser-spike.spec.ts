@@ -1177,7 +1177,9 @@ test('visual audit captures welcome, collection, profile, cat detail and studio 
   await page.screenshot({ path: 'audit-screenshots/09-studio-small-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Back to scrapbook' }).click();
-  await page.getByRole('button', { name: /Open Sunshine, met 1 time/ }).click();
+  // Studio returns to the originating cat profile rather than jumping all
+  // the way to the collection; Browser Back restores the exact prior screen.
+  await expect(page).toHaveURL(/view=cat/);
   await expect(page.getByRole('heading', { name: 'Sunshine', exact: true })).toBeVisible();
   await page.screenshot({ path: 'audit-screenshots/08-cat-detail-mobile.png', fullPage: true });
 });
